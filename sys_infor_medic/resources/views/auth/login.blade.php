@@ -2,15 +2,15 @@
 
 @section('content')
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Raleway:wght@700&display=swap');
 
     .full-height {
         position: relative;
         height: 100vh;
         background-image: url('{{ asset("images/LOGO.png") }}');
         background-repeat: no-repeat;
-        background-position: center;
-        background-size: 1000px 1000px;
+        background-position: center center;
+        background-size: 900px 900px;
         background-attachment: fixed;
     }
 
@@ -18,36 +18,8 @@
         content: "";
         position: absolute;
         inset: 0;
-        background-color: rgba(255, 255, 255, 0.75);
+        background-color: rgba(255, 255, 255, 0.7);
         z-index: 1;
-    }
-
-    .welcome-text {
-        position: absolute;
-        top: 60px;
-        width: 100%;
-        text-align: center;
-        z-index: 2;
-        animation: fadeIn 2s ease-in-out;
-    }
-
-    .welcome-text h1 {
-        font-size: 3.5rem;
-        font-family: 'Poppins', sans-serif;
-        color: #002147; /* Bleu marine */
-        margin-bottom: 0;
-    }
-
-    .welcome-text h2 {
-        font-size: 3rem;
-        color: #28a745; /* Vert */
-        font-family: 'Poppins', sans-serif;
-        margin-top: 0.5rem;
-    }
-
-    @keyframes fadeIn {
-        0% { opacity: 0; transform: translateY(-30px); }
-        100% { opacity: 1; transform: translateY(0); }
     }
 
     .login-box {
@@ -55,35 +27,41 @@
         z-index: 2;
         max-width: 450px;
         width: 100%;
-        background-color: #ffffff;
+        background-color: #fff;
         border: 2px solid #28a745;
         border-radius: 0.75rem;
         padding: 2rem;
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
-        transition: transform 0.4s ease;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
 
-    .login-box:hover {
-        transform: scale(1.02);
+    .welcome-text {
+        position: absolute;
+        top: 10%;
+        width: 100%;
+        z-index: 2;
+        text-align: center;
+        font-family: 'Raleway', sans-serif;
     }
 
-    .btn-success {
-        background-color: #28a745;
-        border: none;
-        font-weight: bold;
-        transition: background-color 0.3s ease;
+    .welcome-text h1 {
+        font-size: 3rem;
+        color: #003366; /* Bleu marine */
+        margin-bottom: 0.5rem;
     }
 
-    .btn-success:hover {
-        background-color: #218838;
+    .welcome-text h2 {
+        font-size: 2.5rem;
+        color: #28a745; /* Vert */
+        margin-top: 0;
     }
 </style>
 
 <div class="container d-flex justify-content-center align-items-center full-height">
     <div class="welcome-text">
-        <h1>Bienvenue sur votre plateforme</h1>
+        <h1>BIENVENUE SUR VOTRE PLATEFORME</h1>
         <h2>SMART-HEALTH</h2>
     </div>
+
     <div class="login-box">
         <h2 class="mb-4 text-center text-success">Connexion</h2>
         <form method="POST" action="/login">

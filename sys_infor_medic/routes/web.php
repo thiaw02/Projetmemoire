@@ -1,6 +1,12 @@
 <?php
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\{AuthController, AdminController, SecretaireController, MedecinController, InfirmierController, PatientController};
+use App\Http\Controllers\{AuthController, 
+    AdminController, 
+    SecretaireController, 
+    MedecinController, 
+    InfirmierController, 
+    PatientController
+};
 
 // Accueil
 Route::get('/', fn() => redirect('/login'));
