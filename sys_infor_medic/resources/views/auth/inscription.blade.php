@@ -77,15 +77,6 @@
     .btn-success:hover {
         background-color: #218838;
     }
-
-    .alert-success {
-        background-color: #d4edda;
-        color: #155724;
-        padding: 10px 15px;
-        border-radius: 5px;
-        margin-bottom: 15px;
-        border: 1px solid #c3e6cb;
-    }
 </style>
 
 <div class="container d-flex justify-content-center align-items-center full-height">
@@ -95,14 +86,6 @@
     </div>
     <div class="login-box">
         <h2 class="mb-4 text-center text-success">Connexion</h2>
-
-        {{-- ✅ Message après inscription --}}
-        @if(session('success'))
-            <div class="alert-success text-center">
-                {{ session('success') }}
-            </div>
-        @endif
-
         <form method="POST" action="/login">
             @csrf
             <div class="mb-3">
@@ -123,8 +106,13 @@
                     <option value="patient">Patient</option>
                 </select>
             </div>
-            <button type="submit" class="btn btn-success w-100">Se connecter</button>
-            <a href="/inscription" class="d-block text-center text-primary mt-3">S'inscrire</a>
+            <button type="submit" class="btn btn-success w-100">S'inscription</button>
+            <a href="/inscription" class="text-center block text-blue-600 hover:underline mt-2">
+        Se connecter
+    </a>
+
+
+
         </form>
     </div>
 </div>

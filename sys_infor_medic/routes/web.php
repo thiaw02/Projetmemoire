@@ -9,6 +9,8 @@ Route::get('/', fn() => redirect('/login'));
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+Route::get('/inscription', [AuthController::class, 'showRegistrationForm'])->name('register');
+Route::post('/inscription', [AuthController::class, 'register'])->name('register.submit');
 
 // Admin
 Route::prefix('admin')->group(function () {
@@ -43,3 +45,4 @@ Route::prefix('patient')->group(function () {
     Route::get('/rendezvous', [PatientController::class, 'rendezvous']);
     Route::get('/dossiermedical', [PatientController::class, 'dossier']);
 });
+
