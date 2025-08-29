@@ -13,6 +13,8 @@ return new class extends Migration
     {
         Schema::create('patients', function (Blueprint $table) {
             $table->id();
+            $table->string('nom');
+            $table->string('prenom');
             $table->foreignId('user_id')->constrained()->onDelete('cascade'); // Lien avec users
             $table->string('sexe');
             $table->date('date_naissance');

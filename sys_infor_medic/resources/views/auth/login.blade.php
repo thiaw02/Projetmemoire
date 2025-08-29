@@ -63,6 +63,15 @@
         margin-bottom: 15px;
         border: 1px solid #c3e6cb;
     }
+
+    .alert-danger {
+        background-color: #f8d7da;
+        color: #842029;
+        padding: 10px 15px;
+        border-radius: 5px;
+        margin-bottom: 15px;
+        border: 1px solid #f5c2c7;
+    }
 </style>
 
 <div class="container d-flex justify-content-center align-items-center full-height">
@@ -74,35 +83,38 @@
     <div class="login-box">
         <h2 class="mb-4 text-center text-success">Connexion</h2>
 
-        {{-- ✅ Message après inscription --}}
+        {{-- Message après inscription --}}
         @if(session('success'))
             <div class="alert-success text-center">
                 {{ session('success') }}
             </div>
         @endif
 
-        <form method="POST" action="/login">
+        {{-- Erreurs de validation --}}
+        @if($errors->any())
+            <div class="alert-danger">
+                <ul class="mb-0">
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
+        <form method="POST" action="{{ url('/login') }}">
             @csrf
             <div class="mb-3">
-                <label for="username" class="form-label">Nom d'utilisateur</label>
-                <input type="text" name="username" id="username" class="form-control" required>
+                <label for="email" class="form-label">Adresse Email</label>
+                <input type="email" name="email" id="email" class="form-control" 
+                    value="{{ old('email') }}" required autofocus>
             </div>
             <div class="mb-3">
                 <label for="password" class="form-label">Mot de passe</label>
                 <input type="password" name="password" id="password" class="form-control" required>
             </div>
-            <div class="mb-3">
-                <label for="role" class="form-label">Rôle</label>
-                <select name="role" id="role" class="form-control" required>
-                    <option value="admin">Administrateur</option>
-                    <option value="secretaire">Secrétaire</option>
-                    <option value="medecin">Médecin</option>
-                    <option value="infirmier">Infirmier</option>
-                    <option value="patient">Patient</option>
-                </select>
-            </div>
+
             <button type="submit" class="btn btn-success w-100">Se connecter</button>
-            <a href="/inscription" class="d-block text-center text-primary mt-3">S'inscrire</a>
+            <a href="{{ route('register') }}" class="d-block text-center text-primary mt-3">S'inscrire</a>
         </form>
     </div>
 </div>

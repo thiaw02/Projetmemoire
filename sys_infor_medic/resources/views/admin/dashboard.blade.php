@@ -10,10 +10,17 @@
 
 <h2 class="mb-4">Dashboard Administrateur</h2>
 
+@if(session('success'))
+    <div class="alert alert-success">{{ session('success') }}</div>
+@endif
+
 {{-- Nav tabs --}}
 <ul class="nav nav-tabs" id="adminTab" role="tablist">
     <li class="nav-item" role="presentation">
         <button class="nav-link active" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button" role="tab" aria-controls="users" aria-selected="true">Gérer utilisateurs</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="patients-tab" data-bs-toggle="tab" data-bs-target="#patients" type="button" role="tab" aria-controls="patients" aria-selected="false">Gérer patients</button>
     </li>
     <li class="nav-item" role="presentation">
         <button class="nav-link" id="stats-tab" data-bs-toggle="tab" data-bs-target="#stats" type="button" role="tab" aria-controls="stats" aria-selected="false">Statistiques globales</button>
@@ -30,42 +37,81 @@
 </ul>
 
 <div class="tab-content mt-3" id="adminTabContent">
+
     {{-- Gérer utilisateurs --}}
     <div class="tab-pane fade show active" id="users" role="tabpanel" aria-labelledby="users-tab">
         <h4>Liste des utilisateurs</h4>
+
+        <a href="{{ route('admin.users.create') }}" class="btn btn-success mb-3">Ajouter un utilisateur</a>
+
         <table class="table table-striped">
             <thead>
                 <tr>
                     <th>Nom</th>
                     <th>Email</th>
                     <th>Rôle</th>
+                    <th>Spécialité</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
-                {{-- Données simulées --}}
-                @php
-                    $users = [
-                        ['name'=>'Alice Dupont', 'email'=>'alice@example.com', 'role'=>'Médecin'],
-                        ['name'=>'Bob Martin', 'email'=>'bob@example.com', 'role'=>'Infirmier'],
-                        ['name'=>'Claire Durant', 'email'=>'claire@example.com', 'role'=>'Secrétaire'],
-                    ];
-                @endphp
-
                 @foreach($users as $user)
-                <tr>
-                    <td>{{ $user['name'] }}</td>
-                    <td>{{ $user['email'] }}</td>
-                    <td>{{ $user['role'] }}</td>
-                    <td>
-                        <button class="btn btn-sm btn-primary">Modifier</button>
-                        <button class="btn btn-sm btn-danger">Supprimer</button>
-                    </td>
-                </tr>
+                    @if($user->role !== 'patient')
+                    <tr>
+                        <td>{{ $user->name }}</td>
+                        <td>{{ $user->email }}</td>
+                        <td>{{ ucfirst($user->role) }}</td>
+                        <td>{{ $user->specialite ?? '-' }}</td>
+                        <td>
+                            <a href="/admin/users/edit.php?id={{ $user->id }}" class="btn btn-sm btn-primary">Modifier</a>
+                            <form action="{{ route('admin.users.destroy', $user->id) }}" method="POST" style="display:inline-block">
+                                @csrf
+                                @method('DELETE')
+                                <button class="btn btn-sm btn-danger" onclick="return confirm('Voulez-vous vraiment supprimer cet utilisateur ?')">Supprimer</button>
+                            </form>
+                        </td>
+                    </tr>
+                    @endif
                 @endforeach
             </tbody>
         </table>
-        <button class="btn btn-success">Ajouter un utilisateur</button>
+    </div>
+    
+    {{-- Gérer patients --}}
+    <div class="tab-pane fade" id="patients" role="tabpanel" aria-labelledby="patients-tab">
+        <h4>Liste des patients</h4>
+
+        <a href="{{ route('admin.patients.create') }}" class="btn btn-success mb-3">Ajouter un patient</a>
+
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Nom</th>
+                    <th>Email</th>
+                    <th>Date création</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($users as $user)
+                    @if($user->role === 'patient')
+                    <tr>
+                        <td>{{ $user->name }}</td>
+                        <td>{{ $user->email }}</td>
+                        <td>{{ $user->created_at->format('Y-m-d') }}</td>
+                        <td>
+                            <a href="/admin/patients/edit.php?id={{ $user->id }}" class="btn btn-sm btn-primary">Modifier</a>
+                            <form action="{{ route('admin.patients.destroy', $user->id) }}" method="POST" style="display:inline-block">
+                                @csrf
+                                @method('DELETE')
+                                <button class="btn btn-sm btn-danger" onclick="return confirm('Voulez-vous vraiment supprimer ce patient ?')">Supprimer</button>
+                            </form>
+                        </td>
+                    </tr>
+                    @endif
+                @endforeach
+            </tbody>
+        </table>
     </div>
 
     {{-- Statistiques globales --}}
@@ -122,14 +168,6 @@
                 </tr>
             </thead>
             <tbody>
-                {{-- Données simulées --}}
-                @php
-                    $history = [
-                        ['user'=>'Alice Dupont', 'datetime'=>'2025-07-21 08:30', 'ip'=>'192.168.0.10'],
-                        ['user'=>'Bob Martin', 'datetime'=>'2025-07-21 09:15', 'ip'=>'192.168.0.11'],
-                        ['user'=>'Claire Durant', 'datetime'=>'2025-07-21 10:05', 'ip'=>'192.168.0.12'],
-                    ];
-                @endphp
                 @foreach($history as $h)
                 <tr>
                     <td>{{ $h['user'] }}</td>

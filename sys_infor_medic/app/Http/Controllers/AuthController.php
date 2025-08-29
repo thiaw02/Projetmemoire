@@ -2,6 +2,14 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
+use App\Models\User;
+use App\Models\Patient;
+use App\Mail\InscriptionConfirmee;
+use App\Notifications\WelcomePatient;
 
 class AuthController extends Controller
 {
@@ -12,60 +20,95 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
-        $role = $request->input('role');
+        $credentials = $request->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required'],
+        ]);
 
-        // Stocker le rôle en session (simulé)
-        session(['role' => $role]);
+        if (Auth::attempt($credentials)) {
+            $request->session()->regenerate();
 
-        switch ($role) {
-            case 'admin':
-                return redirect()->route('admin.dashboard');
-            case 'secretaire':
-                return redirect()->route('secretaire.dashboard');
-            case 'medecin':
-                return redirect()->route('medecin.dashboard');
-            case 'infirmier':
-                return redirect()->route('infirmier.dashboard');
-            case 'patient':
-                return redirect()->route('patient.dashboard');
-            default:
-                return back()->withErrors(['role' => 'Rôle invalide']);
+            $role = Auth::user()->role;
+
+            return match ($role) {
+                'admin'      => redirect()->route('admin.dashboard'),
+                'secretaire' => redirect()->route('secretaire.dashboard'),
+                'medecin'    => redirect()->route('medecin.dashboard'),
+                'infirmier'  => redirect()->route('infirmier.dashboard'),
+                'patient'    => redirect()->route('patient.dashboard'),
+                default      => redirect('/login')->withErrors(['email' => 'Rôle utilisateur non reconnu.']),
+            };
         }
+
+        return back()->withErrors(['email' => 'Email ou mot de passe incorrect.'])->onlyInput('email');
     }
 
-    public function logout()
+    public function logout(Request $request)
     {
-        session()->flush(); // Effacer les données de session
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
         return redirect()->route('login');
     }
+
     public function showRegistrationForm()
-{
-    return view('auth.inscription'); // adapte si ton fichier s'appelle autrement
-}
- public function register(Request $request)
     {
-        // Valider les données entrées
+        return view('auth.inscription');
+    }
+
+    public function register(Request $request)
+    {
         $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:6',
+            'nom'           => ['required', 'string', 'max:255'],
+            'prenom'        => ['required', 'string', 'max:255'],
+            'email'         => ['required', 'email', 'max:255', 'unique:users,email'],
+            'sexe'          => ['required', 'string', 'in:Masculin,Féminin'],
+            'date_naissance'=> ['required', 'date'],
+            'adresse'       => ['nullable', 'string'],
+            'telephone'     => ['nullable', 'string'],
+            'groupe_sanguin'=> ['nullable', 'string'],
+            'antecedents'   => ['nullable', 'string'],
         ]);
 
-        // Créer un nouvel utilisateur
-        User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
+        $mot_de_passe_defaut = Str::random(8);
+
+        // Hachage du mot de passe pour l'enregistrement
+        $user = User::create([
+            'name'     => $request->prenom . ' ' . $request->nom,
+            'email'    => $request->email,
+            'password' => Hash::make($mot_de_passe_defaut),
+            'role'     => 'patient',
         ]);
 
-        // Rediriger vers login avec message de succès
-        return redirect('/login')->with('success', 'Inscription réussie ! Veuillez vous connecter.');
-    }
+        $numero_dossier = 'PAT' . now()->format('Ymd') . str_pad($user->id, 3, '0', STR_PAD_LEFT);
 
-    // Affiche la page de connexion
-    public function showLoginForm()
-    {
-        return view('auth.login'); // resources/views/auth/login.blade.php
-    }
+        $user->patient()->create([
+            'nom'            => $request->nom,
+            'prenom'         => $request->prenom,
+            'user_id'        => $user->id,
+            'sexe'           => $request->sexe,
+            'date_naissance' => $request->date_naissance,
+            'adresse'        => $request->adresse,
+            'email'          => $request->email,
+            'telephone'      => $request->telephone,
+            'groupe_sanguin' => $request->groupe_sanguin,
+            'antecedents'    => $request->antecedents,
+        ]);
 
+        session([
+            'numero_dossier'   => $numero_dossier,
+            'email'            => $request->email,
+            'password_defaut'  => $mot_de_passe_defaut,
+        ]);
+
+        Mail::to($request->email)->send(new InscriptionConfirmee(
+            $numero_dossier,
+            $request->email,
+            $mot_de_passe_defaut
+        ));
+
+        $user->notify(new WelcomePatient());
+
+        return view('auth.inscription_succes');
+    }
 }
