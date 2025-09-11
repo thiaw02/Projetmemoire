@@ -14,12 +14,17 @@ class User extends Authenticatable
 
     // Attributs modifiables en masse
     protected $fillable = [
-        'name',
-        'email',
-        'password',
-        'role',
-        'specialite',
-    ];
+    'name',
+    'email',
+    'password',
+    'telephone',
+    'adresse',
+    'date_naissance',
+    'sexe',
+    'role',
+    'specialite',
+];
+
 
     // Attributs masqués lors de la sérialisation
     protected $hidden = [

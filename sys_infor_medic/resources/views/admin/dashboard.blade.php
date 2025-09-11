@@ -63,7 +63,7 @@
                         <td>{{ ucfirst($user->role) }}</td>
                         <td>{{ $user->specialite ?? '-' }}</td>
                         <td>
-                            <a href="/admin/users/edit.php?id={{ $user->id }}" class="btn btn-sm btn-primary">Modifier</a>
+                            <a href="{{ route('admin.users.edit', $user->id) }}" class="btn btn-sm btn-primary">Modifier</a>
                             <form action="{{ route('admin.users.destroy', $user->id) }}" method="POST" style="display:inline-block">
                                 @csrf
                                 @method('DELETE')
@@ -100,7 +100,7 @@
                         <td>{{ $user->email }}</td>
                         <td>{{ $user->created_at->format('Y-m-d') }}</td>
                         <td>
-                            <a href="/admin/patients/edit.php?id={{ $user->id }}" class="btn btn-sm btn-primary">Modifier</a>
+                            <a href="{{ route('admin.patients.edit', $user->id) }}" class="btn btn-sm btn-primary">Modifier</a>
                             <form action="{{ route('admin.patients.destroy', $user->id) }}" method="POST" style="display:inline-block">
                                 @csrf
                                 @method('DELETE')

@@ -28,17 +28,19 @@ Route::prefix('admin')->group(function () {
     // Dashboard
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
 
-    // Utilisateurs (hors patients)
+    // Création rapide d'utilisateurs (AdminController)
+    Route::get('/users/create', [AdminController::class, 'createUser'])->name('admin.users.create');
+    Route::post('/users', [AdminController::class, 'storeUser'])->name('admin.users.store');
+
+    // Gestion classique des utilisateurs (UserController)
     Route::prefix('users')->group(function () {
         Route::get('/', [UserController::class, 'index'])->name('admin.users.index');
-        Route::get('/create', [UserController::class, 'create'])->name('admin.users.create');
-        Route::post('/', [UserController::class, 'store'])->name('admin.users.store');
         Route::get('/{id}/edit', [UserController::class, 'edit'])->name('admin.users.edit');
         Route::put('/{id}', [UserController::class, 'update'])->name('admin.users.update');
         Route::delete('/{id}', [UserController::class, 'destroy'])->name('admin.users.destroy');
     });
 
-    // Patients (côté admin)
+    // Gestion des patients (UserController)
     Route::prefix('patients')->group(function () {
         Route::get('/', [UserController::class, 'patientsList'])->name('admin.patients.index');
         Route::get('/create', [UserController::class, 'createPatient'])->name('admin.patients.create');
@@ -58,12 +60,21 @@ Route::prefix('secretaire')->group(function () {
 });
 
 // ===================== MEDECIN =====================
-Route::prefix('medecin')->group(function () {
+Route::prefix('medecin')->middleware('auth')->group(function () {
     Route::get('/dashboard', [MedecinController::class, 'dashboard'])->name('medecin.dashboard');
-    Route::get('/dossierpatient', [MedecinController::class, 'dossierpatient']);
-    Route::get('/consultations', [MedecinController::class, 'consultations']);
-    Route::get('/ordonnances', [MedecinController::class, 'ordonnances']);
+    Route::get('/dossierpatient', [MedecinController::class, 'dossierpatient'])->name('medecin.dossierpatient');
+    Route::get('/consultations', [MedecinController::class, 'consultations'])->name('medecin.consultations');
+    Route::get('/ordonnances', [MedecinController::class, 'ordonnances'])->name('medecin.ordonnances');
+
+    // Routes AJAX pour FullCalendar
+    Route::prefix('consultations')->group(function () {
+        Route::get('events', [MedecinController::class, 'getConsultations'])->name('medecin.consultations.events');
+        Route::post('store', [MedecinController::class, 'storeConsultation'])->name('medecin.consultations.store');
+        Route::put('update/{id}', [MedecinController::class, 'updateConsultation'])->name('medecin.consultations.update');
+        Route::delete('delete/{id}', [MedecinController::class, 'deleteConsultation'])->name('medecin.consultations.delete');
+    });
 });
+
 
 // ===================== INFIRMIER =====================
 Route::prefix('infirmier')->group(function () {
