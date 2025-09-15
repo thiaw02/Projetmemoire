@@ -27,5 +27,11 @@ class Consultations extends Model
     {
         return $this->belongsTo(User::class, 'medecin_id');
     }
+    public function ordonnances()
+{
+    return $this->hasMany(Ordonnances::class);
+}
+
+
 }
 

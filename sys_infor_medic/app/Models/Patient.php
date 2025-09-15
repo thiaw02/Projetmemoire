@@ -28,4 +28,14 @@ class Patient extends Model
     {
         return $this->belongsTo(User::class);
     }
+    public function consultations()
+{
+    return $this->hasMany(Consultations::class, 'patient_id');
+}
+ public function rendez_vous()
+    {
+        return $this->hasMany(Rendez_vous::class, 'user_id');
+        // 'user_id' est la colonne de la table rendez_vous qui référence le patient
+    }
+
 }
