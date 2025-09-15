@@ -18,6 +18,11 @@ class UserController extends Controller
     {
         return view('admin.users.create');
     }
+    public function patient()
+{
+    return $this->hasOne(Patient::class, 'user_id'); // ou adapte la clé étrangère
+}
+
 
     public function store(Request $request)
     {

@@ -13,9 +13,12 @@
             Tableau de Bord Infirmier
         </div>
         <div class="card-body">
-            <p class="mb-4">Bienvenue, Infirmier(e) Diallo ! Voici un aperçu de vos activités.</p>
+            <p class="mb-4">
+                Bienvenue, {{ Auth::user()->name ?? 'infirmier' }} ! Voici un aperçu de vos activités.
+            </p>
 
             <div class="row">
+                <!-- Suivis en cours -->
                 <div class="col-md-6 mb-3">
                     <div class="card border-info shadow-sm">
                         <div class="card-header bg-info text-white">
@@ -23,13 +26,23 @@
                         </div>
                         <div class="card-body">
                             <ul>
-                                <li>Patient : Ousmane Sow - Température : 37,8°C - Tension : 12/8</li>
-                                <li>Patient : Aïcha Ba - Température : 38,1°C - Tension : 13/9</li>
+                                @forelse($suivis as $suivi)
+                                    <li>
+                                        Patient :
+                                        {{ $suivi->patient->nom ?? 'Inconnu' }}
+                                        {{ $suivi->patient->prenom ?? '' }}
+                                        - Température : {{ $suivi->temperature ?? 'N/A' }}°C
+                                        - Tension : {{ $suivi->tension ?? 'N/A' }}
+                                    </li>
+                                @empty
+                                    <li>Aucun suivi en cours</li>
+                                @endforelse
                             </ul>
                         </div>
                     </div>
                 </div>
 
+                <!-- Dossiers à mettre à jour -->
                 <div class="col-md-6 mb-3">
                     <div class="card border-warning shadow-sm">
                         <div class="card-header bg-warning text-white">
@@ -37,8 +50,15 @@
                         </div>
                         <div class="card-body">
                             <ul>
-                                <li>Abdoulaye Ndiaye - Observation manquante</li>
-                                <li>Fatou Seck - Analyse en attente</li>
+                                @forelse($dossiers as $dossier)
+                                    <li>
+                                        {{ $dossier->patient->nom ?? 'Inconnu' }}
+                                        {{ $dossier->patient->prenom ?? '' }}
+                                        - {{ $dossier->observation ?? 'Observation manquante' }}
+                                    </li>
+                                @empty
+                                    <li>Aucun dossier en attente</li>
+                                @endforelse
                             </ul>
                         </div>
                     </div>
@@ -48,9 +68,9 @@
             <hr>
 
             <div class="d-grid gap-2 d-md-block">
-                <a href="#" class="btn btn-outline-info me-2">📋 Saisir un suivi patient</a>
-                <a href="#" class="btn btn-outline-warning me-2">📁 Mettre à jour un dossier</a>
-                <a href="#" class="btn btn-outline-success">🔍 Voir l’historique des soins</a>
+                <a href="{{ route('suivi.create') }}" class="btn btn-outline-info me-2">📋 Saisir un suivi patient</a>
+                <a href="{{ route('dossier.index') }}" class="btn btn-outline-warning me-2">📁 Mettre à jour un dossier</a>
+                <a href="{{ route('historique.index') }}" class="btn btn-outline-success">🔍 Voir l’historique des soins</a>
             </div>
         </div>
     </div>

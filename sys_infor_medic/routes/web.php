@@ -9,6 +9,9 @@ use App\Http\Controllers\{
     MedecinController,
     InfirmierController,
     PatientController,
+    SuiviController,
+    DossierController,
+    HistoriqueController,
 };
 
 // Accueil
@@ -75,6 +78,7 @@ Route::prefix('infirmier')->group(function () {
 Route::prefix('patient')->group(function () {
     Route::get('/dashboard', [PatientController::class, 'dashboard'])->name('patient.dashboard');
     Route::get('/rendezvous', [PatientController::class, 'rendezvous']);
+    Route::post('/rendezvous', [PatientController::class, 'storeRendez'])->name('rendez.store');
     Route::get('/dossiermedical', [PatientController::class, 'dossier']);
 });
 
@@ -82,3 +86,10 @@ Route::prefix('patient')->group(function () {
 Route::get('/register/success', function () {
     return view('auth.inscription_success');
 })->name('register.success');
+
+
+
+Route::resource('suivi', SuiviController::class);
+Route::resource('dossier', DossierController::class);
+Route::resource('historique', HistoriqueController::class);
+Route::get('/rendezvous/create', [PatientController::class, 'createRendez'])->name('rendez.create');
