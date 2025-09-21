@@ -57,6 +57,11 @@ class User extends Authenticatable
     {
         return $this->hasOne(Patient::class);
     }
+    public function consultations()
+    {
+    return $this->hasMany(\App\Models\Consultations::class, 'medecin_id');
+    }
+
 
     /**
      * Ajoute d'autres relations selon les besoins

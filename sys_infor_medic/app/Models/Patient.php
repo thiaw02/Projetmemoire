@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Patient extends Model
 {
@@ -27,5 +28,22 @@ class Patient extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+    public function consultations()
+{
+    return $this->hasMany(Consultations::class);
+}
+    public function ordonnances()
+    {
+        return $this->hasMany(Ordonnances::class);
+    
+    }
+    public function dossierpatients()
+    {
+        return $this->hasMany(Dossier_medicaux::class);
+    }
+    public function dossier_administratifs()
+    {
+        return $this->hasMany(Dossier_administratifs::class);
     }
 }

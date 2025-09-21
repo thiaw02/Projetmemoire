@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Rendez_vous extends Model
 {
     use HasFactory;
-
+    protected $table = 'rendez_vous'; // ← ajoute cette lign
     protected $fillable = [
         'user_id',
         'medecin_id',
@@ -20,7 +20,7 @@ class Rendez_vous extends Model
     // Le patient
     public function patient()
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(Patient::class, 'user_id');
     }
 
     // Le médecin
