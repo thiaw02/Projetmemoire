@@ -2,7 +2,6 @@
 
 @section('content')
 <div class="container-fluid">
-    {{-- Déconnexion --}}
     <div class="d-flex justify-content-end mb-3">
         <form action="{{ route('logout') }}" method="POST">
             @csrf
@@ -10,47 +9,18 @@
         </form>
     </div>
 
-    {{-- Titre --}}
     <h2 class="mb-4 text-success fw-bold">Tableau de bord - Secrétaire</h2>
 
-    {{-- Cartes de navigation --}}
-    <div class="row g-4">
-        <div class="col-md-4">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-body text-center">
-                    <h5 class="card-title fw-semibold text-success">📁 Dossiers administratifs</h5>
-                    <p class="card-text text-muted">Consultez et gérez les dossiers patients.</p>
-                    <a href="{{ url('/secretaire/dossieradmin') }}" class="btn btn-success w-75">Accéder</a>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-4">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-body text-center">
-                    <h5 class="card-title fw-semibold text-success">📅 Rendez-vous</h5>
-                    <p class="card-text text-muted">Planifiez les rendez-vous des patients.</p>
-                    <a href="{{ url('/secretaire/rendezvous') }}" class="btn btn-success w-75">Accéder</a>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-4">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-body text-center">
-                    <h5 class="card-title fw-semibold text-success">🏥 Admissions</h5>
-                    <p class="card-text text-muted">Gérez les admissions des patients.</p>
-                    <a href="{{ url('/secretaire/admissions') }}" class="btn btn-success w-75">Accéder</a>
-                </div>
-            </div>
-        </div>
+    <div class="mb-4">
+        <a href="{{ route('secretaire.dossiersAdmin') }}" class="btn btn-outline-success me-2">📁 Dossiers administratifs</a>
+        <a href="{{ route('secretaire.rendezvous') }}" class="btn btn-outline-primary me-2">📅 Rendez-vous</a>
+        <a href="{{ route('secretaire.admissions') }}" class="btn btn-outline-warning me-2">🏥 Admissions</a>
     </div>
 
-    {{-- Graphiques --}}
-    <div class="row mt-5 g-4">
+    <div class="row g-4">
         <div class="col-md-6">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-success text-white fw-semibold">📊 Statistiques des Rendez-vous</div>
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white fw-semibold">📊 Rendez-vous des 6 derniers mois</div>
                 <div class="card-body">
                     <canvas id="rendezvousChart" height="200"></canvas>
                 </div>
@@ -58,8 +28,8 @@
         </div>
 
         <div class="col-md-6">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-success text-white fw-semibold">📈 Admissions par mois</div>
+            <div class="card shadow-sm">
+                <div class="card-header bg-warning text-white fw-semibold">📈 Admissions des 6 derniers mois</div>
                 <div class="card-body">
                     <canvas id="admissionsChart" height="200"></canvas>
                 </div>
@@ -72,53 +42,50 @@
 @section('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // Graphique des rendez-vous
+document.addEventListener("DOMContentLoaded", function() {
+   
+    // Graphique Rendez-vous
     new Chart(document.getElementById('rendezvousChart'), {
         type: 'line',
         data: {
-            labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin'],
+            labels: months,
             datasets: [{
                 label: 'Rendez-vous',
-                data: [20, 25, 18, 30, 28, 35],
-                borderColor: '#28a745',
-                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                data: rendezvousData,
+                borderColor: '#0d6efd',
+                backgroundColor: 'rgba(13, 110, 253, 0.1)',
                 tension: 0.4,
                 fill: true,
-                pointRadius: 4,
-                pointBackgroundColor: '#28a745'
+                pointRadius: 5,
+                pointBackgroundColor: '#0d6efd'
             }]
         },
         options: {
             responsive: true,
-            plugins: {
-                legend: { position: 'top' },
-                title: { display: false }
-            }
+            plugins: { legend: { position: 'top' }, title: { display: false } },
+            scales: { y: { beginAtZero: true } }
         }
     });
 
-    // Graphique des admissions
+    // Graphique Admissions
     new Chart(document.getElementById('admissionsChart'), {
         type: 'bar',
         data: {
-            labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin'],
+            labels: months,
             datasets: [{
                 label: 'Admissions',
-                data: [10, 15, 8, 20, 18, 22],
-                backgroundColor: '#20c997',
+                data: admissionsData,
+                backgroundColor: '#ffc107',
                 borderRadius: 5,
                 barPercentage: 0.6
             }]
         },
         options: {
             responsive: true,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                y: { beginAtZero: true }
-            }
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true } }
         }
     });
+});
 </script>
 @endsection
