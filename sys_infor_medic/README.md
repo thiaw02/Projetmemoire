@@ -1,61 +1,120 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# SMART-HEALTH — Plateforme médico-administrative (Laravel)
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Ce projet est une application web Laravel multi-rôle (admin, médecin, secrétaire, infirmier, patient) permettant la gestion des profils, des patients, des rendez-vous, des consultations, des ordonnances, des analyses, des admissions et une messagerie interne avec pièces jointes.
 
-## About Laravel
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Sommaire
+- Aperçu des fonctionnalités
+- Architecture du projet
+- Modèles de données principaux
+- Flux d’authentification et rôles
+- Messagerie (chat)
+- Dépendances et prérequis
+- Installation et démarrage (dev)
+- Configuration (env)
+- Migrations importantes
+- Sécurité (CSRF, Auth, Middleware)
+- Tests rapides / Débogage
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+---
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Aperçu des fonctionnalités
+- Authentification et réinitialisation de mot de passe (Laravel)
+- Profils utilisateurs avec avatar, champs spécifiques par rôle
+- Gestion des patients: dossier, numéro de dossier, documents joints
+- Rendez-vous: création côté patient, gestion côté secrétaire, statuts, tableaux de bord
+- Consultations, ordonnances, analyses, admissions
+- Chat interne role-aware (admin↔secrétaire, médecin↔secrétaire/infirmier, infirmier↔secrétaire/médecin, patient↔secrétaire). Fichiers, images, badge non-lus, “en train d’écrire…”, accusés de lecture
+- Tableaux de bord par rôle avec statistiques et recherches simples
+- Sidebar profil et bouton flottant de messagerie partout (auth)
 
-## Learning Laravel
+## Architecture du projet
+- Backend: Laravel 10+ (PHP 8.1+ recommandé)
+- Front: Blade + Bootstrap 5 + Bootstrap Icons, un peu de JS vanilla
+- Dossiers clés:
+  - app/Http/Controllers: logique applicative (AdminController, MedecinController, SecretaireController, InfirmierController, PatientController, ChatController, ProfileController, AuthController)
+  - app/Models: User, Patient, Rendez_vous, Consultations, Ordonnances, Analyses, Admissions, Conversation, Message, PatientDocument, Setting, RolePermission
+  - resources/views: vues Blade organisées par rôle + auth + chat + layouts(partials)
+  - database/migrations: schéma (users, patients, rendez-vous, consultations, chat, etc.)
+  - database/seeders: DemoDataSeeder pour données de démo
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Modèles de données principaux
+- User: name, email, password, role (admin, medecin, infirmier, secretaire, patient), specialite, pro_phone, matricule, cabinet, horaires, avatar_url
+- Patient: user_id, secretary_user_id (optionnel), numero_dossier, identité, téléphone, groupe_sanguin, antécédents
+- Rendez_vous: user_id (patient user id), medecin_id (users.id), date, heure, motif, statut
+- Consultations: patient_id, medecin_id, date_consultation, symptomes, diagnostic, traitement, statut
+- Ordonnances, Analyses, Admissions: reliées au patient et parfois médecin
+- Conversation, Message: chat avec fichiers et timestamps pour typing/read
+- PatientDocument: patient_id, label, type, file_path, uploaded_by
+- Setting: key, value pour paramètres globaux
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+## Flux d’authentification et rôles
+- Login classique (email/mot de passe) et redirection selon rôle vers le dashboard correspondant
+- Inscription patient publique (génère un mot de passe et envoie un mail de confirmation)
+- Middleware auth obligatoire sur tous les dashboards et la plupart des routes
+- Middleware role (si nécessaire) pour restreindre certaines sections
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Messagerie (chat)
+- Règles:
+  - Admin ↔ Secrétaire
+  - Médecin ↔ Secrétaire/Infirmier
+  - Infirmier ↔ Secrétaire/Médecin
+  - Patient ↔ Secrétaire (désormais toutes les secrétaires sont visibles par le patient)
+- Fonctionnalités: pagination, fichiers (pdf/images), badge non-lus, typing indicator, read receipts, notifications email
 
-## Laravel Sponsors
+## Dépendances et prérequis
+- PHP 8.1+
+- Composer
+- MySQL/MariaDB ou autre SGBD compatible Laravel
+- Node.js (facultatif si vous souhaitez builder des assets additionnels)
+- Extensions PHP usuelles: OpenSSL, PDO, Mbstring, Tokenizer, XML, Ctype, JSON, Fileinfo
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+Packages Laravel utilisés (intégrés au framework):
+- laravel/framework
+- symfony/* et illuminate/* sous-jacents
 
-### Premium Partners
+## Installation et démarrage
+1. Cloner le repo
+2. Copier .env.example en .env et configurer DB_*, MAIL_*, APP_URL
+3. Installer les dépendances Composer
+   composer install
+4. Générer la clé d’application
+   php artisan key:generate
+5. Lancer les migrations
+   php artisan migrate
+6. (Optionnel) Seed de démo
+   php artisan db:seed --class=DemoDataSeeder
+7. Lier le storage public
+   php artisan storage:link
+8. Démarrer le serveur
+   php artisan serve
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development/)**
-- **[Active Logic](https://activelogic.com)**
+## Configuration (.env)
+- APP_NAME, APP_URL
+- DB_CONNECTION, DB_HOST, DB_PORT, DB_DATABASE, DB_USERNAME, DB_PASSWORD
+- MAIL_MAILER, MAIL_HOST, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD, MAIL_ENCRYPTION, MAIL_FROM_ADDRESS, MAIL_FROM_NAME
+- SESSION_DOMAIN (si sous-domaines), SANCTUM et CSRF selon besoins
 
-## Contributing
+## Migrations importantes (exemples)
+- 0001_..._create_users_table: base users + role + specialite (nullable)
+- 2025_10_04_000002_add_avatar_url_to_users_table: avatar_url
+- 2025_10_04_000005_add_role_specific_fields_to_users: pro_phone, matricule, cabinet, horaires
+- Patients: secretary_user_id, numero_dossier
+- Chat: conversations, messages (+ typing, fichiers)
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Sécurité (CSRF, Auth, Middleware)
+- CSRF: @csrf dans les formulaires + meta CSRF en layout et en-têtes pour fetch
+- Auth: middleware('auth') protège tous les dashboards, redirection vers login si non authentifié
+- Role: middleware('role') disponible si règles fines nécessaires
 
-## Code of Conduct
+## Tests rapides / Débogage
+- Vider caches si vous modifiez les vues/configs:
+  php artisan view:clear
+  php artisan cache:clear
+  php artisan route:clear
+  php artisan config:clear
+- Logs: storage/logs/laravel.log
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+---
 
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Pour la documentation plus détaillée (architecture étendue, roadmap, etc.), voir aussi readme/README.md.
