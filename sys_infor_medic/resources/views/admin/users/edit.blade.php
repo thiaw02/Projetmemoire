@@ -35,11 +35,30 @@
             <option value="secretaire" {{ (old('role', $user->role) == 'secretaire') ? 'selected' : '' }}>Secrétaire</option>
         </select>
     </div>
-    <div class="mb-3">
-        <label for="specialite" class="form-label">Spécialité (facultatif)</label>
-        <input type="text" name="specialite" id="specialite" class="form-control" value="{{ old('specialite', $user->specialite) }}">
+    <div class="row g-3" id="roleFields">
+      <div class="col-md-6 role-medecin d-none">
+        <label class="form-label">Spécialité</label>
+        <input type="text" name="specialite" class="form-control" value="{{ old('specialite', $user->specialite) }}" placeholder="Ex: Cardiologie">
+      </div>
+      <div class="col-md-6 role-medecin d-none">
+        <label class="form-label">Matricule</label>
+        <input type="text" name="matricule" class="form-control" value="{{ old('matricule', $user->matricule) }}">
+      </div>
+      <div class="col-md-6 role-medecin d-none">
+        <label class="form-label">Cabinet</label>
+        <input type="text" name="cabinet" class="form-control" value="{{ old('cabinet', $user->cabinet) }}">
+      </div>
+      <div class="col-12 role-medecin d-none">
+        <label class="form-label">Horaires</label>
+        <textarea name="horaires" class="form-control" rows="2" placeholder="Ex: Lun-Ven 9:00-17:00">{{ old('horaires', $user->horaires) }}</textarea>
+      </div>
+      <div class="col-md-6 role-staff d-none">
+        <label class="form-label">Téléphone professionnel</label>
+        <input type="text" name="pro_phone" class="form-control" value="{{ old('pro_phone', $user->pro_phone) }}" placeholder="Ex: +221 77 000 00 00">
+      </div>
     </div>
-    <div class="mb-3">
+
+    <div class="mb-3 mt-2">
         <label for="password" class="form-label">Mot de passe (laisser vide pour ne pas changer)</label>
         <input type="password" name="password" id="password" class="form-control">
     </div>
@@ -50,4 +69,18 @@
 
     <button type="submit" class="btn btn-primary">Mettre à jour</button>
 </form>
+
+@section('scripts')
+<script>
+  (function(){
+    const roleSel = document.getElementById('role');
+    function toggleFields(){
+      const val = roleSel.value;
+      document.querySelectorAll('.role-medecin').forEach(el=> el.classList.toggle('d-none', val!=='medecin'));
+      document.querySelectorAll('.role-staff').forEach(el=> el.classList.toggle('d-none', !['secretaire','infirmier','admin'].includes(val)));
+    }
+    roleSel?.addEventListener('change', toggleFields);
+    toggleFields();
+  })();
+</script>
 @endsection

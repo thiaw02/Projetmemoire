@@ -16,9 +16,9 @@ class PatientController extends Controller
     $user = Auth::user();
     $patient = $user->patient;
 
-    $patientId = $patient->id;
-    $ordonnances = $patient->ordonnances ?? collect();
-    $analyses = $patient->analyses ?? collect();
+    $patientId = $patient?->id;
+    $ordonnances = $patient?->ordonnances ?? collect();
+    $analyses = $patient?->analyses ?? collect();
 
 
     // Historique des consultations avec ordonnances, analyses et médecin
@@ -27,15 +27,27 @@ class PatientController extends Controller
                                   ->orderBy('date_consultation', 'desc')
                                   ->get();
 
-    // Rendez-vous à venir
-    $rendezVous = $patient->rendez_vous()->with('medecin')->get();
+    // Rendez-vous (liste complète pour l'onglet Mes rendez-vous)
+    $rendezVous = $patient ? $patient->rendez_vous()->with('medecin')->orderBy('date','desc')->orderBy('heure','desc')->get() : collect();
+
+    // Prochain rendez-vous (à venir)
+    $nextRdv = \App\Models\Rendez_vous::with('medecin')
+        ->where('user_id', $user->id)
+        ->whereDate('date', '>=', now()->toDateString())
+        ->orderBy('date', 'asc')->orderBy('heure','asc')
+        ->first();
+
+    // Statistiques simples côté patient
+    $stats = [
+        'totalConsultations' => Consultations::where('patient_id', $patientId)->count(),
+'rdvEnAttente' => \App\Models\Rendez_vous::where('user_id', $user->id)->whereIn('statut',["en_attente","pending"])->count(),
+    ];
 
     // Récupérer la liste des médecins pour le formulaire
-    $medecins = User::where('role', 'medecin')->get();
+    $medecins = User::where('role', 'medecin')->orderBy('name')->get();
 
     // Passe toutes les variables à la vue
-    return view('patient.dashboard', compact('user', 'patient', 'consultations', 'rendezVous','medecins','ordonnances',
-        'analyses'));
+    return view('patient.dashboard', compact('user','patient','consultations','rendezVous','medecins','ordonnances','analyses','nextRdv','stats'));
 }
 
 
@@ -69,11 +81,18 @@ class PatientController extends Controller
             'date' => $request->date,
             'heure' => $request->heure,
             'motif' => $request->motif,
-            'statut' => 'en attente',  // statut par défaut
+            'statut' => 'en_attente',  // statut par défaut (ENUM)
         ]);
 
-        return redirect()->route('rendez.create')->with('success', 'Rendez-vous enregistré avec succès ✅');
+        return redirect()->route('patient.dashboard')->with('success', 'Rendez-vous enregistré avec succès ✅');
     }
+
+    public function createRendez()
+    {
+        // Rediriger vers le dashboard patient (onglet RDV gère déjà la création)
+        return redirect()->route('patient.dashboard');
+    }
+
     public function show($id)
 {
     $patient = Patient::findOrFail($id);

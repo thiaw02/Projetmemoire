@@ -83,6 +83,7 @@ class AuthController extends Controller
         $numero_dossier = 'PAT' . now()->format('Ymd') . str_pad($user->id, 3, '0', STR_PAD_LEFT);
 
         $user->patient()->create([
+            'numero_dossier'  => $numero_dossier,
             'nom'            => $request->nom,
             'prenom'         => $request->prenom,
             'user_id'        => $user->id,

@@ -60,8 +60,11 @@
 
     {{-- Liste des rendez-vous --}}
     <div class="card shadow p-4">
-        <h3 class="text-primary mb-4">📅 Rendez-vous existants</h3>
-        <table class="table table-bordered">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h3 class="text-primary mb-0">📅 Rendez-vous existants</h3>
+          <input type="text" id="searchRdv" class="form-control form-control-sm" placeholder="Rechercher..." style="max-width: 240px;">
+        </div>
+        <table class="table table-bordered" id="rdvTable">
             <thead>
                 <tr>
                     <th>Patient</th>
@@ -99,5 +102,16 @@
         var form = document.getElementById('rdvForm');
         form.style.display = (form.style.display === 'none') ? 'block' : 'none';
     });
+<script>
+  (function(){
+    const inp = document.getElementById('searchRdv');
+    function filter(){
+      const q = (inp?.value || '').toLowerCase();
+      document.querySelectorAll('#rdvTable tbody tr').forEach(tr=>{
+        tr.style.display = tr.innerText.toLowerCase().includes(q) ? '' : 'none';
+      });
+    }
+    inp?.addEventListener('input', filter);
+  })();
 </script>
 @endsection

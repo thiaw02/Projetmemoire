@@ -1,50 +1,126 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="d-flex justify-content-end mb-3">
-    <form action="{{ route('logout') }}" method="POST">
-        @csrf
-        <button class="btn btn-danger">Déconnexion</button>
-    </form>
-</div>
+<div class="row">
+  <div class="col-lg-3 mb-4">
+    <div class="sidebar-sticky">
+      @include('layouts.partials.profile_sidebar')
+    </div>
+  </div>
+  <div class="col-lg-9">
 
-<h2 class="mb-4">Dashboard Administrateur</h2>
+<div class="admin-header d-flex align-items-center justify-content-between mb-3">
+  <h2 class="mb-0">Dashboard Administrateur</h2>
+  @php
+    $unread = \App\Models\Message::whereNull('read_at')->whereHas('conversation', function($q){ $uid = auth()->id(); $q->where('user_one_id',$uid)->orWhere('user_two_id',$uid);})->where('sender_id','!=',auth()->id())->count();
+  @endphp
+  <a href="{{ route('chat.index') }}" class="btn btn-outline-secondary btn-sm me-2 position-relative">
+    <i class="bi bi-bell"></i>
+    @if($unread>0)
+      <span id="notif-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger {{ $unread>0 ? '' : 'd-none' }}">{{ $unread }}</span>
+    @endif
+  </a>
+  <form action="{{ route('logout') }}" method="POST" class="ms-1">
+    @csrf
+    <button class="btn btn-outline-danger btn-sm"><i class="bi bi-box-arrow-right me-1"></i> Déconnexion</button>
+  </form>
+</div>
 
 @if(session('success'))
     <div class="alert alert-success">{{ session('success') }}</div>
 @endif
 
+<div class="row g-3 mb-3">
+  <div class="col-md-3">
+    <div class="card text-center">
+      <div class="card-body">
+        <div class="text-muted small">Utilisateurs</div>
+        <div class="display-6">{{ $kpis['totalUsers'] ?? ($users->count() ?? 0) }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-center">
+      <div class="card-body">
+        <div class="text-muted small">Patients</div>
+        <div class="display-6">{{ $kpis['totalPatients'] ?? ($rolesCount['patient'] ?? ($users?->where('role','patient')->count() ?? 0)) }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-center">
+      <div class="card-body">
+        <div class="text-muted small">RDV (mois)</div>
+        <div class="display-6">{{ $kpis['rdvThisMonth'] ?? 0 }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-center">
+      <div class="card-body">
+        <div class="text-muted small">Consultations (mois)</div>
+        <div class="display-6">{{ $kpis['consultsThisMonth'] ?? 0 }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{{-- Styles locaux pour onglets sur une ligne --}}
+<style>
+  /* Pleine largeur pour ce dashboard */
+  /* Conteneur un peu réduit par rapport à la pleine largeur */
+  body > .container { max-width: 1500px !important; }
+  .page-section { padding-left: .75rem; padding-right: .75rem; }
+  .content-card { background: #fff; border-radius: .75rem; box-shadow: 0 8px 24px rgba(0,0,0,.06); padding: 1rem; }
+
+  /* Header collant pour un comportement moderne */
+  .admin-header { position: sticky; top: 0; background: #fff; z-index: 10; padding-top: .25rem; border-bottom: 1px solid rgba(0,0,0,.05); }
+  /* Tabs modernes sur une ligne */
+  /* Onglets sur une seule ligne, tous visibles sans défilement */
+  .admin-tabs { display: flex; flex-wrap: nowrap; justify-content: flex-start; gap: .5rem; }
+  .admin-tabs .nav-link { flex: 0 0 auto; min-width: 160px; text-align: center; padding: .5rem .75rem; border: 0; border-bottom: 2px solid transparent; white-space: nowrap; color: #27ae60; font-weight: 600; }
+  .admin-tabs .nav-link.active { border-bottom-color: #27ae60; color: #145a32; background: transparent; }
+  .tab-scroll { overflow: visible; }
+  .tab-scroll::-webkit-scrollbar { height: 0; }
+  .tab-scroll::-webkit-scrollbar-thumb { background: transparent; }
+  /* Sidebar collante et un peu plus compacte */
+  .sidebar-sticky { position: sticky; top: 1rem; }
+  .sidebar-sticky img[alt="Photo de profil"] { width: 96px !important; height: 96px !important; }
+</style>
 {{-- Nav tabs --}}
-<ul class="nav nav-tabs" id="adminTab" role="tablist">
+<div class="tab-scroll">
+<ul class="nav nav-tabs admin-tabs flex-nowrap" id="adminTab" role="tablist">
     <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button" role="tab" aria-controls="users" aria-selected="true">Gérer utilisateurs</button>
+        <button class="nav-link active" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button" role="tab" aria-controls="users" aria-selected="true"><i class="bi bi-people me-1"></i> Gérer utilisateurs</button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="patients-tab" data-bs-toggle="tab" data-bs-target="#patients" type="button" role="tab" aria-controls="patients" aria-selected="false">Gérer patients</button>
+        <button class="nav-link" id="patients-tab" data-bs-toggle="tab" data-bs-target="#patients" type="button" role="tab" aria-controls="patients" aria-selected="false"><i class="bi bi-person-vcard me-1"></i> Gérer patients</button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="stats-tab" data-bs-toggle="tab" data-bs-target="#stats" type="button" role="tab" aria-controls="stats" aria-selected="false">Statistiques globales</button>
+        <button class="nav-link" id="stats-tab" data-bs-toggle="tab" data-bs-target="#stats" type="button" role="tab" aria-controls="stats" aria-selected="false"><i class="bi bi-graph-up me-1"></i> Statistiques globales</button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="roles-tab" data-bs-toggle="tab" data-bs-target="#roles" type="button" role="tab" aria-controls="roles" aria-selected="false">Superviser rôles</button>
+        <button class="nav-link" id="roles-tab" data-bs-toggle="tab" data-bs-target="#roles" type="button" role="tab" aria-controls="roles" aria-selected="false"><i class="bi bi-person-gear me-1"></i> Superviser rôles</button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="permissions-tab" data-bs-toggle="tab" data-bs-target="#permissions" type="button" role="tab" aria-controls="permissions" aria-selected="false">Gestion rôles & permissions</button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history" type="button" role="tab" aria-controls="history" aria-selected="false">Historique connexions</button>
+        <button class="nav-link" id="permissions-tab" data-bs-toggle="tab" data-bs-target="#permissions" type="button" role="tab" aria-controls="permissions" aria-selected="false"><i class="bi bi-shield-lock me-1"></i> Gestion rôles & permissions</button>
     </li>
 </ul>
+</div>
 
 <div class="tab-content mt-3" id="adminTabContent">
 
     {{-- Gérer utilisateurs --}}
     <div class="tab-pane fade show active" id="users" role="tabpanel" aria-labelledby="users-tab">
-        <h4>Liste des utilisateurs</h4>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h4 class="mb-0">Liste des utilisateurs</h4>
+          <div class="d-flex align-items-center gap-2">
+            <input type="text" id="searchUsers" class="form-control form-control-sm" placeholder="Rechercher...">
+            <a href="{{ route('admin.users.create') }}" class="btn btn-success">Ajouter un utilisateur</a>
+          </div>
+        </div>
 
-        <a href="{{ route('admin.users.create') }}" class="btn btn-success mb-3">Ajouter un utilisateur</a>
-
-        <table class="table table-striped">
+        <table class="table table-striped" id="usersTable">
             <thead>
                 <tr>
                     <th>Nom</th>
@@ -63,7 +139,7 @@
                         <td>{{ ucfirst($user->role) }}</td>
                         <td>{{ $user->specialite ?? '-' }}</td>
                         <td>
-                            <a href="/admin/users/edit.php?id={{ $user->id }}" class="btn btn-sm btn-primary">Modifier</a>
+<a href="{{ route('admin.users.edit', $user->id) }}" class="btn btn-sm btn-primary">Modifier</a>
                             <form action="{{ route('admin.users.destroy', $user->id) }}" method="POST" style="display:inline-block">
                                 @csrf
                                 @method('DELETE')
@@ -79,11 +155,15 @@
     
     {{-- Gérer patients --}}
     <div class="tab-pane fade" id="patients" role="tabpanel" aria-labelledby="patients-tab">
-        <h4>Liste des patients</h4>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h4 class="mb-0">Liste des patients</h4>
+          <div class="d-flex align-items-center gap-2">
+            <input type="text" id="searchPatients" class="form-control form-control-sm" placeholder="Rechercher...">
+            <a href="{{ route('admin.patients.create') }}" class="btn btn-success">Ajouter un patient</a>
+          </div>
+        </div>
 
-        <a href="{{ route('admin.patients.create') }}" class="btn btn-success mb-3">Ajouter un patient</a>
-
-        <table class="table table-striped">
+        <table class="table table-striped" id="patientsTable">
             <thead>
                 <tr>
                     <th>Nom</th>
@@ -100,7 +180,7 @@
                         <td>{{ $user->email }}</td>
                         <td>{{ $user->created_at->format('Y-m-d') }}</td>
                         <td>
-                            <a href="/admin/patients/edit.php?id={{ $user->id }}" class="btn btn-sm btn-primary">Modifier</a>
+<a href="{{ route('admin.patients.edit', $user->id) }}" class="btn btn-sm btn-primary">Modifier</a>
                             <form action="{{ route('admin.patients.destroy', $user->id) }}" method="POST" style="display:inline-block">
                                 @csrf
                                 @method('DELETE')
@@ -118,20 +198,29 @@
     <div class="tab-pane fade" id="stats" role="tabpanel" aria-labelledby="stats-tab">
         <h4>Statistiques globales</h4>
         <div class="row">
-            <div class="col-md-6">
+            <div class="col-lg-6">
                 <div class="card mb-4">
                     <div class="card-header">Répartition des rôles</div>
                     <div class="card-body">
-                        <canvas id="rolesChart" height="200"></canvas>
+                        <canvas id="rolesChart" height="220"></canvas>
                     </div>
                 </div>
             </div>
 
-            <div class="col-md-6">
+            <div class="col-lg-6">
                 <div class="card mb-4">
-                    <div class="card-header">Types de Rendez-vous</div>
+                    <div class="card-header">Statuts des Rendez-vous</div>
                     <div class="card-body">
-                        <canvas id="rendezvousChart" height="200"></canvas>
+                        <canvas id="rendezvousChart" height="220"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12">
+                <div class="card mb-4">
+                    <div class="card-header">Volumes mensuels (6 derniers mois)</div>
+                    <div class="card-body">
+                        <canvas id="monthlyChart" height="260"></canvas>
                     </div>
                 </div>
             </div>
@@ -140,89 +229,175 @@
 
     {{-- Superviser rôles --}}
     <div class="tab-pane fade" id="roles" role="tabpanel" aria-labelledby="roles-tab">
-        <h4>Superviser les rôles</h4>
-        <ul>
-            <li>Secrétaire</li>
-            <li>Médecin</li>
-            <li>Infirmier</li>
-            <li>Patient</li>
-        </ul>
-        <p>Fonctionnalité à implémenter : modification/assignation des rôles.</p>
+        <h4 class="mb-3">Superviser les rôles</h4>
+        <div class="row g-3 mb-3">
+          @foreach($rolesCount ?? [] as $roleName => $count)
+            <div class="col-md-2">
+              <div class="card text-center">
+                <div class="card-body py-2">
+                  <div class="text-muted small" style="text-transform: capitalize;">{{ $roleName }}</div>
+                  <div class="h4 mb-0">{{ $count }}</div>
+                </div>
+              </div>
+            </div>
+          @endforeach
+        </div>
+        <div class="table-responsive">
+          <table class="table table-striped align-middle">
+            <thead>
+              <tr>
+                <th>Utilisateur</th>
+                <th>Email</th>
+                <th>Rôle actuel</th>
+                <th>Changer de rôle</th>
+              </tr>
+            </thead>
+            <tbody>
+              @foreach($users as $u)
+                <tr>
+                  <td>{{ $u->name }}</td>
+                  <td>{{ $u->email }}</td>
+                  <td><span class="badge bg-success" style="text-transform: capitalize;">{{ $u->role }}</span></td>
+                  <td>
+                    <form method="POST" action="{{ route('admin.users.updateRole', $u->id) }}" class="d-flex align-items-center gap-2">
+                      @csrf
+                      @method('PUT')
+                      <select name="role" class="form-select form-select-sm" style="min-width: 160px;">
+                        @foreach(['admin','secretaire','medecin','infirmier','patient'] as $r)
+                          <option value="{{ $r }}" @selected($u->role === $r)>{{ ucfirst($r) }}</option>
+                        @endforeach
+                      </select>
+                      <button class="btn btn-sm btn-primary">Mettre à jour</button>
+                    </form>
+                  </td>
+                </tr>
+              @endforeach
+            </tbody>
+          </table>
+        </div>
     </div>
 
     {{-- Gestion rôles & permissions --}}
     <div class="tab-pane fade" id="permissions" role="tabpanel" aria-labelledby="permissions-tab">
-        <h4>Gestion des rôles et permissions</h4>
-        <p>Fonctionnalité à venir pour gérer finement les accès par rôle.</p>
+        <h4 class="mb-3">Gestion des rôles et permissions</h4>
+        <form method="POST" action="{{ route('admin.permissions.save') }}">
+          @csrf
+          <div class="table-responsive">
+            <table class="table table-bordered align-middle">
+              <thead>
+                <tr>
+                  <th>Permission</th>
+                  @foreach(['admin','secretaire','medecin','infirmier','patient'] as $r)
+                    <th class="text-center" style="text-transform: capitalize;">{{ $r }}</th>
+                  @endforeach
+                </tr>
+              </thead>
+              <tbody>
+                @foreach(($availablePermissions ?? []) as $perm)
+                  <tr>
+                    <td>{{ $perm['label'] }}</td>
+                    @foreach(['admin','secretaire','medecin','infirmier','patient'] as $r)
+                      @php $checked = ($rolePermissions[$r][$perm['key']] ?? false); @endphp
+                      <td class="text-center">
+                        <input type="checkbox" name="permissions[{{ $r }}][{{ $perm['key'] }}]" {{ $checked ? 'checked' : '' }}>
+                      </td>
+                    @endforeach
+                  </tr>
+                @endforeach
+              </tbody>
+            </table>
+          </div>
+          <button class="btn btn-success">Enregistrer</button>
+        </form>
     </div>
 
-    {{-- Historique connexions --}}
-    <div class="tab-pane fade" id="history" role="tabpanel" aria-labelledby="history-tab">
-        <h4>Historique des connexions</h4>
-        <table class="table table-sm table-bordered">
-            <thead>
-                <tr>
-                    <th>Utilisateur</th>
-                    <th>Date & Heure</th>
-                    <th>IP</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($history as $h)
-                <tr>
-                    <td>{{ $h['user'] }}</td>
-                    <td>{{ $h['datetime'] }}</td>
-                    <td>{{ $h['ip'] }}</td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
-    </div>
 </div>
 @endsection
 
 @section('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // Données simulées chart
-    const rolesData = {
-        labels: ['Administrateurs', 'Médecins', 'Infirmiers', 'Secrétaires', 'Patients'],
-        datasets: [{
-            label: 'Nombre d\'utilisateurs',
-            data: [3, 8, 5, 4, 20],
-            backgroundColor: ['#007bff', '#28a745', '#ffc107', '#17a2b8', '#dc3545'],
-        }]
+    // Données dynamiques transmises depuis le contrôleur
+    const rolesCount = @json($rolesCount ?? []);
+    const months = @json($months ?? []);
+    const rdvSeries = @json($rendezvousCounts ?? []);
+    const admissionsSeries = @json($admissionsCounts ?? []);
+    const consultsSeries = @json($consultationsCounts ?? []);
+    const patientsSeries = @json($patientsCounts ?? []);
+    const rdvStatusCounts = @json($rdvStatusCounts ?? []);
+
+    // Palette
+    const colors = {
+      green: '#27ae60', darkGreen: '#145a32', teal: '#20c997', orange: '#fd7e14', pink: '#e83e8c', blue: '#3b82f6', red: '#ef4444', yellow: '#eab308'
     };
 
-    const rendezvousData = {
-        labels: ['Consultation', 'Suivi', 'Urgence'],
-        datasets: [{
-            data: [12, 7, 3],
-            backgroundColor: ['#20c997', '#fd7e14', '#e83e8c'],
-        }]
-    };
-
+    // Répartition des rôles (bar)
+    const rolesLabels = Object.keys(rolesCount);
+    const rolesValues = Object.values(rolesCount);
     new Chart(document.getElementById('rolesChart'), {
-        type: 'bar',
-        data: rolesData,
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { display: false },
-                title: { display: true, text: 'Utilisateurs par rôle' }
-            }
-        }
+      type: 'bar',
+      data: {
+        labels: rolesLabels.map(l => l.charAt(0).toUpperCase() + l.slice(1)),
+        datasets: [{
+          label: "Utilisateurs",
+          data: rolesValues,
+          backgroundColor: [colors.blue, colors.green, colors.yellow, colors.teal, colors.red]
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false }, title: { display: true, text: 'Utilisateurs par rôle' } },
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+      }
     });
 
+    // Statuts des rendez-vous (donut)
+    const rdvStatusLabels = Object.keys(rdvStatusCounts).map(s => (s || 'non défini').replace('_',' '));
+    const rdvStatusValues = Object.values(rdvStatusCounts);
     new Chart(document.getElementById('rendezvousChart'), {
-        type: 'doughnut',
-        data: rendezvousData,
-        options: {
-            responsive: true,
-            plugins: {
-                title: { display: true, text: 'Types de rendez-vous' }
-            }
-        }
+      type: 'doughnut',
+      data: {
+        labels: rdvStatusLabels,
+        datasets: [{
+          data: rdvStatusValues,
+          backgroundColor: [colors.green, colors.orange, colors.red, colors.blue, colors.pink, colors.yellow]
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: 'bottom' }, title: { display: true, text: 'Répartition des statuts de RDV' } }
+      }
     });
+
+    // Séries mensuelles (line)
+    new Chart(document.getElementById('monthlyChart'), {
+      type: 'line',
+      data: {
+        labels: months,
+        datasets: [
+          { label: 'Rendez-vous', data: rdvSeries, borderColor: colors.green, backgroundColor: colors.green + '33', tension: .3, fill: true },
+          { label: 'Consultations', data: consultsSeries, borderColor: colors.blue, backgroundColor: colors.blue + '33', tension: .3, fill: true },
+          { label: 'Admissions', data: admissionsSeries, borderColor: colors.orange, backgroundColor: colors.orange + '33', tension: .3, fill: true },
+          { label: 'Patients (créés)', data: patientsSeries, borderColor: colors.pink, backgroundColor: colors.pink + '33', tension: .3, fill: true }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: 'bottom' }, title: { display: true, text: '6 derniers mois' } },
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+      }
+    });
+<script>
+  // Filtres simples tables Admin
+  function filterTable(inputId, tableId){
+    const q = (document.getElementById(inputId)?.value || '').toLowerCase();
+    const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+    rows.forEach(tr => {
+      const text = tr.innerText.toLowerCase();
+      tr.style.display = text.includes(q) ? '' : 'none';
+    });
+  }
+  document.getElementById('searchUsers')?.addEventListener('input', ()=>filterTable('searchUsers','usersTable'));
+  document.getElementById('searchPatients')?.addEventListener('input', ()=>filterTable('searchPatients','patientsTable'));
 </script>
 @endsection

@@ -11,6 +11,8 @@ class Dossier_administratifs extends Model
 
     use HasFactory;
 
+    protected $table = 'dossier_administratifs';
+
     protected $fillable = [
         'patient_id',
         'numero_dossier',

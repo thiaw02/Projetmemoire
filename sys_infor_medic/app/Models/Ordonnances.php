@@ -8,6 +8,8 @@ class Ordonnances extends Model
 {
     use HasFactory;
 
+    protected $table = 'ordonnances';
+
     protected $fillable = [
         'patient_id',
         'medecin_id',

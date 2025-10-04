@@ -9,6 +9,8 @@ class Dossier extends Model
 {
     use HasFactory;
 
+    protected $table = 'dossiers';
+
     protected $fillable = [
         'patient_id',
         'statut',

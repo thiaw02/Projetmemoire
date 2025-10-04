@@ -2,86 +2,23 @@
 
 @section('content')
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Raleway:wght@700&display=swap');
-
-    .full-height {
-        position: relative;
-        height: 100vh;
-        background-image: url('{{ asset("images/LOGO.png") }}');
-        background-repeat: no-repeat;
-        background-position: center center;
-        background-size: 900px 900px;
-        background-attachment: fixed;
-        opacity:1;
-    }
-
-    .full-height::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background-color: rgba(255, 255, 255, 0.7);
-        z-index: 1;
-    }
-
-    .register-box {
-        position: relative;
-        z-index: 2;
-        max-width: 1000px;
-        width: 100%;
-        background-color: #fff;
-        border: 2px solid #28a745;
-        border-radius: 0.75rem;
-        padding: 2rem 3rem;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-
-    .welcome-text {
-        position: absolute;
-        top: 2%;
-        width: 100%;
-        z-index: 2;
-        text-align: center;
-        font-family: 'Raleway', sans-serif;
-    }
-
-    .welcome-text h1 {
-        font-size: 3rem;
-        color: #003366;
-        margin-bottom: 0.5rem;
-    }
-
-    .welcome-text h2 {
-        font-size: 2.5rem;
-        color: #28a745;
-        margin-top: 0;
-    }
-
-    .form-label {
-        font-weight: 600;
-    }
-
-    .form-control {
-        border-radius: 10px;
-    }
-
-    .alert-danger {
-        background-color: #f8d7da;
-        color: #842029;
-        padding: 10px 15px;
-        border-radius: 5px;
-        margin-bottom: 15px;
-        border: 1px solid #f5c2c7;
-    }
+  .auth-wrapper { min-height: calc(100vh - 40px); display: flex; align-items: center; justify-content: center; padding: 2rem 1rem; }
+  .register-box { max-width: 1000px; width: 100%; background: #fff; border: 2px solid #28a745; border-radius: .75rem; padding: 2rem 3rem; box-shadow: 0 6px 18px rgba(0,0,0,.12); }
+  .brand { display: flex; align-items: center; gap: .5rem; justify-content: center; margin-bottom: .75rem; }
+  .brand img { width: 48px; height: 48px; }
+  .brand span { font-weight: 800; color: #27ae60; letter-spacing: .5px; }
+  .form-label { font-weight: 600; }
+  .form-control { border-radius: 10px; }
+  .alert-danger { background-color: #f8d7da; color: #842029; padding: 10px 15px; border-radius: 5px; margin-bottom: 15px; border: 1px solid #f5c2c7; }
 </style>
 
-<div class="container d-flex justify-content-center align-items-center full-height">
-    <div class="welcome-text">
-        <h1>BIENVENUE SUR VOTRE PLATEFORME</h1>
-        <h2>SMART-HEALTH</h2>
-    </div>
-
+<div class="container auth-wrapper">
     <div class="register-box">
-        <h4 class="text-center text-success mb-4">Inscription Patient</h4>
+        <div class="brand">
+          <img src="{{ asset('images/LOGO PLATEFORME.png') }}" alt="Logo">
+          <span>SMART-HEALTH</span>
+        </div>
+        <h4 class="text-center text-success mb-3">Inscription Patient</h4>
 
         {{-- Erreurs de validation --}}
         @if($errors->any())

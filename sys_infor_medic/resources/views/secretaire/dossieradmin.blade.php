@@ -92,6 +92,15 @@
                             <label class="form-label">Date de naissance</label>
                             <input type="date" name="date_naissance" class="form-control" value="{{ $patient->date_naissance }}">
                         </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Secrétaire assigné(e)</label>
+                            <select name="secretary_user_id" class="form-select">
+                                <option value="">-- Aucune --</option>
+                                @foreach(($secretaires ?? []) as $sec)
+                                    <option value="{{ $sec->id }}" {{ ($patient->secretary_user_id ?? null) == $sec->id ? 'selected' : '' }}>{{ $sec->name }} ({{ $sec->email }})</option>
+                                @endforeach
+                            </select>
+                        </div>
                         <div class="col-md-12">
                             <label class="form-label">Adresse</label>
                             <input type="text" name="adresse" class="form-control" value="{{ $patient->adresse }}">

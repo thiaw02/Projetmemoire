@@ -11,6 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('ordonnances')) {
+            return; // table déjà créée par une migration précédente
+        }
         Schema::create('ordonnances', function (Blueprint $table) {
             $table->id();
             $table->timestamps();

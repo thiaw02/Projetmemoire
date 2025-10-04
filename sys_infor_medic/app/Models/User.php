@@ -19,6 +19,11 @@ class User extends Authenticatable
         'password',
         'role',
         'specialite',
+        'pro_phone',
+        'matricule',
+        'cabinet',
+        'horaires',
+        'avatar_url',
     ];
 
     // Attributs masqués lors de la sérialisation

@@ -9,6 +9,8 @@ class Admissions extends Model
 
     use HasFactory;
 
+    protected $table = 'admissions';
+
     protected $fillable = [
         'patient_id',
         'date_admission',

@@ -17,10 +17,36 @@ use App\Http\Controllers\{
 // Accueil
 Route::get('/', fn () => redirect('/login'));
 
+// Profil (auth)
+Route::middleware('auth')->group(function () {
+    Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [\App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
+    Route::put('/profile/password', [\App\Http\Controllers\ProfileController::class, 'updatePassword'])->name('profile.password.update');
+    Route::post('/profile/avatar', [\App\Http\Controllers\ProfileController::class, 'updateAvatar'])->name('profile.avatar.update');
+    Route::put('/profile/patient', [\App\Http\Controllers\ProfileController::class, 'updatePatientInfo'])->name('profile.patient.update');
+    Route::put('/admin/settings', [\App\Http\Controllers\ProfileController::class, 'updateSettings'])->name('admin.settings.update');
+    Route::post('/profile/patient/document', [\App\Http\Controllers\ProfileController::class, 'uploadPatientDocument'])->name('profile.patient.document.upload');
+    Route::delete('/profile/patient/document/{id}', [\App\Http\Controllers\ProfileController::class, 'deletePatientDocument'])->name('profile.patient.document.delete');
+
+    // Chat
+    Route::get('/chat', [\App\Http\Controllers\ChatController::class, 'index'])->name('chat.index');
+    Route::post('/chat/send', [\App\Http\Controllers\ChatController::class, 'send'])->name('chat.send');
+    Route::get('/chat/unread-count', [\App\Http\Controllers\ChatController::class, 'unreadCount'])->name('chat.unread');
+    Route::get('/chat/messages', [\App\Http\Controllers\ChatController::class, 'messages'])->name('chat.messages');
+    Route::post('/chat/typing', [\App\Http\Controllers\ChatController::class, 'typing'])->name('chat.typing');
+    Route::get('/chat/typing-status', [\App\Http\Controllers\ChatController::class, 'typingStatus'])->name('chat.typingStatus');
+});
+
 // Authentification
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+// Password reset
+Route::get('/forgot-password', [\App\Http\Controllers\Auth\PasswordResetLinkController::class, 'create'])->name('password.request');
+Route::post('/forgot-password', [\App\Http\Controllers\Auth\PasswordResetLinkController::class, 'store'])->name('password.email');
+Route::get('/reset-password/{token}', [\App\Http\Controllers\Auth\NewPasswordController::class, 'create'])->name('password.reset');
+Route::post('/reset-password', [\App\Http\Controllers\Auth\NewPasswordController::class, 'store'])->name('password.update');
 
 // Inscription Patient uniquement
 Route::get('/inscription', [AuthController::class, 'showRegistrationForm'])->name('register');
@@ -37,6 +63,7 @@ Route::prefix('admin')->middleware('auth')->group(function () {
         Route::post('/', [UserController::class, 'store'])->name('admin.users.store');
         Route::get('/{id}/edit', [UserController::class, 'edit'])->name('admin.users.edit');
         Route::put('/{id}', [UserController::class, 'update'])->name('admin.users.update');
+        Route::put('/{id}/role', [UserController::class, 'updateRole'])->name('admin.users.updateRole');
         Route::delete('/{id}', [UserController::class, 'destroy'])->name('admin.users.destroy');
     });
 
@@ -49,6 +76,9 @@ Route::prefix('admin')->middleware('auth')->group(function () {
         Route::put('/{id}', [UserController::class, 'updatePatient'])->name('admin.patients.update');
         Route::delete('/{id}', [UserController::class, 'destroyPatient'])->name('admin.patients.destroy');
     });
+
+    // Enregistrement des permissions
+    Route::post('/permissions', [AdminController::class, 'savePermissions'])->name('admin.permissions.save');
 });
 
 /// ===================== SECRETAIRE =====================
@@ -85,9 +115,9 @@ Route::prefix('infirmier')->middleware('auth')->group(function () {
 // ===================== PATIENT =====================
 Route::prefix('patient')->middleware('auth')->group(function () {
     Route::get('/dashboard', [PatientController::class, 'dashboard'])->name('patient.dashboard');
-    Route::get('/rendezvous', [PatientController::class, 'rendezvous']);
-    Route::post('/rendezvous', [PatientController::class, 'storeRendez'])->name('rendez.store');
-    Route::get('/dossiermedical', [PatientController::class, 'dossier']);
+    Route::get('/rendezvous', [PatientController::class, 'rendezvous'])->name('patient.rendezvous');
+    Route::post('/rendezvous', [PatientController::class, 'storeRendez'])->name('patient.storeRendez');
+    Route::get('/dossiermedical', [PatientController::class, 'dossier'])->name('patient.dossier');
 });
 
 // Page succès inscription

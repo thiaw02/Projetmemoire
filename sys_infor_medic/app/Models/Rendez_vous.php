@@ -8,6 +8,8 @@ class Rendez_vous extends Model
 {
     use HasFactory;
 
+    protected $table = 'rendez_vous';
+
     protected $fillable = [
         'user_id',
         'medecin_id',
@@ -20,7 +22,8 @@ class Rendez_vous extends Model
     // Le patient
     public function patient()
     {
-        return $this->belongsTo(Patient::class, 'user_id');
+        // Lien via le user_id du patient (rendez_vous.user_id = patients.user_id)
+        return $this->belongsTo(Patient::class, 'user_id', 'user_id');
     }
 
     // Le médecin

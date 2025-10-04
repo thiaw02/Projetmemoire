@@ -8,6 +8,8 @@ class Analyses extends Model
 {
     use HasFactory;
 
+    protected $table = 'analyses';
+
     protected $fillable = [
         'patient_id',
         'medecin_id',

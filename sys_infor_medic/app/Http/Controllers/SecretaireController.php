@@ -34,7 +34,8 @@ class SecretaireController extends Controller
     public function dossiersAdmin()
     {
         $patients = Patient::with('dossier_administratifs')->get();
-        return view('secretaire.dossieradmin', compact('patients'));
+        $secretaires = User::where('role','secretaire')->orderBy('name')->get();
+        return view('secretaire.dossieradmin', compact('patients','secretaires'));
     }
 
     public function rendezvous()
@@ -55,8 +56,10 @@ class SecretaireController extends Controller
             'motif' => 'nullable|string|max:255',
         ]);
 
+        // Trouver l'utilisateur du patient (user_id) pour respecter la contrainte FK
+        $patient = Patient::findOrFail($request->patient_id);
         Rendez_vous::create([
-            'user_id' => $request->patient_id,
+            'user_id' => $patient->user_id, // user_id (table users)
             'medecin_id' => $request->medecin_id,
             'date' => $request->date,
             'heure' => $request->heure,
@@ -103,9 +106,14 @@ public function storePatient(Request $request)
         'adresse' => 'nullable|string',
         'groupe_sanguin' => 'nullable|string',
         'antecedents' => 'nullable|string',
+        'secretary_user_id' => 'nullable|exists:users,id',
     ]);
 
-    Patient::create($request->all());
+    $data = $request->all();
+    if (empty($data['secretary_user_id'])) {
+        $data['secretary_user_id'] = auth()->id();
+    }
+    Patient::create($data);
 
     return redirect()->route('secretaire.dossiersAdmin')->with('success', 'Patient ajouté avec succès.');
 }
@@ -124,6 +132,7 @@ public function updatePatient(Request $request, $id)
         'adresse' => 'nullable|string',
         'groupe_sanguin' => 'nullable|string',
         'antecedents' => 'nullable|string',
+        'secretary_user_id' => 'nullable|exists:users,id',
     ]);
 
     $patient->update($request->all());
