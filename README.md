@@ -108,13 +108,28 @@ Packages Laravel utilisés (intégrés au framework):
 - Role: middleware('role') disponible si règles fines nécessaires
 
 ## Tests rapides / Débogage
-- Vider caches si vous modifiez les vues/configs:
-  php artisan view:clear
-  php artisan cache:clear
-  php artisan route:clear
-  php artisan config:clear
-- Logs: storage/logs/laravel.log
-
----
-
-Pour la documentation plus détaillée (architecture étendue, roadmap, etc.), voir aussi readme/README.md.
+|- Vider caches si vous modifiez les vues/configs:
+|  php artisan view:clear
+|  php artisan cache:clear
+|  php artisan route:clear
+|  php artisan config:clear
+|- Logs: storage/logs/laravel.log
+|
+|---
+|
+|## Mises à jour récentes (journal)
+|
+|2025-10-06
+|- Chat
+|  - Envoi automatique des messages vocaux dès l'arrêt de l'enregistrement (interface web type WhatsApp).
+|  - Correction d'une erreur SQL (colonne body NOT NULL) pour les messages audio: body par défaut à "" (chaîne vide) quand seul un fichier est envoyé.
+|  - Modèle Message mis à jour pour accepter file_path et file_type (mass assignment).
+|  - Alignement des règles d'autorisation de l'envoi sur la logique globale: échanges Médecin ↔ Infirmier autorisés; Patient ↔ Secrétaire; Admin ↔ Secrétaire.
+|- Inscription
+|  - Simplification de la page: affichage direct du formulaire avec contour vert; suppression du panneau de présentation et du CTA intermédiaire.
+|- Secrétariat (rappel)
+|  - Boutons 2/6/12 mois pour filtrer dynamiquement les graphiques (rendez-vous/admissions). Vider le cache des vues si nécessaire: php artisan view:clear.
+|
+|---
+|
+|Pour la documentation plus détaillée (architecture étendue, roadmap, etc.), voir aussi readme/README.md.
