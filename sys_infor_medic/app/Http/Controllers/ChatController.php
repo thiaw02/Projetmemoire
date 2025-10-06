@@ -91,14 +91,12 @@ class ChatController extends Controller
         $data = $request->validate([
             'partner_id' => ['required','integer','exists:users,id'],
             'body' => ['nullable','string','max:2000'],
-            'file' => ['nullable','file','mimes:pdf,jpg,jpeg,png,webp','max:4096'],
+            'file' => ['nullable','file','mimes:pdf,jpg,jpeg,png,webp,mp3,m4a,wav,webm,ogg','max:10240'],
         ]);
 
-        // Autorisations simples selon les règles
+        // Vérification des autorisations alignée sur les autres endpoints
         $partner = User::findOrFail($data['partner_id']);
-        if ($user->role !== 'secretaire' && $partner->role !== 'secretaire') {
-            abort(403);
-        }
+        $this->ensureAuthorizedPair($user, $partner);
 
         $conv = Conversation::ensure($user->id, $partner->id);
 
@@ -107,7 +105,13 @@ class ChatController extends Controller
             $stored = $request->file('file')->store('chat_files','public');
             $filePath = \Storage::url($stored);
             $ext = strtolower($request->file('file')->getClientOriginalExtension());
-            $fileType = in_array($ext, ['jpg','jpeg','png','webp']) ? 'image' : 'file';
+            if (in_array($ext, ['jpg','jpeg','png','webp'])) {
+                $fileType = 'image';
+            } elseif (in_array($ext, ['mp3','m4a','wav','webm','ogg'])) {
+                $fileType = 'audio';
+            } else {
+                $fileType = 'file';
+            }
         }
         if (!$filePath && empty($data['body'])) {
             return Redirect::back()->withErrors(['body' => 'Message ou fichier requis']);
@@ -116,7 +120,7 @@ class ChatController extends Controller
         $msg = Message::create([
             'conversation_id' => $conv->id,
             'sender_id' => $user->id,
-            'body' => $data['body'] ?? null,
+            'body' => $data['body'] ?? '',
             'file_path' => $filePath,
             'file_type' => $fileType,
         ]);

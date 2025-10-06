@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Message extends Model
 {
-    protected $fillable = ['conversation_id','sender_id','body','read_at'];
+    protected $fillable = ['conversation_id','sender_id','body','read_at','file_path','file_type'];
 
     public function conversation() { return $this->belongsTo(Conversation::class); }
     public function sender() { return $this->belongsTo(\App\Models\User::class,'sender_id'); }

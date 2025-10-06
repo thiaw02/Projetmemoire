@@ -11,6 +11,7 @@
   .msg .bubble { display: inline-block; padding: .5rem .75rem; border-radius: .75rem; max-width: 70%; }
   .msg.me .bubble { background: #27ae60; color: #fff; }
   .msg.other .bubble { background: #eafaf0; color: #145a32; }
+  .rec-indicator { color: #e53935; font-weight: 600; }
 </style>
 <div class="container chat-wrapper">
   <div class="d-flex justify-content-between align-items-center mb-3">
@@ -27,9 +28,23 @@
       <div class="card">
         <div class="card-header">Partenaires</div>
         <div class="list-group list-group-flush">
+          @php $uid = auth()->id(); @endphp
           @forelse($partners as $p)
-          <a href="{{ route('chat.index', ['partner_id'=>$p->id]) }}" class="list-group-item list-group-item-action {{ ($partner && $partner->id===$p->id) ? 'active' : '' }}">
-            {{ $p->name }} <span class="text-muted small">({{ $p->role }})</span>
+          @php
+            $unread = \App\Models\Message::whereNull('read_at')
+              ->where('sender_id','!=',$uid)
+              ->whereHas('conversation', function($q) use ($uid, $p){
+                $q->where(function($qq) use ($uid,$p){ $qq->where('user_one_id',$uid)->where('user_two_id',$p->id); })
+                  ->orWhere(function($qq) use ($uid,$p){ $qq->where('user_one_id',$p->id)->where('user_two_id',$uid); });
+              })->count();
+          @endphp
+          <a href="{{ route('chat.index', ['partner_id'=>$p->id]) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center {{ ($partner && $partner->id===$p->id) ? 'active' : '' }}">
+            <span>
+              {{ $p->name }} <span class="text-muted small">({{ $p->role }})</span>
+            </span>
+            @if($unread>0)
+              <span class="badge bg-danger">{{ $unread }}</span>
+            @endif
           </a>
           @empty
           <div class="p-3 text-muted">Aucun partenaire disponible.</div>
@@ -53,6 +68,8 @@
               @if(!empty($m->file_path))
                 @if($m->file_type==='image')
                   <div class="mb-1"><img src="{{ $m->file_path }}" alt="image" style="max-width:220px;border-radius:.5rem;"/></div>
+                @elseif($m->file_type==='audio')
+                  <div class="mb-1"><audio controls src="{{ $m->file_path }}"></audio></div>
                 @else
                   <div class="mb-1"><a href="{{ $m->file_path }}" target="_blank">Télécharger le fichier</a></div>
                 @endif
@@ -73,15 +90,19 @@
           <form method="POST" action="{{ route('chat.send') }}" class="row g-2" enctype="multipart/form-data" id="sendForm">
             @csrf
             <input type="hidden" name="partner_id" value="{{ $partner?->id }}">
-            <div class="col-6 col-md-7">
+            <div class="col-6 col-md-6">
               <input type="text" name="body" class="form-control" placeholder="Votre message...">
             </div>
             <div class="col-3 col-md-3">
-              <input type="file" name="file" class="form-control" accept=".pdf,image/*">
+              <input type="file" name="file" id="fileInput" class="form-control" accept=".pdf,image/*,audio/*">
             </div>
-            <div class="col-3 col-md-2">
+            <div class="col-1 col-md-1 d-grid">
+              <button type="button" id="btnRecord" class="btn btn-outline-danger" title="Message vocal"><i class="bi bi-mic-fill"></i></button>
+            </div>
+            <div class="col-2 col-md-2">
               <button class="btn btn-success w-100">Envoyer</button>
             </div>
+            <div class="col-12 small text-muted" id="recStatus" style="display:none;">Enregistrement… <span class="rec-indicator">●</span></div>
           </form>
         </div>
       </div>
@@ -92,6 +113,10 @@
   (function(){
     const partnerId = {{ $partner?->id ?? 'null' }};
     const box = document.getElementById('chatMessages');
+    const fileInput = document.getElementById('fileInput');
+    const recBtn = document.getElementById('btnRecord');
+    const recStatus = document.getElementById('recStatus');
+    let mediaRecorder = null; let recChunks = []; let stream = null;
     const typing = document.getElementById('typingIndicator');
     const input = document.querySelector('#sendForm input[name="body"]');
     let typingTimeout = null;
@@ -108,7 +133,7 @@
         for(const m of data.messages){
           html += `<div class=\"msg ${m.mine?'me':'other'}\"><div class=\"bubble\">`+
                   `<div class=\"small text-muted\">${m.sender} • ${m.created_at}${m.mine && m.read ? ' • <span class=\\"text-success\\">lu</span>' : ''}</div>`+
-                  (m.file_path ? (m.file_type==='image' ? `<div class=\"mb-1\"><img src=\"${m.file_path}\" style=\"max-width:220px;border-radius:.5rem;\"/></div>` : `<div class=\"mb-1\"><a href=\"${m.file_path}\" target=\"_blank\">Télécharger le fichier</a></div>`) : '')+
+                  (m.file_path ? (m.file_type==='image' ? `<div class=\"mb-1\"><img src=\"${m.file_path}\" style=\"max-width:220px;border-radius:.5rem;\"/></div>` : (m.file_type==='audio' ? `<div class=\"mb-1\"><audio controls src=\"${m.file_path}\"></audio></div>` : `<div class=\"mb-1\"><a href=\"${m.file_path}\" target=\"_blank\">Télécharger le fichier</a></div>`)) : '')+
                   (m.body ? `<div>${m.body}</div>` : '')+
                   `</div></div>`;
         }
@@ -144,6 +169,40 @@
     }
     setInterval(refreshMessages, 10000);
     setInterval(refreshTyping, 2500);
+
+    async function startRecording(){
+      try{
+        if(!partnerId){ alert('Sélectionnez un partenaire pour envoyer un message vocal.'); return; }
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        recChunks = [];
+        mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.ondataavailable = e => { if(e.data.size>0) recChunks.push(e.data); };
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(recChunks, { type: 'audio/webm' });
+          const file = new File([blob], `voice_${Date.now()}.webm`, { type: 'audio/webm' });
+          const dt = new DataTransfer(); dt.items.add(file); fileInput.files = dt.files;
+          recStatus.style.display = 'none';
+          recBtn.classList.remove('btn-danger');
+          recBtn.classList.add('btn-outline-danger');
+          recBtn.innerHTML = '<i class="bi bi-mic-fill"></i>';
+          // Stop stream tracks
+          try{ stream.getTracks().forEach(t=>t.stop()); }catch(_){ }
+          // Envoi automatique comme WhatsApp
+          const form = document.getElementById('sendForm');
+          try{ form?.requestSubmit(); }catch(_){ form?.submit(); }
+        };
+        mediaRecorder.start();
+        recStatus.style.display = '';
+        recBtn.classList.remove('btn-outline-danger');
+        recBtn.classList.add('btn-danger');
+        recBtn.innerHTML = '<i class="bi bi-stop-fill"></i>';
+      }catch(e){ console.warn('Audio record error', e); }
+    }
+    function stopRecording(){ if(mediaRecorder && mediaRecorder.state!=='inactive'){ mediaRecorder.stop(); } }
+    recBtn?.addEventListener('click', ()=>{
+      if(!mediaRecorder || mediaRecorder.state==='inactive'){ startRecording(); }
+      else { stopRecording(); }
+    });
   })();
 </script>
 @endsection
