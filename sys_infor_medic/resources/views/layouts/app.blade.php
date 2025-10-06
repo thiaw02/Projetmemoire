@@ -148,6 +148,26 @@
                 <img src="{{ asset('images/LOGO PLATEFORME.png') }}" alt="Logo" width="40" height="40" class="me-2">
                 SMART-HEALTH
             </a>
+            @auth
+            <div class="ms-auto d-flex align-items-center position-relative">
+              <button id="alertsToggle" type="button" class="btn btn-outline-secondary btn-sm me-2 position-relative">
+                <i class="bi bi-bell"></i>
+                <span id="notif-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none"></span>
+              </button>
+              <div id="alertsPanel" class="card shadow position-absolute end-0 mt-2 d-none" style="top: 100%; width: 360px; z-index: 2000;">
+                <div class="card-body p-2">
+                  <div class="small text-muted px-1">Messages</div>
+                  <ul id="alertsMessages" class="list-unstyled mb-2 px-1" style="max-height: 240px; overflow:auto;"></ul>
+                  <div class="small text-muted px-1">Notifications</div>
+                  <ul id="alertsNotifications" class="list-unstyled mb-0 px-1" style="max-height: 200px; overflow:auto;"></ul>
+                </div>
+              </div>
+              <form action="{{ route('logout') }}" method="POST" class="mb-0 ms-2">
+                @csrf
+                <button class="btn btn-outline-danger btn-sm"><i class="bi bi-box-arrow-right me-1"></i> Déconnexion</button>
+              </form>
+            </div>
+            @endauth
         </div>
     </nav>
     @endunless
@@ -157,12 +177,10 @@
     <style>
       .fab-chat { position: fixed; right: 22px; bottom: 24px; z-index: 1050; }
       .fab-chat .btn { width: 56px; height: 56px; border-radius: 50%; box-shadow: 0 6px 18px rgba(0,0,0,.2); display: inline-flex; align-items: center; justify-content: center; }
-      .fab-chat .badge { transform: translate(50%,-50%); }
     </style>
     <div class="fab-chat">
-      <a href="{{ route('chat.index') }}" class="btn btn-success position-relative">
+      <a href="{{ route('chat.index') }}" class="btn btn-success" aria-label="Ouvrir le chat">
         <i class="bi bi-chat-dots" style="font-size: 1.3rem;"></i>
-        <span id="notif-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none"></span>
       </a>
     </div>
     @endunless
@@ -198,27 +216,94 @@
     <script>
       // Expose CSRF token for JS fetch usage
       window.csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+      // Current user id for per-user local storage keys
+      window.userId = "{{ auth()->id() }}";
+      window.userRole = "{{ auth()->user()->role ?? '' }}";
     </script>
 
     {{-- Zone pour scripts spécifiques aux vues --}}
     @yield('scripts')
 
     <script>
-      // Poll unread notifications count if badge exists
+      // Alerts: dropdown + poll count
       (function(){
         const badge = document.getElementById('notif-badge');
-        async function refreshUnread(){
-          if(!badge) return;
-          try{
-            const r = await fetch('{{ route('chat.unread') }}', { headers: { 'Accept':'application/json' } });
-            if(!r.ok) return;
-            const data = await r.json();
-            const c = parseInt(data.count||0);
-            if (c>0){ badge.classList.remove('d-none'); badge.textContent = c; }
-            else { badge.classList.add('d-none'); badge.textContent = ''; }
-          }catch(e){ /* noop */ }
+        const toggle = document.getElementById('alertsToggle');
+        const panel = document.getElementById('alertsPanel');
+        const listMsgs = document.getElementById('alertsMessages');
+        const listNotifs = document.getElementById('alertsNotifications');
+        const uid = (window.userId||'').toString();
+        const SEEN_KEY = `alerts_seen_count_${uid}`;
+        async function fetchSummary(){
+          const r = await fetch('{{ route('alerts.summary') }}', { headers: { 'Accept':'application/json' } });
+          if(!r.ok) return null;
+          return await r.json();
         }
-        setInterval(refreshUnread, 15000);
+        async function refreshBadge(){
+          try{
+            const data = await fetchSummary();
+            if(!data) return;
+            const c = parseInt(data.total_count||0);
+            const seen = parseInt(localStorage.getItem(SEEN_KEY)||'0');
+            if (c>seen){ badge.classList.remove('d-none'); badge.textContent = c - seen; }
+            else { badge.classList.add('d-none'); badge.textContent = ''; }
+          }catch(e){}
+        }
+        async function renderPanel(){
+          const data = await fetchSummary();
+          if(!data) return;
+          try{ localStorage.setItem(SEEN_KEY, String(parseInt(data.total_count||0))); }catch(e){}
+          badge?.classList.add('d-none');
+          // Messages
+          listMsgs.innerHTML = '';
+          (data.messages||[]).slice(0,8).forEach(m=>{
+            const badgeHtml = m.unread>0 ? `<span class="badge bg-success ms-1">${m.unread}</span>` : '';
+            const li = document.createElement('li');
+            li.className = 'py-1 border-bottom';
+            li.innerHTML = `<div class="d-flex justify-content-between"><strong>${m.partner_name}</strong>${badgeHtml}</div>
+                            <div class="small text-muted">${(m.last_at||'').replace('T',' ').slice(0,16)}</div>
+                            <div class="small">${m.preview||''}</div>`;
+            listMsgs.appendChild(li);
+          });
+          if (!listMsgs.children.length){ const li=document.createElement('li'); li.className='small text-muted px-1'; li.textContent='Aucun message.'; listMsgs.appendChild(li); }
+
+          // Notifications
+          listNotifs.innerHTML = '';
+          if ((data.rdvRequests||[]).length){
+            const header = document.createElement('li'); header.className='small text-success px-1 d-flex justify-content-between align-items-center'; header.innerHTML='<span>Demandes de rendez‑vous</span>'+(window.userRole==='secretaire'?`<a href=\"{{ route('secretaire.rendezvous') }}\" class=\"small\">Tout voir</a>`:''); listNotifs.appendChild(header);
+            data.rdvRequests.forEach(it=>{
+              const li = document.createElement('li');
+              li.className = 'py-1 border-bottom';
+              li.innerHTML = `<div><strong>${it.patient}</strong> → ${it.medecin||'—'}</div>
+                              <div class=\"small text-muted\">${it.date} ${it.heure}</div>`;
+              listNotifs.appendChild(li);
+            });
+          }
+          if ((data.rdvUpdates||[]).length){
+            const header = document.createElement('li'); header.className='small text-success px-1 mt-1'; header.textContent='Statuts de vos rendez‑vous'; listNotifs.appendChild(header);
+            data.rdvUpdates.forEach(it=>{
+              const li = document.createElement('li');
+              li.className = 'py-1 border-bottom';
+              const cls = (/confirm/i.test(it.statut)?'bg-success':(/annul/i.test(it.statut)?'bg-secondary':'bg-warning text-dark'));
+              li.innerHTML = `<div><span class="badge ${cls}">${(it.statut||'').replace('_',' ')}</span> avec ${it.medecin||'—'}</div>
+                              <div class="small text-muted">${it.date} ${it.heure}</div>`;
+              listNotifs.appendChild(li);
+            });
+          }
+          if (!listNotifs.children.length){ const li=document.createElement('li'); li.className='small text-muted px-1'; li.textContent='Aucune notification.'; listNotifs.appendChild(li); }
+        }
+        let open=false;
+        let intervalId = null;
+        function startPolling(){ if(intervalId) return; intervalId = setInterval(refreshBadge, 15000); }
+        function stopPolling(){ if(intervalId){ clearInterval(intervalId); intervalId=null; } }
+        toggle?.addEventListener('click', async ()=>{
+          open = !open;
+          if(open){ await renderPanel(); panel?.classList.remove('d-none'); panel?.classList.add('slide-in'); badge?.classList.add('d-none'); stopPolling(); }
+          else { panel?.classList.add('d-none'); startPolling(); }
+        });
+        document.addEventListener('click', (e)=>{ if(!panel || !toggle) return; if (!panel.contains(e.target) && !toggle.contains(e.target)){ panel.classList.add('d-none'); open=false; startPolling(); }});
+        startPolling();
+        refreshBadge();
       })();
     </script>
 

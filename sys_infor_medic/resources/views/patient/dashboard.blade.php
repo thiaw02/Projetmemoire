@@ -34,19 +34,6 @@
 
     <div class="admin-header d-flex align-items-center justify-content-between mb-3">
       <h2 class="mb-0 text-success">Espace Patient</h2>
-      @php
-        $unread = \App\Models\Message::whereNull('read_at')->whereHas('conversation', function($q){ $uid = auth()->id(); $q->where('user_one_id',$uid)->orWhere('user_two_id',$uid);})->where('sender_id','!=',auth()->id())->count();
-      @endphp
-      <a href="{{ route('chat.index') }}" class="btn btn-outline-secondary btn-sm me-2 position-relative">
-        <i class="bi bi-bell"></i>
-        @if($unread>0)
-          <span id="notif-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger {{ $unread>0 ? '' : 'd-none' }}">{{ $unread }}</span>
-        @endif
-      </a>
-      <form action="{{ route('logout') }}" method="POST" class="ms-1">
-        @csrf
-        <button class="btn btn-outline-danger btn-sm"><i class="bi bi-box-arrow-right me-1"></i> Déconnexion</button>
-      </form>
     </div>
 
     @if(session('success'))

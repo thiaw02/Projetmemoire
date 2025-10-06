@@ -17,7 +17,8 @@ class SecretaireController extends Controller
         $rendezvousData = [];
         $admissionsData = [];
 
-        for ($i = 5; $i >= 0; $i--) {
+        // Statistiques jusqu'à 12 mois (mois courant inclus) pour permettre un découpage dynamique 2/6/12
+        for ($i = 11; $i >= 0; $i--) {
             $month = Carbon::now()->subMonths($i);
             $months[] = $month->format('M');
             $rendezvousData[] = Rendez_vous::whereYear('date', $month->year)
@@ -28,7 +29,21 @@ class SecretaireController extends Controller
                                          ->count();
         }
 
-        return view('secretaire.dashboard', compact('totalPatients','months','rendezvousData','admissionsData'));
+        // KPIs
+        $pendingRdvCount = Rendez_vous::whereIn('statut', ['en_attente', 'en attente', 'pending'])->count();
+        $patientsATraiterCount = Admissions::whereNull('date_sortie')->count();
+
+        // Liste des demandes de rendez-vous (en attente)
+        $pendingRdvList = Rendez_vous::with(['patient','medecin'])
+            ->whereIn('statut', ['en_attente', 'en attente', 'pending'])
+            ->orderBy('date')
+            ->orderBy('heure')
+            ->get();
+
+        return view('secretaire.dashboard', compact(
+            'totalPatients','months','rendezvousData','admissionsData',
+            'pendingRdvCount','patientsATraiterCount','pendingRdvList'
+        ));
     }
 
     public function dossiersAdmin()
@@ -75,6 +90,11 @@ class SecretaireController extends Controller
         $rdv = Rendez_vous::findOrFail($id);
         $rdv->statut = 'confirmé';
         $rdv->save();
+        // Notify patient by email
+        $user = \App\Models\User::find($rdv->user_id);
+        if ($user) {
+            try { $user->notify(new \App\Notifications\RendezvousStatusChanged($rdv)); } catch (\Throwable $e) { /* noop */ }
+        }
         return redirect()->route('secretaire.rendezvous')->with('success','Rendez-vous confirmé.');
     }
 
@@ -83,6 +103,11 @@ class SecretaireController extends Controller
         $rdv = Rendez_vous::findOrFail($id);
         $rdv->statut = 'annulé';
         $rdv->save();
+        // Notify patient by email
+        $user = \App\Models\User::find($rdv->user_id);
+        if ($user) {
+            try { $user->notify(new \App\Notifications\RendezvousStatusChanged($rdv)); } catch (\Throwable $e) { /* noop */ }
+        }
         return redirect()->route('secretaire.rendezvous')->with('success','Rendez-vous annulé.');
     }
 

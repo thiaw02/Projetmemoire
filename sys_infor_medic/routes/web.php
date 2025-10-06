@@ -35,6 +35,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/chat/messages', [\App\Http\Controllers\ChatController::class, 'messages'])->name('chat.messages');
     Route::post('/chat/typing', [\App\Http\Controllers\ChatController::class, 'typing'])->name('chat.typing');
     Route::get('/chat/typing-status', [\App\Http\Controllers\ChatController::class, 'typingStatus'])->name('chat.typingStatus');
+
+    // Alerts/Notifications summary
+    Route::get('/alerts/summary', [\App\Http\Controllers\AlertsController::class, 'summary'])->name('alerts.summary');
 });
 
 // Authentification

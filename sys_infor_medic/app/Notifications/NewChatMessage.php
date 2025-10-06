@@ -7,7 +7,7 @@ use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\Messages\MailMessage;
 use App\Models\Message;
 
-class NewChatMessage extends Notification
+class NewChatMessage extends Notification implements \Illuminate\Contracts\Queue\ShouldQueue
 {
     use Queueable;
 

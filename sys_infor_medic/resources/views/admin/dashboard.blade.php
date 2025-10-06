@@ -11,19 +11,6 @@
 
 <div class="admin-header d-flex align-items-center justify-content-between mb-3">
   <h2 class="mb-0">Dashboard Administrateur</h2>
-  @php
-    $unread = \App\Models\Message::whereNull('read_at')->whereHas('conversation', function($q){ $uid = auth()->id(); $q->where('user_one_id',$uid)->orWhere('user_two_id',$uid);})->where('sender_id','!=',auth()->id())->count();
-  @endphp
-  <a href="{{ route('chat.index') }}" class="btn btn-outline-secondary btn-sm me-2 position-relative">
-    <i class="bi bi-bell"></i>
-    @if($unread>0)
-      <span id="notif-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger {{ $unread>0 ? '' : 'd-none' }}">{{ $unread }}</span>
-    @endif
-  </a>
-  <form action="{{ route('logout') }}" method="POST" class="ms-1">
-    @csrf
-    <button class="btn btn-outline-danger btn-sm"><i class="bi bi-box-arrow-right me-1"></i> Déconnexion</button>
-  </form>
 </div>
 
 @if(session('success'))
@@ -196,7 +183,14 @@
 
     {{-- Statistiques globales --}}
     <div class="tab-pane fade" id="stats" role="tabpanel" aria-labelledby="stats-tab">
-        <h4>Statistiques globales</h4>
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <h4 class="mb-0">Statistiques globales</h4>
+          <div class="btn-group" role="group" aria-label="Fenêtre temporelle">
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-window="2">2 mois</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-window="6">6 mois</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary active" data-window="12">12 mois (1 an)</button>
+          </div>
+        </div>
         <div class="row">
             <div class="col-lg-6">
                 <div class="card mb-4">
@@ -218,9 +212,18 @@
 
             <div class="col-12">
                 <div class="card mb-4">
-                    <div class="card-header">Volumes mensuels (6 derniers mois)</div>
+                    <div class="card-header">Volumes mensuels (<span id="windowLabel">12 derniers mois</span>)</div>
                     <div class="card-body">
                         <canvas id="monthlyChart" height="260"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12">
+                <div class="card mb-4">
+                    <div class="card-header">Rendez-vous par statut (<span id="windowLabelStatus">12 derniers mois</span>)</div>
+                    <div class="card-body">
+                        <canvas id="rdvStatusMonthlyChart" height="240"></canvas>
                     </div>
                 </div>
             </div>
@@ -325,6 +328,9 @@
     const consultsSeries = @json($consultationsCounts ?? []);
     const patientsSeries = @json($patientsCounts ?? []);
     const rdvStatusCounts = @json($rdvStatusCounts ?? []);
+    const rdvPendingSeriesFull = @json($rdvPendingSeries ?? []);
+    const rdvConfirmedSeriesFull = @json($rdvConfirmedSeries ?? []);
+    const rdvCancelledSeriesFull = @json($rdvCancelledSeries ?? []);
 
     // Palette
     const colors = {
@@ -369,24 +375,82 @@
       }
     });
 
-    // Séries mensuelles (line)
-    new Chart(document.getElementById('monthlyChart'), {
-      type: 'line',
-      data: {
-        labels: months,
-        datasets: [
-          { label: 'Rendez-vous', data: rdvSeries, borderColor: colors.green, backgroundColor: colors.green + '33', tension: .3, fill: true },
-          { label: 'Consultations', data: consultsSeries, borderColor: colors.blue, backgroundColor: colors.blue + '33', tension: .3, fill: true },
-          { label: 'Admissions', data: admissionsSeries, borderColor: colors.orange, backgroundColor: colors.orange + '33', tension: .3, fill: true },
-          { label: 'Patients (créés)', data: patientsSeries, borderColor: colors.pink, backgroundColor: colors.pink + '33', tension: .3, fill: true }
-        ]
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { position: 'bottom' }, title: { display: true, text: '6 derniers mois' } },
-        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
-      }
+    // Outil: slicer pour fenêtre N derniers mois
+    function lastN(arr, n){ return (arr || []).slice(Math.max((arr || []).length - n, 0)); }
+
+    // Crée les graphiques et permet mise à jour
+    const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+    const rdvStatusMonthlyCtx = document.getElementById('rdvStatusMonthlyChart').getContext('2d');
+
+    let windowMonths = 12; // défaut 12 mois
+
+    function windowLabelText(n){
+      if (n===2) return '2 derniers mois';
+      if (n===6) return '6 derniers mois';
+      return '12 derniers mois';
+    }
+
+    function buildMonthlyConfig(n){
+      const lbls = lastN(months, n);
+      return {
+        type: 'line',
+        data: {
+          labels: lbls,
+          datasets: [
+            { label: 'Rendez-vous', data: lastN(rdvSeries, n), borderColor: colors.green, backgroundColor: colors.green + '33', tension: .3, fill: true },
+            { label: 'Consultations', data: lastN(consultsSeries, n), borderColor: colors.blue, backgroundColor: colors.blue + '33', tension: .3, fill: true },
+            { label: 'Admissions', data: lastN(admissionsSeries, n), borderColor: colors.orange, backgroundColor: colors.orange + '33', tension: .3, fill: true },
+            { label: 'Patients (créés)', data: lastN(patientsSeries, n), borderColor: colors.pink, backgroundColor: colors.pink + '33', tension: .3, fill: true }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'bottom' }, title: { display: true, text: windowLabelText(n) } },
+          scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+        }
+      };
+    }
+
+    function buildRdvStatusMonthlyConfig(n){
+      const lbls = lastN(months, n);
+      return {
+        type: 'line',
+        data: {
+          labels: lbls,
+          datasets: [
+            { label: 'RDV en attente', data: lastN(rdvPendingSeriesFull, n), borderColor: colors.yellow, backgroundColor: colors.yellow + '33', tension: .3, fill: true },
+            { label: 'RDV confirmés', data: lastN(rdvConfirmedSeriesFull, n), borderColor: colors.green, backgroundColor: colors.green + '33', tension: .3, fill: true },
+            { label: 'RDV annulés', data: lastN(rdvCancelledSeriesFull, n), borderColor: colors.red, backgroundColor: colors.red + '33', tension: .3, fill: true }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'bottom' }, title: { display: true, text: windowLabelText(n) } },
+          scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+        }
+      };
+    }
+
+    let monthlyChart = new Chart(monthlyCtx, buildMonthlyConfig(windowMonths));
+    let rdvStatusMonthlyChart = new Chart(rdvStatusMonthlyCtx, buildRdvStatusMonthlyConfig(windowMonths));
+
+    function setWindow(n){
+      windowMonths = n;
+      document.getElementById('windowLabel').textContent = windowLabelText(n);
+      document.getElementById('windowLabelStatus').textContent = windowLabelText(n);
+      monthlyChart.destroy();
+      rdvStatusMonthlyChart.destroy();
+      monthlyChart = new Chart(monthlyCtx, buildMonthlyConfig(n));
+      rdvStatusMonthlyChart = new Chart(rdvStatusMonthlyCtx, buildRdvStatusMonthlyConfig(n));
+      // Boutons actifs
+      document.querySelectorAll('[data-window]').forEach(b=>b.classList.toggle('active', parseInt(b.dataset.window,10)===n));
+    }
+
+    // Bind boutons
+    document.querySelectorAll('[data-window]').forEach(btn=>{
+      btn.addEventListener('click', ()=> setWindow(parseInt(btn.dataset.window,10)) );
     });
+
 <script>
   // Filtres simples tables Admin
   function filterTable(inputId, tableId){

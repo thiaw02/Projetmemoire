@@ -1,7 +1,11 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container bg-white p-4 rounded shadow-sm">
+<style>
+  body > .container { max-width: 1500px !important; }
+  .sidebar-sticky { position: sticky; top: 1rem; }
+</style>
+<div class="bg-white p-4 rounded shadow-sm">
     <h2 class="text-success mb-4">📁 Mon dossier médical</h2>
 
     @foreach($consultations as $c)

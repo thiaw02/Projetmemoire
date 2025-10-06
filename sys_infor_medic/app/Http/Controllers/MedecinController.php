@@ -7,6 +7,7 @@ use App\Models\Consultations;
 use App\Models\Patient;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Ordonnances;
+use App\Models\Rendez_vous;
 
 class MedecinController extends Controller
 {
@@ -15,25 +16,44 @@ class MedecinController extends Controller
     {
         // Médecin connecté
         $medecin = Auth::user();
+        $medecinId = $medecin->id;
 
-        // 5 prochaines consultations
-        $consultations = Consultations::where('medecin_id', $medecin->id)
-                            ->where('date_consultation', '>=', now())
-                            ->orderBy('date_consultation', 'asc')
-                            ->take(5)
-                            ->get();
+        // RDV confirmés à venir pour ce médecin
+        $upcomingRdv = Rendez_vous::with(['patient','medecin'])
+            ->where('medecin_id', $medecinId)
+            ->whereIn('statut', ['confirmé','confirme','confirmée','confirmee'])
+            ->whereDate('date','>=', now()->toDateString())
+            ->orderBy('date')
+            ->orderBy('heure')
+            ->take(10)
+            ->get();
 
         // 5 derniers patients consultés par ce médecin
-        $dossiersRecents = Patient::whereHas('user', function($q) use ($medecin) {
-                                $q->whereHas('consultations', function($q2) use ($medecin) {
-                                    $q2->where('medecin_id', $medecin->id);
+        $dossiersRecents = Patient::whereHas('user', function($q) use ($medecinId) {
+                                $q->whereHas('consultations', function($q2) use ($medecinId) {
+                                    $q2->where('medecin_id', $medecinId);
                                 });
                             })
                             ->latest()
                             ->take(5)
                             ->get();
 
-        return view('medecin.dashboard', compact('consultations', 'dossiersRecents', 'medecin'));
+        // Statistiques rapides
+        $stats = [
+            'aConsulter' => Rendez_vous::where('medecin_id',$medecinId)
+                ->whereIn('statut',["confirmé","confirme","confirmée","confirmee"])
+                ->whereDate('date','>=', now()->toDateString())
+                ->count(),
+            'rdvEnAttente' => Rendez_vous::where('medecin_id',$medecinId)
+                ->whereIn('statut',["en_attente","en attente","pending"])
+                ->count(),
+            'consultesCeMois' => Consultations::where('medecin_id',$medecinId)
+                ->whereYear('date_consultation', now()->year)
+                ->whereMonth('date_consultation', now()->month)
+                ->count(),
+        ];
+
+        return view('medecin.dashboard', compact('upcomingRdv', 'dossiersRecents', 'medecin','stats'));
     }
 
     // Page consultations
@@ -41,9 +61,10 @@ class MedecinController extends Controller
     {
         $medecin = Auth::user();
 
-        // Toutes les consultations du médecin
+        // Consultations à venir pour ce médecin
         $consultations = Consultations::where('medecin_id', $medecin->id)
-                            ->orderBy('date_consultation', 'desc')
+                            ->where('date_consultation', '>=', now())
+                            ->orderBy('date_consultation', 'asc')
                             ->get();
 
         // Tous les patients pour le formulaire
@@ -77,14 +98,25 @@ class MedecinController extends Controller
     }
 
     // Page dossiers patients
-    public function dossierpatient()
+    public function dossierpatient(Request $request)
 {
     $medecin_id = Auth::id();
 
-    // Récupérer les patients ayant au moins une consultation avec ce médecin
-    $patients = Patient::whereHas('consultations', function($q) use ($medecin_id) {
-        $q->where('medecin_id', $medecin_id);
-    })->get();
+    // Patients ayant au moins une consultation avec ce médecin OU un RDV (assigné à ce médecin)
+    $patients = Patient::where(function($query) use ($medecin_id){
+        $query->whereHas('consultations', function($q) use ($medecin_id) {
+            $q->where('medecin_id', $medecin_id);
+        })
+        ->orWhereHas('rendez_vous', function($q) use ($medecin_id){
+            $q->where('medecin_id', $medecin_id);
+        });
+    });
+
+    if ($request->filled('patient_id')) {
+        $patients->where('id', (int)$request->patient_id);
+    }
+
+    $patients = $patients->orderBy('nom')->get();
 
     return view('medecin.dossierpatient', compact('patients'));
 }

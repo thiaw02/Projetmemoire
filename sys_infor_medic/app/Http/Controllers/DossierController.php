@@ -11,7 +11,8 @@ class DossierController extends Controller
      */
     public function index()
     {
-        //
+        $dossiers = \App\Models\Dossier::with('patient')->orderByDesc('updated_at')->take(200)->get();
+        return view('dossier.index', compact('dossiers'));
     }
 
     /**

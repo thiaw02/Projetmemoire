@@ -1,13 +1,17 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3>📋 Consultations</h3>
-        <a href="{{ route('medecin.dashboard') }}" class="btn btn-secondary">
-            ← Retour au dashboard
-        </a>
-    </div>
+<style>
+  /* Harmoniser la largeur avec les dashboards */
+  body > .container { max-width: 1500px !important; }
+  .sidebar-sticky { position: sticky; top: 1rem; }
+</style>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3>📋 Consultations</h3>
+    <a href="{{ route('medecin.dashboard') }}" class="btn btn-secondary">
+        ← Retour au dashboard
+    </a>
+</div>
 
     <!-- Bouton pour afficher le formulaire -->
     <button class="btn btn-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#formConsultation" aria-expanded="false" aria-controls="formConsultation">
@@ -15,7 +19,7 @@
     </button>
 
     <!-- Formulaire pour ajouter une consultation (collapsible) -->
-    <div class="collapse" id="formConsultation">
+    <div class="collapse {{ request('patient_id') ? 'show' : '' }}" id="formConsultation">
         <div class="card mb-4">
             <div class="card-header bg-primary text-white">
                 Ajouter une consultation
@@ -28,14 +32,14 @@
                         <select name="patient_id" id="patient_id" class="form-control" required>
                             <option value="">-- Sélectionner un patient --</option>
                             @foreach($patients as $patient)
-                                <option value="{{ $patient->id }}">{{ $patient->nom }} {{ $patient->prenom }}</option>
+                                <option value="{{ $patient->id }}" {{ (request('patient_id')==$patient->id) ? 'selected' : '' }}>{{ $patient->nom }} {{ $patient->prenom }}</option>
                             @endforeach
                         </select>
                     </div>
 
                     <div class="mb-3">
                         <label for="date_consultation" class="form-label">Date & Heure</label>
-                        <input type="datetime-local" name="date_consultation" id="date_consultation" class="form-control" required>
+                        <input type="datetime-local" name="date_consultation" id="date_consultation" class="form-control" required value="{{ old('date_consultation', request('date_time')) }}">
                     </div>
 
                     <div class="mb-3">
@@ -66,9 +70,14 @@
         </div>
         <div class="card-body">
             @if($consultations->isEmpty())
-                <p>Aucune consultation pour le moment.</p>
+                <p>Aucune consultation à venir.</p>
             @else
-                <table class="table table-bordered">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <input type="text" id="searchConsult" class="form-control form-control-sm" placeholder="Rechercher (patient, diagnostic, symptômes...)" style="max-width: 360px;">
+                    <button type="button" id="btnSearchConsult" class="btn btn-sm btn-outline-secondary">Rechercher</button>
+                </div>
+                <div class="table-responsive">
+                <table class="table table-bordered align-middle" id="consultationsTable">
                     <thead>
                         <tr>
                             <th>Patient</th>
@@ -92,8 +101,24 @@
                         @endforeach
                     </tbody>
                 </table>
+                </div>
+                <script>
+                  (function(){
+                    const inp = document.getElementById('searchConsult');
+                    const btn = document.getElementById('btnSearchConsult');
+                    const table = document.getElementById('consultationsTable');
+                    function apply(){
+                      const q = (inp?.value || '').toLowerCase();
+                      table?.querySelectorAll('tbody tr')?.forEach(tr=>{
+                        const text = tr.innerText.toLowerCase();
+                        tr.style.display = text.includes(q) ? '' : 'none';
+                      });
+                    }
+                    btn?.addEventListener('click', apply);
+                    inp?.addEventListener('keyup', (e)=>{ if(e.key==='Enter'){ apply(); } });
+                  })();
+                </script>
             @endif
         </div>
     </div>
-</div>
 @endsection

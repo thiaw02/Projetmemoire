@@ -11,7 +11,8 @@ class HistoriqueController extends Controller
      */
     public function index()
     {
-        //
+        $historiques = \App\Models\Suivi::with('patient')->orderByDesc('created_at')->take(200)->get();
+        return view('historique.index', compact('historiques'));
     }
 
     /**

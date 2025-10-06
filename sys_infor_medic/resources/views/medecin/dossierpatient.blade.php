@@ -1,13 +1,16 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3>🩺 Dossiers Médicaux des Patients</h3>
-        <a href="{{ route('medecin.dashboard') }}" class="btn btn-secondary">
-            ← Retour au dashboard
-        </a>
-    </div>
+<style>
+  body > .container { max-width: 1500px !important; }
+  .sidebar-sticky { position: sticky; top: 1rem; }
+</style>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3>🩺 Dossiers Médicaux des Patients</h3>
+    <a href="{{ route('medecin.dashboard') }}" class="btn btn-secondary">
+        ← Retour au dashboard
+    </a>
+</div>
 
     @if($patients->isEmpty())
         <p>Aucun patient pour le moment.</p>
@@ -50,5 +53,4 @@
             </div>
         </div>
     @endif
-</div>
 @endsection

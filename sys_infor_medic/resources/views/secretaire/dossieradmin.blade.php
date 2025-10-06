@@ -1,7 +1,10 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container-fluid">
+<style>
+  body > .container { max-width: 1500px !important; }
+  .sidebar-sticky { position: sticky; top: 1rem; }
+</style>
 
     {{-- Boutons --}}
     <div class="d-flex justify-content-between mb-3">
@@ -49,7 +52,6 @@
         </table>
     </div>
 
-</div>
 
 {{-- Modals des patients --}}
 @foreach($patients as $patient)

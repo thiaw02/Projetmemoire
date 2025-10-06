@@ -1,7 +1,10 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container-fluid">
+<style>
+  body > .container { max-width: 1500px !important; }
+  .sidebar-sticky { position: sticky; top: 1rem; }
+</style>
 
     {{-- Bouton retour --}}
     <div class="d-flex justify-content-end mb-3">
@@ -93,7 +96,6 @@
         </table>
     </div>
 
-</div>
 @endsection
 
 @section('scripts')

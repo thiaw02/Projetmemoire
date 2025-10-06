@@ -26,19 +26,32 @@ class AdminController extends Controller
             'patient' => User::where('role','patient')->count(),
         ];
 
-        // Séries mensuelles (6 derniers mois)
+        // Séries mensuelles (jusqu'à 12 derniers mois: mois courant inclus)
         $months = [];
         $rendezvousCounts = [];
         $admissionsCounts = [];
         $consultationsCounts = [];
         $patientsCounts = [];
-        for ($i=5; $i>=0; $i--) {
+        $rdvPendingSeries = [];
+        $rdvConfirmedSeries = [];
+        $rdvCancelledSeries = [];
+        for ($i=11; $i>=0; $i--) {
             $m = Carbon::now()->subMonths($i);
             $months[] = $m->format('M');
             $rendezvousCounts[] = Rendez_vous::whereYear('date', $m->year)->whereMonth('date', $m->month)->count();
             $admissionsCounts[] = Admissions::whereYear('date_admission', $m->year)->whereMonth('date_admission', $m->month)->count();
             $consultationsCounts[] = Consultations::whereYear('date_consultation', $m->year)->whereMonth('date_consultation', $m->month)->count();
             $patientsCounts[] = Patient::whereYear('created_at', $m->year)->whereMonth('created_at', $m->month)->count();
+            // RDV par statut
+            $pending = Rendez_vous::whereYear('date', $m->year)->whereMonth('date', $m->month)
+                ->whereIn('statut', ['en_attente','en attente','pending'])->count();
+            $confirmed = Rendez_vous::whereYear('date', $m->year)->whereMonth('date', $m->month)
+                ->whereIn('statut', ['confirmé','confirme','confirmee','confirmée'])->count();
+            $cancelled = Rendez_vous::whereYear('date', $m->year)->whereMonth('date', $m->month)
+                ->whereIn('statut', ['annulé','annule','annulee','annulée','cancelled','canceled'])->count();
+            $rdvPendingSeries[] = $pending;
+            $rdvConfirmedSeries[] = $confirmed;
+            $rdvCancelledSeries[] = $cancelled;
         }
 
         // KPI
@@ -72,7 +85,7 @@ class AdminController extends Controller
         }
 
         return view('admin.dashboard', compact(
-            'users','rolesCount','months','rendezvousCounts','admissionsCounts','consultationsCounts','patientsCounts','kpis','availablePermissions','rolePermissions','rdvStatusCounts'
+            'users','rolesCount','months','rendezvousCounts','admissionsCounts','consultationsCounts','patientsCounts','kpis','availablePermissions','rolePermissions','rdvStatusCounts','rdvPendingSeries','rdvConfirmedSeries','rdvCancelledSeries'
         ));
     }
 

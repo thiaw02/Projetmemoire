@@ -1,13 +1,12 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="row">
-  <div class="col-lg-3 mb-4">
-    <div class="sidebar-sticky">
-      @include('layouts.partials.profile_sidebar')
-    </div>
-  </div>
-  <div class="col-lg-9">
+<style>
+  /* Harmoniser Paramètres avec les dashboards, pour tous les rôles */
+  body > .container { max-width: 1500px !important; }
+  .sidebar-sticky { position: sticky; top: 1rem; }
+  .sidebar-sticky img[alt="Photo de profil"] { width: 96px !important; height: 96px !important; }
+</style>
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h2 class="mb-0 text-success">Paramètres du compte</h2>
       @php
@@ -249,6 +248,4 @@
     </div>
     @endif
 
-  </div>
-</div>
 @endsection

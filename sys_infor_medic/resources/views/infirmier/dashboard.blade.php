@@ -18,19 +18,6 @@
 
     <div class="admin-header d-flex align-items-center justify-content-between mb-3">
       <h2 class="mb-0 text-primary">Tableau de Bord Infirmier</h2>
-      @php
-        $unread = \App\Models\Message::whereNull('read_at')->whereHas('conversation', function($q){ $uid = auth()->id(); $q->where('user_one_id',$uid)->orWhere('user_two_id',$uid);})->where('sender_id','!=',auth()->id())->count();
-      @endphp
-      <a href="{{ route('chat.index') }}" class="btn btn-outline-secondary btn-sm me-2 position-relative">
-        <i class="bi bi-bell"></i>
-        @if($unread>0)
-          <span id="notif-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger {{ $unread>0 ? '' : 'd-none' }}">{{ $unread }}</span>
-        @endif
-      </a>
-      <form action="{{ route('logout') }}" method="POST" class="ms-1">
-        @csrf
-        <button class="btn btn-outline-danger btn-sm"><i class="bi bi-box-arrow-right me-1"></i> Déconnexion</button>
-      </form>
     </div>
 
     <div class="card">
@@ -90,10 +77,22 @@
 
             <hr>
 
-            <div class="quick-actions d-flex flex-wrap gap-2">
-                <a href="{{ route('suivi.create') }}" class="btn btn-outline-info">📋 Saisir un suivi patient</a>
-                <a href="{{ route('dossier.index') }}" class="btn btn-outline-warning">📁 Mettre à jour un dossier</a>
-                <a href="{{ route('historique.index') }}" class="btn btn-outline-success">🔍 Voir l’historique des soins</a>
+        <div class="mb-4 quick-actions d-flex flex-wrap gap-2">
+                <a href="{{ route('suivi.create') }}" class="btn btn-outline-info position-relative qa-btn">
+                  📋 Saisir un suivi patient
+                  @if(isset($suivis))
+                  <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-info text-white">{{ $suivis->count() }}</span>
+                  @endif
+                </a>
+                <a href="{{ route('dossier.index') }}" class="btn btn-outline-warning position-relative qa-btn">
+                  📁 Mettre à jour un dossier
+                  @if(isset($dossiers))
+                  <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark">{{ $dossiers->count() }}</span>
+                  @endif
+                </a>
+                <a href="{{ route('historique.index') }}" class="btn btn-outline-success position-relative qa-btn">
+                  🔍 Voir l’historique des soins
+                </a>
             </div>
         </div>
     </div>
@@ -109,6 +108,16 @@
       });
     }
     inp?.addEventListener('input', filter);
+  })();
+    // Etat de chargement sur les boutons d’action
+    document.querySelectorAll('.quick-actions .qa-btn')?.forEach(btn=>{
+      btn.addEventListener('click', function(){
+        this.classList.add('disabled');
+        const original = this.innerHTML;
+        this.dataset.original = original;
+        this.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Chargement...';
+      });
+    });
   })();
 </script>
 @endsection

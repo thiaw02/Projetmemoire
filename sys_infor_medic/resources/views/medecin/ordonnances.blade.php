@@ -1,19 +1,22 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container">
-    <h3 class="mb-4">💊 Ordonnances</h3>
-
-    <!-- Bouton Retour -->
-    <a href="{{ route('medecin.dashboard') }}" class="btn btn-secondary mb-3">← Retour au Dashboard</a>
-
-    <!-- Bouton pour afficher le formulaire -->
-    <button class="btn btn-primary mb-4" type="button" data-bs-toggle="collapse" data-bs-target="#formOrdonnance" aria-expanded="false" aria-controls="formOrdonnance">
+<style>
+  body > .container { max-width: 1500px !important; }
+  .sidebar-sticky { position: sticky; top: 1rem; }
+</style>
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3 class="mb-0">💊 Ordonnances</h3>
+  <div class="d-flex gap-2">
+    <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#formOrdonnance" aria-expanded="false" aria-controls="formOrdonnance">
         ➕ Ajouter une ordonnance
     </button>
+    <a href="{{ route('medecin.dashboard') }}" class="btn btn-outline-secondary">← Retour au Dashboard</a>
+  </div>
+</div>
 
     <!-- Formulaire pour ajouter une ordonnance (collapse) -->
-    <div class="collapse" id="formOrdonnance">
+    <div class="collapse {{ request('patient_id') ? 'show' : '' }}" id="formOrdonnance">
         <div class="card mb-4">
             <div class="card-header bg-primary text-white">
                 Rédiger une ordonnance
@@ -26,7 +29,7 @@
                         <select name="patient_id" id="patient_id" class="form-control" required>
                             <option value="">-- Sélectionner un patient --</option>
                             @foreach($patients as $patient)
-                                <option value="{{ $patient->id }}">{{ $patient->nom }} {{ $patient->prenom }}</option>
+                                <option value="{{ $patient->id }}" {{ (request('patient_id')==$patient->id) ? 'selected' : '' }}>{{ $patient->nom }} {{ $patient->prenom }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -72,5 +75,4 @@
             @endif
         </div>
     </div>
-</div>
 @endsection

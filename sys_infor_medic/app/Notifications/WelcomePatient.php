@@ -6,7 +6,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\Messages\MailMessage;
 
-class WelcomePatient extends Notification
+class WelcomePatient extends Notification implements \Illuminate\Contracts\Queue\ShouldQueue
 {
     use Queueable;
 
