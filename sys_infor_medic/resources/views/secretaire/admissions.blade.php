@@ -11,8 +11,8 @@
         <a href="{{ route('secretaire.dashboard') }}" class="btn btn-danger">
             <i class="bi bi-arrow-left"></i> Retour vers le dashboard
         </a>
-        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addAdmissionModal">
-            <i class="bi bi-plus-circle"></i> Ajouter une admission
+        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addAdmissionModal" title="Ajouter une admission" aria-label="Ajouter une admission">
+            ➕ Ajouter une admission
         </button>
     </div>
 
@@ -38,9 +38,7 @@
                     <td>{{ \Carbon\Carbon::parse($admission->date_admission)->format('d/m/Y') }}</td>
                     <td>{{ $admission->motif }}</td>
                     <td>
-                        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editAdmissionModal{{ $admission->id }}">
-                            Voir / Modifier
-                        </button>
+                        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editAdmissionModal{{ $admission->id }}" title="Voir / Modifier" aria-label="Voir / Modifier">👁️✏️</button>
                     </td>
                 </tr>
                 @empty

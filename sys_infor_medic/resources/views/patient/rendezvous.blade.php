@@ -36,7 +36,9 @@
     <h4 class="mt-4">📜 Mes rendez-vous</h4>
     <ul>
         @forelse($rendezVous as $rdv)
-            <li>{{ $rdv->date }} → {{ $rdv->motif }} ({{ $rdv->statut }})</li>
+            <li>{{ $rdv->date }} → {{ $rdv->motif }} 
+                <span class="badge {{ in_array(strtolower((string)$rdv->statut), ['confirmé','confirme','confirmée','confirmee']) ? 'bg-success' : (in_array(strtolower((string)$rdv->statut), ['annulé','annule','annulée','annulee']) ? 'bg-secondary' : 'bg-warning text-dark') }}">{{ str_replace('_',' ', $rdv->statut) }}</span>
+            </li>
         @empty
             <li>Aucun rendez-vous enregistré.</li>
         @endforelse

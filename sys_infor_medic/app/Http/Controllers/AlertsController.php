@@ -92,7 +92,11 @@ class AlertsController extends Controller
             'messages' => $messages,
             'messages_unread_total' => $messages_unread_total,
             'rdvRequests' => $rdvRequests,
-            'rdvUpdates' => $rdvUpdates,
+'rdvUpdates' => $rdvUpdates,
+            'ordonnances' => ($user->role === 'patient') ? \App\Models\Ordonnances::where('patient_id', optional($user->patient)->id)->orderBy('created_at','desc')->take(5)->get(['id','created_at'])->map(function($o){ return [
+                'id' => $o->id,
+                'created_at' => optional($o->created_at)->toDateTimeString(),
+            ]; })->toArray() : [],
             'total_count' => $total_count,
         ]);
     }

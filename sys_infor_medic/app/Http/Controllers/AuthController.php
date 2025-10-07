@@ -28,6 +28,11 @@ class AuthController extends Controller
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
 
+            if (!Auth::user()->active) {
+                Auth::logout();
+                return back()->withErrors(['email' => 'Votre compte est désactivé. Contactez l\'administrateur.'])->onlyInput('email');
+            }
+
             $role = Auth::user()->role;
 
             return match ($role) {

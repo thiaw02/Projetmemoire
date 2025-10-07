@@ -29,13 +29,13 @@
 
             <div class="row">
                 <!-- Suivis en cours -->
-                <div class="col-md-6 mb-3">
-                    <div class="card border-info shadow-sm">
+                <div class="col-md-4 mb-3">
+                    <div class="card border-info shadow-sm h-100">
                         <div class="card-header bg-info text-white">
                             Suivis en cours
                         </div>
                         <div class="card-body">
-                            <ul>
+                            <ul class="mb-0">
                                 @forelse($suivis as $suivi)
                                     <li>
                                         Patient :
@@ -45,21 +45,59 @@
                                         - Tension : {{ $suivi->tension ?? 'N/A' }}
                                     </li>
                                 @empty
-                                    <li>Aucun suivi en cours</li>
+                                    <li class="text-muted">Aucun suivi en cours</li>
                                 @endforelse
                             </ul>
                         </div>
                     </div>
                 </div>
 
+                <!-- Prochains rendez-vous -->
+                <div class="col-md-4 mb-3">
+                    <div class="card border-success shadow-sm h-100">
+                        <div class="card-header bg-success text-white">
+                            Prochains rendez-vous
+                        </div>
+                        <div class="card-body">
+                            @if(($upcomingRdv ?? collect())->isEmpty())
+                                <div class="text-muted">Aucun RDV à venir</div>
+                            @else
+                                <ul class="list-unstyled mb-0" id="rdvUpcomingList">
+                                    @foreach($upcomingRdv as $rdv)
+                                        <li class="mb-2" data-date="{{ \Carbon\Carbon::parse($rdv->date)->toDateString() }}" data-dt="{{ \Carbon\Carbon::parse(($rdv->date ?? '') . ' ' . ($rdv->heure ?? '00:00'))->format('Y-m-d\TH:i') }}">
+                                            <div class="d-flex justify-content-between align-items-start gap-2">
+                                                <div>
+                                                    <div class="fw-semibold">
+                                                        {{ optional($rdv->patient)->nom ?? optional(optional($rdv->patient)->user)->name ?? '—' }}
+                                                        {{ optional($rdv->patient)->prenom ?? '' }}
+                                                    </div>
+                                                    <div class="small text-muted">Avec Dr. {{ optional($rdv->medecin)->name ?? '—' }}</div>
+                                                </div>
+                                                <div class="text-end">
+                                                    <span class="badge bg-light text-dark border">{{ \Carbon\Carbon::parse($rdv->date)->format('d/m/Y') }} {{ $rdv->heure }}</span>
+                                                    <div>
+                                                        <span class="badge {{ in_array(strtolower($rdv->statut), ['confirmé','confirme','confirmée','confirmee']) ? 'bg-success' : (in_array(strtolower($rdv->statut), ['annulé','annule','annulée','annulee']) ? 'bg-secondary' : 'bg-warning text-dark') }}">
+                                                            {{ str_replace('_',' ', $rdv->statut ?? '') }}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Dossiers à mettre à jour -->
-                <div class="col-md-6 mb-3">
-                    <div class="card border-warning shadow-sm">
+                <div class="col-md-4 mb-3">
+                    <div class="card border-warning shadow-sm h-100">
                         <div class="card-header bg-warning text-white">
                             Dossiers à mettre à jour
                         </div>
                         <div class="card-body">
-                            <ul>
+                            <ul class="mb-0">
                                 @forelse($dossiers as $dossier)
                                     <li>
                                         {{ $dossier->patient->nom ?? 'Inconnu' }}
@@ -67,7 +105,7 @@
                                         - {{ $dossier->observation ?? 'Observation manquante' }}
                                     </li>
                                 @empty
-                                    <li>Aucun dossier en attente</li>
+                                    <li class="text-muted">Aucun dossier en attente</li>
                                 @endforelse
                             </ul>
                         </div>
@@ -118,6 +156,15 @@
         this.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Chargement...';
       });
     });
+
+    // Tri par date/heure croissante pour la liste des RDV
+    (function sortRdv(){
+      const list = document.getElementById('rdvUpcomingList');
+      if(!list) return;
+      const items = Array.from(list.querySelectorAll('li[data-dt]'));
+      items.sort((a,b)=> new Date(a.getAttribute('data-dt')) - new Date(b.getAttribute('data-dt')));
+      items.forEach(li=> list.appendChild(li));
+    })();
   })();
 </script>
 @endsection

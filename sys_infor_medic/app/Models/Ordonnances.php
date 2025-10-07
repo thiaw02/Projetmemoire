@@ -15,6 +15,8 @@ class Ordonnances extends Model
         'medecin_id',
         'contenu',
         'date_ordonnance',
+        'medicaments',
+        'dosage',
     ];
 
     public function patient()
@@ -26,10 +28,6 @@ class Ordonnances extends Model
     {
         return $this->belongsTo(User::class, 'medecin_id');
     }
-    public function consultation()
-{
-    return $this->belongsTo(Consultations::class);
-}
 
 }
 

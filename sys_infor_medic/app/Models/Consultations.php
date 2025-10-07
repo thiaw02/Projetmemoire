@@ -30,9 +30,16 @@ class Consultations extends Model
         return $this->belongsTo(User::class, 'medecin_id');
     }
     public function ordonnances()
-{
-    return $this->hasMany(Ordonnances::class);
-}
+    {
+        // Rattache les ordonnances par patient, faute de colonne consultation_id
+        return $this->hasMany(Ordonnances::class, 'patient_id', 'patient_id');
+    }
+
+    public function analyses()
+    {
+        // Rattache les analyses par patient, faute de colonne consultation_id
+        return $this->hasMany(Analyses::class, 'patient_id', 'patient_id');
+    }
 
 
 }

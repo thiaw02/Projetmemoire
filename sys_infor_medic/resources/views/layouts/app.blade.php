@@ -188,7 +188,7 @@
 
     {{-- Contenu de la page --}}
     @auth
-    @if(!request()->routeIs('login','register','password.request','password.reset','admin.dashboard','secretaire.dashboard','medecin.dashboard','infirmier.dashboard','patient.dashboard','chat.*'))
+@if(!request()->routeIs('login','register','password.request','password.reset','admin.dashboard','admin.audit.*','secretaire.dashboard','medecin.dashboard','infirmier.dashboard','patient.dashboard','chat.*'))
     <div class="container mt-4">
       <div class="row">
         <div class="col-lg-3 mb-4">
@@ -287,6 +287,16 @@
               const cls = (/confirm/i.test(it.statut)?'bg-success':(/annul/i.test(it.statut)?'bg-secondary':'bg-warning text-dark'));
               li.innerHTML = `<div><span class="badge ${cls}">${(it.statut||'').replace('_',' ')}</span> avec ${it.medecin||'—'}</div>
                               <div class="small text-muted">${it.date} ${it.heure}</div>`;
+              listNotifs.appendChild(li);
+            });
+          }
+          if ((data.ordonnances||[]).length){
+            const header = document.createElement('li'); header.className='small text-success px-1 mt-1'; header.textContent='Ordonnances récentes'; listNotifs.appendChild(header);
+            data.ordonnances.forEach(it=>{
+              const li = document.createElement('li');
+              li.className = 'py-1 border-bottom';
+              li.innerHTML = `<div>Nouvelle ordonnance disponible</div>
+                              <div class="small text-muted">${(it.created_at||'').replace('T',' ').slice(0,16)}</div>`;
               listNotifs.appendChild(li);
             });
           }

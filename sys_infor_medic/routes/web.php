@@ -62,11 +62,13 @@ Route::prefix('admin')->middleware('auth')->group(function () {
     // Utilisateurs (hors patients)
     Route::prefix('users')->group(function () {
         Route::get('/', [UserController::class, 'index'])->name('admin.users.index');
+        Route::get('/export', [UserController::class, 'exportCsv'])->name('admin.users.export');
         Route::get('/create', [UserController::class, 'create'])->name('admin.users.create');
         Route::post('/', [UserController::class, 'store'])->name('admin.users.store');
         Route::get('/{id}/edit', [UserController::class, 'edit'])->name('admin.users.edit');
         Route::put('/{id}', [UserController::class, 'update'])->name('admin.users.update');
         Route::put('/{id}/role', [UserController::class, 'updateRole'])->name('admin.users.updateRole');
+        Route::put('/{id}/active', [UserController::class, 'updateActive'])->name('admin.users.updateActive');
         Route::delete('/{id}', [UserController::class, 'destroy'])->name('admin.users.destroy');
     });
 
@@ -82,6 +84,9 @@ Route::prefix('admin')->middleware('auth')->group(function () {
 
     // Enregistrement des permissions
     Route::post('/permissions', [AdminController::class, 'savePermissions'])->name('admin.permissions.save');
+
+    // Audit logs
+Route::get('/audit-logs', [App\Http\Controllers\AuditLogController::class, 'index'])->name('admin.audit.index');
 });
 
 /// ===================== SECRETAIRE =====================
@@ -100,13 +105,21 @@ Route::prefix('secretaire')->middleware(['auth'])->group(function() {
 });
 
 // ===================== MEDECIN =====================
-Route::prefix('medecin')->middleware('auth')->group(function () {
+Route::prefix('medecin')->middleware(['auth','role:medecin'])->group(function () {
     Route::get('/dashboard', [MedecinController::class, 'dashboard'])->name('medecin.dashboard');
     Route::get('/dossierpatient', [MedecinController::class, 'dossierpatient'])->name('medecin.dossierpatient');
+    Route::get('/patients/{patientId}', [MedecinController::class, 'showPatient'])->name('medecin.patients.show');
     Route::get('/consultations', [MedecinController::class, 'consultations'])->name('medecin.consultations');
     Route::post('/consultations', [MedecinController::class, 'storeConsultation'])->name('medecin.consultations.store');
+    Route::get('/consultations/{id}/edit', [MedecinController::class, 'editConsultation'])->name('medecin.consultations.edit');
+    Route::put('/consultations/{id}', [MedecinController::class, 'updateConsultation'])->name('medecin.consultations.update');
     Route::get('/ordonnances', [MedecinController::class, 'ordonnances'])->name('medecin.ordonnances');
     Route::post('/ordonnances', [MedecinController::class, 'storeOrdonnance'])->name('medecin.ordonnances.store');
+    Route::get('/ordonnances/{id}/edit', [MedecinController::class, 'editOrdonnance'])->name('medecin.ordonnances.edit');
+    Route::put('/ordonnances/{id}', [MedecinController::class, 'updateOrdonnance'])->name('medecin.ordonnances.update');
+    Route::get('/ordonnances/{id}/download', [MedecinController::class, 'downloadOrdonnance'])->name('medecin.ordonnances.download');
+    Route::post('/ordonnances/{id}/resend', [MedecinController::class, 'resendOrdonnance'])->name('medecin.ordonnances.resend');
+    Route::post('/rendezvous/{id}/mark-consulted', [MedecinController::class, 'markRdvConsulted'])->name('medecin.rdv.markConsulted');
 });
 
 // ===================== INFIRMIER =====================
@@ -121,6 +134,8 @@ Route::prefix('patient')->middleware('auth')->group(function () {
     Route::get('/rendezvous', [PatientController::class, 'rendezvous'])->name('patient.rendezvous');
     Route::post('/rendezvous', [PatientController::class, 'storeRendez'])->name('patient.storeRendez');
     Route::get('/dossiermedical', [PatientController::class, 'dossier'])->name('patient.dossier');
+    Route::get('/ordonnances/{id}/download', [PatientController::class, 'downloadOrdonnance'])->name('patient.ordonnances.download');
+    Route::post('/ordonnances/{id}/resend', [PatientController::class, 'resendOrdonnance'])->name('patient.ordonnances.resend');
 });
 
 // Page succès inscription

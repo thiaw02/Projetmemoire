@@ -42,24 +42,25 @@
                     <div class="card-header bg-success text-white">
                         RDV confirmés à venir
                     </div>
-                    <div class="card-body scrollable">
+<div class="card-body scrollable">
                         @if(($upcomingRdv ?? collect())->isEmpty())
                             <p>Aucun RDV à venir.</p>
                         @else
-                            <div class="d-flex justify-content-end mb-2">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                              <div class="small text-muted">Filtrer</div>
                               <div class="btn-group btn-group-sm" role="group">
-                                <button type="button" class="btn btn-outline-success" data-rdv-filter="day">Jour</button>
-                                <button type="button" class="btn btn-outline-success" data-rdv-filter="week">Semaine</button>
-                                <button type="button" class="btn btn-outline-success active" data-rdv-filter="all">Tous</button>
+                                <button type="button" class="btn btn-outline-success" data-rdv-filter="day" title="Aujourd'hui"><i class="bi bi-calendar-day"></i></button>
+                                <button type="button" class="btn btn-outline-success" data-rdv-filter="week" title="Cette semaine"><i class="bi bi-calendar-week"></i></button>
+                                <button type="button" class="btn btn-outline-success active" data-rdv-filter="all" title="Tous"><i class="bi bi-list-task"></i></button>
                               </div>
                             </div>
                             <ul id="rdv-upcoming-list" class="list-group list-group-flush">
                                 @foreach($upcomingRdv as $rdv)
-<li class="list-group-item d-flex justify-content-between align-items-center" data-date="{{ \Carbon\Carbon::parse($rdv->date)->toDateString() }}" data-dt="{{ \Carbon\Carbon::parse(($rdv->date ?? '') . ' ' . ($rdv->heure ?? '00:00'))->format('Y-m-d\TH:i') }}">
+                                    <li class="list-group-item d-flex justify-content-between align-items-center" data-date="{{ \Carbon\Carbon::parse($rdv->date)->toDateString() }}" data-dt="{{ \Carbon\Carbon::parse(($rdv->date ?? '') . ' ' . ($rdv->heure ?? '00:00'))->format('Y-m-d\TH:i') }}">
                                       <div>
                                         <div class="fw-semibold d-flex align-items-center gap-2">
                                           <i class="bi bi-person-circle text-success"></i>
-                                          <a href="{{ route('medecin.dossierpatient', ['patient_id' => optional($rdv->patient)->id]) }}" class="text-decoration-none">
+                                          <a href="{{ route('medecin.patients.show', ['patientId' => optional($rdv->patient)->id]) }}" class="text-decoration-none" title="Ouvrir le dossier">
                                             {{ $rdv->patient->nom ?? ($rdv->patient->user->name ?? '—') }} {{ $rdv->patient->prenom ?? '' }}
                                           </a>
                                           <span class="badge {{ in_array(strtolower($rdv->statut), ['confirmé','confirme','confirmée','confirmee']) ? 'bg-success' : (in_array(strtolower($rdv->statut), ['annulé','annule','annulée','annulee']) ? 'bg-secondary' : 'bg-warning text-dark') }}">
@@ -68,16 +69,24 @@
                                         </div>
                                         <div class="small text-muted">Prochain RDV</div>
                                       </div>
-                                      <div class="d-flex align-items-center gap-2">
-                                        <span class="badge bg-light text-dark border">
+                                      <div class="d-flex align-items-center gap-1">
+                                        <span class="badge bg-light text-dark border me-1">
                                           {{ \Carbon\Carbon::parse($rdv->date)->format('d/m/Y') }} {{ $rdv->heure }}
                                         </span>
-                                        <a href="{{ route('medecin.consultations', ['patient_id' => optional($rdv->patient)->id, 'date_time' => \Carbon\Carbon::parse(($rdv->date ?? '') . ' ' . ($rdv->heure ?? '00:00'))->format('Y-m-d\\TH:i')]) }}" class="btn btn-sm btn-success">
-                                          Créer consultation
-                                        </a>
-                                        <a href="{{ route('medecin.ordonnances', ['patient_id' => optional($rdv->patient)->id]) }}" class="btn btn-sm btn-outline-warning">
-                                          Rédiger ordonnance
-                                        </a>
+                                        <div class="btn-group btn-group-sm" role="group" aria-label="Actions">
+                                          <a href="{{ route('medecin.patients.show', ['patientId' => optional($rdv->patient)->id]) }}" class="btn btn-outline-primary" title="Ouvrir dossier"><i class="bi bi-folder2-open"></i></a>
+                                          <a href="{{ route('medecin.consultations', ['patient_id' => optional($rdv->patient)->id, 'date_time' => \Carbon\Carbon::parse(($rdv->date ?? '') . ' ' . ($rdv->heure ?? '00:00'))->format('Y-m-d\TH:i')]) }}" class="btn btn-success" title="Créer consultation"><i class="bi bi-clipboard-plus"></i></a>
+                                          <a href="{{ route('medecin.ordonnances', ['patient_id' => optional($rdv->patient)->id]) }}" class="btn btn-outline-warning" title="Rédiger ordonnance"><i class="bi bi-capsule"></i></a>
+@php($isConsulted = in_array(strtolower($rdv->statut), ['terminé','termine','terminée','terminee']))
+                                          @if(!$isConsulted)
+                                          <form method="POST" action="{{ route('medecin.rdv.markConsulted', $rdv->id) }}" class="d-inline">
+                                            @csrf
+                                            <button type="submit" class="btn btn-outline-secondary" title="Marquer consulté">
+                                              <i class="bi bi-check2-circle"></i>
+                                            </button>
+                                          </form>
+                                          @endif
+                                        </div>
                                       </div>
                                     </li>
                                 @endforeach
@@ -87,25 +96,26 @@
                 </div>
             </div>
 
-            <!-- Dossiers récents consultés -->
+<!-- Dossiers récents consultés -->
             <div class="col-md-6 mb-3">
                 <div class="card border-primary shadow-sm">
-                    <div class="card-header bg-primary text-white">
-                        Dossiers récents consultés
+                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                        <span>Dossiers récents consultés</span>
+                        <span class="badge bg-light text-dark border">{{ ($recentPatients ?? collect())->count() }}</span>
                     </div>
                     <div class="card-body scrollable">
-                        @if($dossiersRecents->isEmpty())
+                        @if(($recentPatients ?? collect())->isEmpty())
                             <p class="mb-0">Aucun dossier consulté récemment.</p>
                         @else
                             <ul class="list-group list-group-flush">
-                                @foreach($dossiersRecents as $patient)
+                                @foreach($recentPatients as $patient)
                                     <li class="list-group-item d-flex justify-content-between align-items-center">
                                       <div>
                                         <i class="bi bi-folder2-open me-1 text-primary"></i>
                                         <span class="fw-semibold">{{ $patient->nom }} {{ $patient->prenom }}</span>
                                       </div>
-                                      <a href="{{ route('medecin.consultations', ['patient_id' => $patient->id]) }}" class="btn btn-sm btn-outline-primary">
-                                        Ouvrir le dossier
+                                      <a href="{{ route('medecin.patients.show', ['patientId' => $patient->id]) }}" class="btn btn-sm btn-outline-primary" title="Ouvrir le dossier">
+                                        <i class="bi bi-box-arrow-up-right"></i>
                                       </a>
                                     </li>
                                 @endforeach

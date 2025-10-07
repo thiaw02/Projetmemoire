@@ -86,6 +86,7 @@
                             <th>Diagnostic</th>
                             <th>Traitement</th>
                             <th>Statut</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -96,7 +97,15 @@
                                 <td>{{ $consultation->symptomes }}</td>
                                 <td>{{ $consultation->diagnostic }}</td>
                                 <td>{{ $consultation->traitement }}</td>
-                                <td>{{ $consultation->statut ?? 'En attente' }}</td>
+                                <td>
+                                  @php $s = strtolower((string)($consultation->statut ?? 'en_attente'));
+                                    $badge = in_array($s,['confirmé','confirme','confirmée','confirmee']) ? 'bg-success' : (in_array($s,['annulé','annule','annulée','annulee']) ? 'bg-secondary' : 'bg-warning text-dark');
+                                  @endphp
+                                  <span class="badge {{ $badge }}">{{ str_replace('_',' ', $consultation->statut ?? 'En attente') }}</span>
+                                </td>
+                                <td>
+                                  <a href="{{ route('medecin.consultations.edit', $consultation->id) }}" class="btn btn-sm btn-outline-primary" title="Modifier"><i class="bi bi-pencil"></i></a>
+                                </td>
                             </tr>
                         @endforeach
                     </tbody>

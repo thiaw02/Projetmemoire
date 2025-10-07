@@ -8,6 +8,9 @@ use App\Models\Patient;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Ordonnances;
 use App\Models\Rendez_vous;
+use App\Models\Ordonnances as OrdonnanceModel;
+use App\Notifications\OrdonnanceCreatedNotification;
+use App\Models\AuditLog;
 
 class MedecinController extends Controller
 {
@@ -28,15 +31,19 @@ class MedecinController extends Controller
             ->take(10)
             ->get();
 
-        // 5 derniers patients consultés par ce médecin
-        $dossiersRecents = Patient::whereHas('user', function($q) use ($medecinId) {
-                                $q->whereHas('consultations', function($q2) use ($medecinId) {
-                                    $q2->where('medecin_id', $medecinId);
-                                });
-                            })
-                            ->latest()
-                            ->take(5)
-                            ->get();
+        // Dossiers récents consultés par ce médecin (session)
+        $sessionKey = 'recent_patients_' . $medecinId;
+        $recentIds = session($sessionKey, []);
+        $recentPatients = collect();
+        if (!empty($recentIds)) {
+            $patients = Patient::whereIn('id', $recentIds)->get()->keyBy('id');
+            // Conserver l'ordre du plus récent au moins récent
+            foreach ($recentIds as $pid) {
+                if ($patients->has($pid)) {
+                    $recentPatients->push($patients[$pid]);
+                }
+            }
+        }
 
         // Statistiques rapides
         $stats = [
@@ -53,7 +60,12 @@ class MedecinController extends Controller
                 ->count(),
         ];
 
-        return view('medecin.dashboard', compact('upcomingRdv', 'dossiersRecents', 'medecin','stats'));
+        return view('medecin.dashboard', [
+            'upcomingRdv' => $upcomingRdv,
+            'recentPatients' => $recentPatients,
+            'medecin' => $medecin,
+            'stats' => $stats,
+        ]);
     }
 
     // Page consultations
@@ -97,63 +109,210 @@ class MedecinController extends Controller
         return redirect()->back()->with('success', 'Consultation ajoutée avec succès.');
     }
 
-    // Page dossiers patients
-    public function dossierpatient(Request $request)
-{
-    $medecin_id = Auth::id();
-
-    // Patients ayant au moins une consultation avec ce médecin OU un RDV (assigné à ce médecin)
-    $patients = Patient::where(function($query) use ($medecin_id){
-        $query->whereHas('consultations', function($q) use ($medecin_id) {
-            $q->where('medecin_id', $medecin_id);
-        })
-        ->orWhereHas('rendez_vous', function($q) use ($medecin_id){
-            $q->where('medecin_id', $medecin_id);
-        });
-    });
-
-    if ($request->filled('patient_id')) {
-        $patients->where('id', (int)$request->patient_id);
+    // Editer consultation
+    public function editConsultation(int $id)
+    {
+        $medId = Auth::id();
+        $consult = \App\Models\Consultations::with('patient')->where('id',$id)->where('medecin_id',$medId)->firstOrFail();
+        return view('medecin.consultation_edit', compact('consult'));
     }
 
-    $patients = $patients->orderBy('nom')->get();
+    public function updateConsultation(Request $request, int $id)
+    {
+        $medId = Auth::id();
+$consult = \App\Models\Consultations::where('id',$id)->where('medecin_id',$medId)->firstOrFail();
+        $data = $request->validate([
+            'date_consultation' => 'required|date',
+            'symptomes' => 'nullable|string',
+            'diagnostic' => 'nullable|string',
+            'traitement' => 'nullable|string',
+        ]);
+        $before = array_intersect_key($consult->getOriginal(), $data);
+        $consult->update($data);
+        $after = array_intersect_key($consult->fresh()->toArray(), $data);
+        AuditLog::create([
+            'user_id' => $medId,
+            'action' => 'consultation_updated',
+'auditable_type' => \App\Models\Consultations::class,
+            'auditable_id' => $consult->id,
+            'changes' => ['before' => $before, 'after' => $after],
+        ]);
+        return redirect()->route('medecin.consultations')->with('success','Consultation mise à jour');
+    }
 
-    return view('medecin.dossierpatient', compact('patients'));
-}
+    // Page dossiers patients
+    public function dossierpatient(Request $request)
+    {
+        $medecin_id = Auth::id();
 
+        // Patients ayant au moins une consultation avec ce médecin OU un RDV (assigné à ce médecin)
+        $patients = Patient::where(function($query) use ($medecin_id){
+            $query->whereHas('consultations', function($q) use ($medecin_id) {
+                $q->where('medecin_id', $medecin_id);
+            })
+            ->orWhereHas('rendez_vous', function($q) use ($medecin_id){
+                $q->where('medecin_id', $medecin_id);
+            });
+        });
+
+        if ($request->filled('patient_id')) {
+            $patients->where('id', (int)$request->patient_id);
+        }
+
+        $patients = $patients->orderBy('nom')->get();
+
+        return view('medecin.dossierpatient', compact('patients'));
+    }
+
+    // Afficher le dossier complet d'un patient (consultations, constantes, actes infirmiers, ordonnances, analyses)
+    public function showPatient(int $patientId)
+    {
+        $medecinId = Auth::id();
+
+        $patient = Patient::with([
+            'suivis' => fn ($q) => $q->orderByDesc('created_at'),
+            'consultations' => fn ($q) => $q->where('medecin_id', $medecinId)->orderByDesc('date_consultation'),
+            'ordonnances' => fn ($q) => $q->orderByDesc('created_at'),
+            'analyses' => fn ($q) => $q->orderByDesc('date_analyse'),
+        ])->findOrFail($patientId);
+
+        // Mettre à jour la liste des dossiers récents en session
+        $sessionKey = 'recent_patients_' . $medecinId;
+        $ids = session($sessionKey, []);
+        // Enlever si déjà présent
+        $ids = array_values(array_filter($ids, fn($id) => (int)$id !== (int)$patientId));
+        // Ajouter en tête
+        array_unshift($ids, (int)$patientId);
+        // Limiter à 5 derniers
+        $ids = array_slice($ids, 0, 5);
+        session([$sessionKey => $ids]);
+
+        return view('medecin.patient_show', [
+            'patient' => $patient,
+            'lastSuivi' => $patient->suivis->first(),
+        ]);
+    }
 
     // Page ordonnances
     public function ordonnances()
-{
-    $medecin_id = Auth::id();
+    {
+        $medecin_id = Auth::id();
 
-    // Patients pour le formulaire
-    $patients = Patient::whereHas('consultations', function($q) use ($medecin_id) {
-        $q->where('medecin_id', $medecin_id);
-    })->get();
+        // Patients pour le formulaire
+        $patients = Patient::whereHas('consultations', function($q) use ($medecin_id) {
+            $q->where('medecin_id', $medecin_id);
+        })->get();
 
-    // Ordonnances du médecin
-    $ordonnances = Ordonnances::where('medecin_id', $medecin_id)
-                    ->orderBy('created_at', 'desc')
-                    ->get();
+        // Ordonnances du médecin
+        $ordonnances = Ordonnances::where('medecin_id', $medecin_id)
+                        ->orderBy('created_at', 'desc')
+                        ->get();
 
-    return view('medecin.ordonnances', compact('patients', 'ordonnances'));
-}
+        return view('medecin.ordonnances', compact('patients', 'ordonnances'));
+    }
 
-public function storeOrdonnance(Request $request)
-{
-    $request->validate([
-        'patient_id' => 'required|exists:patients,id',
-        'medicaments' => 'required|string',
-    ]);
+    public function storeOrdonnance(Request $request)
+    {
+        $request->validate([
+            'patient_id' => 'required|exists:patients,id',
+            'medicaments' => 'required|string',
+            'dosage' => 'nullable|string|max:1000',
+        ]);
 
-    Ordonnances::create([
-        'medecin_id' => Auth::id(),
-        'patient_id' => $request->patient_id,
-        'medicaments' => $request->medicaments,
-    ]);
+        $ord = Ordonnances::create([
+            'medecin_id' => Auth::id(),
+            'patient_id' => $request->patient_id,
+            'medicaments' => $request->medicaments,
+            'contenu' => $request->medicaments,
+            'dosage' => $request->dosage,
+        ]);
 
-    return redirect()->back()->with('success', "Ordonnance ajoutée avec succès.");
-}
+        // Audit: création ordonnance
+        AuditLog::create([
+            'user_id' => Auth::id(),
+            'action' => 'ordonnance_created',
+            'auditable_type' => Ordonnances::class,
+            'auditable_id' => $ord->id,
+            'changes' => ['after' => $ord->only(['patient_id','medecin_id','medicaments','dosage'])],
+        ]);
 
+        // Envoyer le PDF par email au patient
+        $ord->load(['patient.user','medecin']);
+        if ($ord->patient && $ord->patient->user) {
+            $ord->patient->user->notify(new OrdonnanceCreatedNotification($ord));
+        }
+
+        return redirect()->back()->with('success', "Ordonnance ajoutée avec succès et envoyée par e-mail au patient.");
+    }
+
+    public function editOrdonnance(int $id)
+    {
+        $medId = Auth::id();
+        $ord = OrdonnanceModel::where('id',$id)->where('medecin_id',$medId)->firstOrFail();
+        return view('medecin.ordonnance_edit', ['ordonnance' => $ord]);
+    }
+
+    public function updateOrdonnance(Request $request, int $id)
+    {
+        $medId = Auth::id();
+        $ord = OrdonnanceModel::where('id',$id)->where('medecin_id',$medId)->firstOrFail();
+        $data = $request->validate([
+            'medicaments' => 'required|string',
+            'dosage' => 'nullable|string|max:1000',
+        ]);
+        $data['contenu'] = $data['medicaments'];
+        $before = array_intersect_key($ord->getOriginal(), $data);
+        $ord->update($data);
+        $after = array_intersect_key($ord->fresh()->toArray(), $data);
+        AuditLog::create([
+            'user_id' => $medId,
+            'action' => 'ordonnance_updated',
+            'auditable_type' => OrdonnanceModel::class,
+            'auditable_id' => $ord->id,
+            'changes' => ['before' => $before, 'after' => $after],
+        ]);
+        return redirect()->route('medecin.ordonnances')->with('success','Ordonnance mise à jour');
+    }
+
+    public function downloadOrdonnance(int $id)
+    {
+        $medId = Auth::id();
+        $ord = OrdonnanceModel::with(['patient','medecin'])->where('id',$id)->where('medecin_id',$medId)->firstOrFail();
+        $data = [
+            'ordonnance' => $ord,
+            'patient' => $ord->patient,
+            'medecin' => $ord->medecin,
+            'generatedAt' => now(),
+        ];
+        if (class_exists(\Barryvdh\DomPDF\Facade\Pdf::class)) {
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('ordonnances.pdf', $data);
+            $filename = 'Ordonnance_'.$ord->patient->nom.'_'.$ord->patient->prenom.'_'.$ord->id.'.pdf';
+            return $pdf->download($filename);
+        }
+        $html = view('ordonnances.pdf', $data)->render();
+        $filename = 'Ordonnance_'.$ord->patient->nom.'_'.$ord->patient->prenom.'_'.$ord->id.'.html';
+        return response($html)
+            ->header('Content-Type', 'text/html')
+            ->header('Content-Disposition', 'attachment; filename="'.$filename.'"');
+    }
+
+    public function resendOrdonnance(int $id)
+    {
+        $medId = Auth::id();
+        $ord = OrdonnanceModel::with(['patient.user','medecin'])->where('id',$id)->where('medecin_id',$medId)->firstOrFail();
+        if ($ord->patient && $ord->patient->user) {
+            $ord->patient->user->notify(new OrdonnanceCreatedNotification($ord));
+        }
+        return back()->with('success', 'Ordonnance renvoyée au patient par e-mail.');
+    }
+
+    public function markRdvConsulted(int $id)
+    {
+        $rdv = Rendez_vous::where('id', $id)
+            ->where('medecin_id', Auth::id())
+            ->firstOrFail();
+        // La colonne statut est un ENUM ['en_attente','confirmé','annulé','terminé']
+        $rdv->update(['statut' => 'terminé']);
+        return back()->with('success', 'RDV marqué comme consulté (terminé).');
+    }
 }

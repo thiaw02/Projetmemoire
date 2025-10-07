@@ -102,8 +102,9 @@
         <div class="d-flex justify-content-between align-items-center mb-3">
           <h4 class="mb-0">Liste des utilisateurs</h4>
           <div class="d-flex align-items-center gap-2">
-            <input type="text" id="searchUsers" class="form-control form-control-sm" placeholder="Rechercher...">
-            <a href="{{ route('admin.users.create') }}" class="btn btn-success">Ajouter un utilisateur</a>
+            <input type="text" id="searchUsers" class="form-control form-control-sm" placeholder="Rechercher..." style="max-width: 240px;">
+<a href="{{ route('admin.users.index') }}" class="btn btn-outline-primary btn-sm">Liste avancée</a>
+            <a href="{{ route('admin.users.create') }}" class="btn btn-success btn-sm" title="Ajouter un utilisateur" aria-label="Ajouter un utilisateur">➕ Ajouter</a>
           </div>
         </div>
 
@@ -114,6 +115,7 @@
                     <th>Email</th>
                     <th>Rôle</th>
                     <th>Spécialité</th>
+                    <th>Actif</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -126,12 +128,22 @@
                         <td>{{ ucfirst($user->role) }}</td>
                         <td>{{ $user->specialite ?? '-' }}</td>
                         <td>
-<a href="{{ route('admin.users.edit', $user->id) }}" class="btn btn-sm btn-primary">Modifier</a>
-                            <form action="{{ route('admin.users.destroy', $user->id) }}" method="POST" style="display:inline-block">
+                          <form method="POST" action="{{ route('admin.users.updateActive', $user->id) }}" class="mb-0">
+                            @csrf
+                            @method('PUT')
+                            <input type="hidden" name="active" value="{{ $user->active ? 0 : 1 }}">
+                            <button class="btn btn-sm btn-outline-secondary">{{ $user->active ? 'Actif' : 'Inactif' }}</button>
+                          </form>
+                        </td>
+                        <td>
+                          <div class="d-flex gap-2" role="group" aria-label="Actions utilisateur">
+<a href="{{ route('admin.users.edit', $user->id) }}" class="btn btn-outline-primary btn-sm" title="Modifier" aria-label="Modifier"><i class="bi bi-pencil"></i></a>
+                            <form action="{{ route('admin.users.destroy', $user->id) }}" method="POST" onsubmit="return confirm('Voulez-vous vraiment supprimer cet utilisateur ?')">
                                 @csrf
                                 @method('DELETE')
-                                <button class="btn btn-sm btn-danger" onclick="return confirm('Voulez-vous vraiment supprimer cet utilisateur ?')">Supprimer</button>
+                                <button class="btn btn-outline-danger btn-sm" title="Supprimer" aria-label="Supprimer"><i class="bi bi-trash"></i></button>
                             </form>
+                          </div>
                         </td>
                     </tr>
                     @endif
@@ -145,8 +157,9 @@
         <div class="d-flex justify-content-between align-items-center mb-3">
           <h4 class="mb-0">Liste des patients</h4>
           <div class="d-flex align-items-center gap-2">
-            <input type="text" id="searchPatients" class="form-control form-control-sm" placeholder="Rechercher...">
-            <a href="{{ route('admin.patients.create') }}" class="btn btn-success">Ajouter un patient</a>
+            <input type="text" id="searchPatients" class="form-control form-control-sm" placeholder="Rechercher..." style="max-width: 240px;">
+            <a href="{{ route('admin.users.index') }}" class="btn btn-outline-primary btn-sm" title="Listes avancées">Listes avancées</a>
+            <a href="{{ route('admin.patients.create') }}" class="btn btn-success btn-sm" title="Ajouter un patient" aria-label="Ajouter un patient">➕ Ajouter</a>
           </div>
         </div>
 
@@ -156,6 +169,7 @@
                     <th>Nom</th>
                     <th>Email</th>
                     <th>Date création</th>
+                    <th>Actif</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -167,12 +181,22 @@
                         <td>{{ $user->email }}</td>
                         <td>{{ $user->created_at->format('Y-m-d') }}</td>
                         <td>
-<a href="{{ route('admin.patients.edit', $user->id) }}" class="btn btn-sm btn-primary">Modifier</a>
-                            <form action="{{ route('admin.patients.destroy', $user->id) }}" method="POST" style="display:inline-block">
+                          <form method="POST" action="{{ route('admin.users.updateActive', $user->id) }}" class="mb-0">
+                            @csrf
+                            @method('PUT')
+                            <input type="hidden" name="active" value="{{ $user->active ? 0 : 1 }}">
+                            <button class="btn btn-sm btn-outline-secondary">{{ $user->active ? 'Actif' : 'Inactif' }}</button>
+                          </form>
+                        </td>
+                        <td>
+                          <div class="d-flex gap-2" role="group" aria-label="Actions patient">
+                            <a href="{{ route('admin.patients.edit', $user->id) }}" class="btn btn-outline-primary btn-sm" title="Modifier" aria-label="Modifier"><i class="bi bi-pencil"></i></a>
+                            <form action="{{ route('admin.patients.destroy', $user->id) }}" method="POST" onsubmit="return confirm('Voulez-vous vraiment supprimer ce patient ?')">
                                 @csrf
                                 @method('DELETE')
-                                <button class="btn btn-sm btn-danger" onclick="return confirm('Voulez-vous vraiment supprimer ce patient ?')">Supprimer</button>
+                                <button class="btn btn-outline-danger btn-sm" title="Supprimer" aria-label="Supprimer"><i class="bi bi-trash"></i></button>
                             </form>
+                          </div>
                         </td>
                     </tr>
                     @endif
@@ -262,16 +286,16 @@
                   <td>{{ $u->email }}</td>
                   <td><span class="badge bg-success" style="text-transform: capitalize;">{{ $u->role }}</span></td>
                   <td>
-                    <form method="POST" action="{{ route('admin.users.updateRole', $u->id) }}" class="d-flex align-items-center gap-2">
-                      @csrf
-                      @method('PUT')
-                      <select name="role" class="form-select form-select-sm" style="min-width: 160px;">
-                        @foreach(['admin','secretaire','medecin','infirmier','patient'] as $r)
-                          <option value="{{ $r }}" @selected($u->role === $r)>{{ ucfirst($r) }}</option>
-                        @endforeach
-                      </select>
-                      <button class="btn btn-sm btn-primary">Mettre à jour</button>
-                    </form>
+                    <button type="button"
+                            class="btn btn-sm btn-outline-primary js-open-role-modal"
+                            data-user-id="{{ $u->id }}"
+                            data-user-name="{{ $u->name }}"
+                            data-current-role="{{ $u->role }}"
+                            data-bs-toggle="modal"
+                            data-bs-target="#roleUpdateModal"
+                            title="Changer le rôle">
+                      <i class="bi bi-person-gear"></i>
+                    </button>
                   </td>
                 </tr>
               @endforeach
@@ -280,46 +304,158 @@
         </div>
     </div>
 
-    {{-- Gestion rôles & permissions --}}
+    {{-- Gestion rôles & permissions (vue simplifiée) --}}
     <div class="tab-pane fade" id="permissions" role="tabpanel" aria-labelledby="permissions-tab">
-        <h4 class="mb-3">Gestion des rôles et permissions</h4>
-        <form method="POST" action="{{ route('admin.permissions.save') }}">
+        <h4 class="mb-2">Accès indispensables</h4>
+        <form method="POST" action="{{ route('admin.permissions.save') }}" id="permForm">
           @csrf
-          <div class="table-responsive">
-            <table class="table table-bordered align-middle">
-              <thead>
-                <tr>
-                  <th>Permission</th>
-                  @foreach(['admin','secretaire','medecin','infirmier','patient'] as $r)
-                    <th class="text-center" style="text-transform: capitalize;">{{ $r }}</th>
-                  @endforeach
-                </tr>
-              </thead>
-              <tbody>
-                @foreach(($availablePermissions ?? []) as $perm)
-                  <tr>
-                    <td>{{ $perm['label'] }}</td>
+
+          <style>
+            .perm-card .card-header { display: flex; align-items: center; gap: .5rem; font-weight: 600; }
+            .perm-card .module-icon { font-size: 1.1rem; }
+            .perm-table th, .perm-table td { vertical-align: middle; }
+            .perm-level-group .btn { min-width: 92px; }
+          </style>
+
+          <div class="card perm-card shadow-sm">
+            <div class="card-header">
+              <i class="bi {{ $essentialModule['icon'] }} module-icon"></i>
+              <span>{{ $essentialModule['title'] }}</span>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-sm perm-table mb-0">
+                  <thead>
+                    <tr>
+                      <th style="min-width: 320px;">Rôle</th>
+                      <th class="text-center">Niveau d'accès</th>
+                    </tr>
+                  </thead>
+                  <tbody>
                     @foreach(['admin','secretaire','medecin','infirmier','patient'] as $r)
-                      @php $checked = ($rolePermissions[$r][$perm['key']] ?? false); @endphp
-                      <td class="text-center">
-                        <input type="checkbox" name="permissions[{{ $r }}][{{ $perm['key'] }}]" {{ $checked ? 'checked' : '' }}>
-                      </td>
+                      @php
+                        $keys = array_map(fn($p)=>$p['key'], $essentialModule['permissions']);
+                        $valsByKey = [];
+                        foreach ($keys as $k) { $valsByKey[$k] = ($rolePermissions[$r][$k] ?? false); }
+                        $countTrue = count(array_filter($valsByKey));
+                        if ($countTrue === count($keys)) {
+                          $currentLevel = 'full';
+                        } elseif ($countTrue === 1) {
+                          $viewKey = null;
+                          foreach ($keys as $k) { if (str_ends_with($k, '.view')) { $viewKey = $k; break; } }
+                          $currentLevel = ($viewKey && !empty($valsByKey[$viewKey])) ? 'read' : 'full';
+                        } else {
+                          $currentLevel = $countTrue > 0 ? 'full' : 'none';
+                        }
+                      @endphp
+                      <tr>
+                        <td class="text-capitalize">
+                          <i class="bi bi-person-badge text-muted me-1"></i> {{ $r }}
+                        </td>
+                        <td class="text-center">
+                          <div class="btn-group btn-group-sm perm-level-group" role="group" aria-label="Niveau d'accès">
+                            @foreach([['none','Aucun'],['read','Lecture'],['full','Complet']] as $opt)
+                              @php $id = 'lvl_ess_'.preg_replace('/\W+/','_', $essentialModule['title'].'_'.$r.'_'.$opt[0]); @endphp
+                              <input type="radio" class="btn-check" name="levels[{{ $essentialModule['title'] }}][{{ $r }}]" id="{{ $id }}" autocomplete="off" value="{{ $opt[0] }}" {{ $currentLevel===$opt[0]?'checked':'' }}>
+                              <label class="btn btn-outline-secondary" for="{{ $id }}">{{ $opt[1] }}</label>
+                            @endforeach
+                          </div>
+                        </td>
+                      </tr>
                     @endforeach
-                  </tr>
-                @endforeach
-              </tbody>
-            </table>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
-          <button class="btn btn-success">Enregistrer</button>
+
+          <div class="d-flex justify-content-end mt-3">
+            <button class="btn btn-success"><i class="bi bi-check2-circle me-1"></i> Enregistrer</button>
+          </div>
         </form>
     </div>
 
 </div>
 @endsection
 
+<!-- Modal de mise à jour de rôle -->
+<div class="modal fade" id="roleUpdateModal" tabindex="-1" aria-labelledby="roleUpdateLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="roleUpdateLabel">Changer le rôle</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <form id="roleUpdateForm" method="POST" action="#">
+        @csrf
+        @method('PUT')
+        <div class="modal-body">
+          <div class="mb-2 small text-muted">Utilisateur: <span id="roleUserName">—</span></div>
+          <div class="mb-2">Sélectionnez le nouveau rôle:</div>
+          <div class="d-flex flex-column gap-1">
+            @foreach(['admin'=>'Administrateur','secretaire'=>'Secrétaire','medecin'=>'Médecin','infirmier'=>'Infirmier','patient'=>'Patient'] as $val=>$label)
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="role" id="role_{{ $val }}" value="{{ $val }}">
+              <label class="form-check-label" for="role_{{ $val }}">{{ $label }}</label>
+            </div>
+            @endforeach
+          </div>
+          <div class="alert alert-warning mt-3 p-2" role="alert">
+            Confirmez-vous la modification du rôle de cet utilisateur ?
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-primary">Confirmer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Toast succès -->
+<div class="position-fixed top-0 end-0 p-3" style="z-index: 1080;">
+  <div id="roleToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body" id="roleToastBody">
+        Rôle mis à jour.
+      </div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  </div>
+</div>
+
 @section('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    // Rôle: ouverture du modal et soumission
+    (function(){
+      const modalEl = document.getElementById('roleUpdateModal');
+      const form = document.getElementById('roleUpdateForm');
+      const userNameSpan = document.getElementById('roleUserName');
+      if (modalEl) {
+        modalEl.addEventListener('show.bs.modal', function (event) {
+          const button = event.relatedTarget; // bouton déclencheur
+          if (!button) return;
+          const uid = button.getAttribute('data-user-id');
+          const uname = button.getAttribute('data-user-name') || '';
+          const current = button.getAttribute('data-current-role') || '';
+          if (userNameSpan) userNameSpan.textContent = uname;
+          (form?.querySelectorAll('input[name=\"role\"]')||[]).forEach(r=>{ r.checked = (r.value===current); });
+          if (form) form.action = `/admin/users/${uid}/role`;
+        });
+      }
+
+      // Toast succès si session('success')
+      const hasSuccess = {{ session('success') ? 'true' : 'false' }};
+      if (hasSuccess) {
+        const toastEl = document.getElementById('roleToast');
+        const toastBody = document.getElementById('roleToastBody');
+        if (toastBody) toastBody.textContent = @json(session('success'));
+        if (toastEl) new bootstrap.Toast(toastEl, { delay: 3000 }).show();
+      }
+    })();
+
     // Données dynamiques transmises depuis le contrôleur
     const rolesCount = @json($rolesCount ?? []);
     const months = @json($months ?? []);

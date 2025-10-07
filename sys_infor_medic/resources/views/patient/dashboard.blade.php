@@ -150,9 +150,39 @@
                             <div class="card-header text-success">📝 Ordonnances</div>
                             <div class="card-body">
                                 @forelse($ordonnances as $ord)
-                                    <div class="mb-2">
-                                        <div class="small text-muted">{{ optional($ord->date_ordonnance)->format('d/m/Y') ?? (string)($ord->date_ordonnance ?? '') }}</div>
-                                        <div>{{ $ord->contenu ?? $ord->medicaments ?? '—' }}</div>
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div class="me-2">
+                                                <div class="small text-muted">{{ optional($ord->created_at)->format('d/m/Y H:i') }}</div>
+                                                @php($text = $ord->medicaments ?? $ord->contenu)
+                                                @if(!empty($text))
+                                                  @php($lines = preg_split("/(\r\n|\r|\n)/", $text))
+                                                  <ul class="mb-1 mt-1">
+                                                    @foreach($lines as $ln)
+                                                      @if(trim($ln) !== '')
+                                                        <li>{{ $ln }}</li>
+                                                      @endif
+                                                    @endforeach
+                                                  </ul>
+                                                @else
+                                                  <div class="text-muted small">—</div>
+                                                @endif
+                                                @if(!empty($ord->dosage))
+                                                  <div class="small text-muted">Dosage: {{ $ord->dosage }}</div>
+                                                @endif
+                                            </div>
+                                            <div>
+                                                <a href="{{ route('patient.ordonnances.download', $ord->id) }}" class="btn btn-sm btn-outline-primary" title="Télécharger">
+                                                    <i class="bi bi-download"></i>
+                                                </a>
+                                                <form method="POST" action="{{ route('patient.ordonnances.resend', $ord->id) }}" class="d-inline">
+                                                  @csrf
+                                                  <button type="submit" class="btn btn-sm btn-outline-success" title="Renvoyer par e-mail">
+                                                    <i class="bi bi-envelope-arrow-up"></i>
+                                                  </button>
+                                                </form>
+                                            </div>
+                                        </div>
                                     </div>
                                 @empty
                                     <div class="text-muted">Aucune ordonnance.</div>
@@ -216,8 +246,7 @@
                                 <td>{{ $rdv->medecin->name ?? '—' }}</td>
                                 <td>{{ $rdv->motif }}</td>
                                 <td>
-                                    @php $s = strtolower((string)$rdv->statut); @endphp
-                                    <span class="badge {{ $s==='confirmé' || $s==='confirme' ? 'bg-success' : ($s==='annulé' || $s==='annule' ? 'bg-secondary' : 'bg-warning text-dark') }}">
+                                    <span class="badge {{ in_array(strtolower((string)$rdv->statut), ['confirmé','confirme']) ? 'bg-success' : (in_array(strtolower((string)$rdv->statut), ['annulé','annule']) ? 'bg-secondary' : 'bg-warning text-dark') }}">
                                         {{ str_replace('_',' ', $rdv->statut) }}
                                     </span>
                                 </td>

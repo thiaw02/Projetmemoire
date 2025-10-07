@@ -36,7 +36,13 @@
 
                     <div class="mb-3">
                         <label for="medicaments" class="form-label">Médicaments / Instructions</label>
-                        <textarea name="medicaments" id="medicaments" class="form-control" rows="4" required></textarea>
+                        <textarea name="medicaments" id="medicaments" class="form-control" rows="5" required placeholder="Exemple:\nParacétamol 500mg — 1 comprimé, 3x/jour\nIbuprofène 200mg — 1 comprimé, si douleur"></textarea>
+                        <div class="form-text">Vous pouvez saisir plusieurs lignes, elles seront affichées en liste.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="dosage" class="form-label">Dosage global (optionnel)</label>
+                        <input type="text" id="dosage" name="dosage" class="form-control" placeholder="Ex: Pendant 5 jours après les repas">
                     </div>
 
                     <button type="submit" class="btn btn-success">Ajouter l'ordonnance</button>
@@ -60,14 +66,42 @@
                             <th>Patient</th>
                             <th>Médicaments / Instructions</th>
                             <th>Date</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach($ordonnances as $ordonnance)
                             <tr>
                                 <td>{{ $ordonnance->patient->nom }} {{ $ordonnance->patient->prenom }}</td>
-                                <td>{{ $ordonnance->medicaments }}</td>
+                                <td>
+                                    @php($text = $ordonnance->medicaments ?: $ordonnance->contenu)
+                                    @if(!empty($text))
+                                        @php($lines = preg_split("/(\r\n|\r|\n)/", $text))
+                                        <ul class="mb-1">
+                                            @foreach($lines as $ln)
+                                                @if(trim($ln) !== '')
+                                                    <li>{{ $ln }}</li>
+                                                @endif
+                                            @endforeach
+                                        </ul>
+                                    @else
+                                        —
+                                    @endif
+                                    @if(!empty($ordonnance->dosage))
+                                        <div class="small text-muted">Dosage: {{ $ordonnance->dosage }}</div>
+                                    @endif
+                                </td>
                                 <td>{{ \Carbon\Carbon::parse($ordonnance->created_at)->format('d/m/Y H:i') }}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <a href="{{ route('medecin.ordonnances.edit', $ordonnance->id) }}" class="btn btn-outline-primary" title="Modifier"><i class="bi bi-pencil"></i></a>
+                                        <a href="{{ route('medecin.ordonnances.download', $ordonnance->id) }}" class="btn btn-outline-secondary" title="Télécharger"><i class="bi bi-download"></i></a>
+                                        <form method="POST" action="{{ route('medecin.ordonnances.resend', $ordonnance->id) }}" class="d-inline">
+                                          @csrf
+                                          <button type="submit" class="btn btn-outline-success" title="Renvoyer par e-mail"><i class="bi bi-envelope-arrow-up"></i></button>
+                                        </form>
+                                    </div>
+                                </td>
                             </tr>
                         @endforeach
                     </tbody>

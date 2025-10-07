@@ -41,9 +41,9 @@
                                 <td>{{ \Carbon\Carbon::parse($patient->date_naissance)->format('d/m/Y') }}</td>
                                 <td>{{ $patient->telephone ?? '-' }}</td>
                                 <td>{{ $patient->groupe_sanguin ?? '-' }}</td>
-                                <td>
-                                    <a href="{{ route('medecin.consultations', ['patient_id' => $patient->id]) }}" class="btn btn-sm btn-info">
-                                        Voir consultations
+<td>
+                                    <a href="{{ route('medecin.patients.show', ['patientId' => $patient->id]) }}" class="btn btn-sm btn-primary">
+                                        Ouvrir le dossier
                                     </a>
                                 </td>
                             </tr>

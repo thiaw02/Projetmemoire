@@ -31,11 +31,18 @@ class Patient extends Model
     {
         return $this->belongsTo(User::class);
     }
+
     public function consultations()
-{
-    return $this->hasMany(Consultations::class, 'patient_id');
-}
- public function rendez_vous()
+    {
+        return $this->hasMany(Consultations::class, 'patient_id');
+    }
+
+    public function suivis()
+    {
+        return $this->hasMany(Suivi::class, 'patient_id');
+    }
+
+    public function rendez_vous()
     {
         // Relier les rendez-vous via le user_id du patient (Rendez_vous.user_id = patients.user_id)
         return $this->hasMany(Rendez_vous::class, 'user_id', 'user_id');
@@ -44,12 +51,13 @@ class Patient extends Model
     public function ordonnances()
     {
         return $this->hasMany(Ordonnances::class);
-    
     }
+
     public function dossierpatients()
     {
         return $this->hasMany(Dossier_medicaux::class);
     }
+
     public function dossier_administratifs()
     {
         return $this->hasMany(Dossier_administratifs::class);

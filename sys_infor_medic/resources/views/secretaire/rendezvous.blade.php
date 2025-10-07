@@ -85,10 +85,17 @@
                         <td>{{ $rdv->medecin->name }}</td>
                         <td>{{ $rdv->date }}</td>
                         <td>{{ $rdv->heure }}</td>
-                        <td>{{ $rdv->statut }}</td>
                         <td>
-                            <a href="{{ route('secretaire.rendezvous.confirm', $rdv->id) }}" class="btn btn-success btn-sm">✔ Confirmer</a>
-                            <a href="{{ route('secretaire.rendezvous.cancel', $rdv->id) }}" class="btn btn-danger btn-sm">✖ Annuler</a>
+                            @php $s = strtolower((string)$rdv->statut);
+                              $badge = in_array($s,['confirmé','confirme','confirmée','confirmee']) ? 'bg-success' : (in_array($s,['annulé','annule','annulée','annulee']) ? 'bg-secondary' : 'bg-warning text-dark');
+                            @endphp
+                            <span class="badge {{ $badge }}">{{ str_replace('_',' ', $rdv->statut) }}</span>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group" aria-label="Actions rendez-vous">
+                              <a href="{{ route('secretaire.rendezvous.confirm', $rdv->id) }}" class="btn btn-success" title="Confirmer" aria-label="Confirmer">✔</a>
+                              <a href="{{ route('secretaire.rendezvous.cancel', $rdv->id) }}" class="btn btn-danger" title="Annuler" aria-label="Annuler">✖</a>
+                            </div>
                         </td>
                     </tr>
                 @endforeach

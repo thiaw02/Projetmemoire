@@ -42,6 +42,10 @@
               <option value="secretaire" {{ (old('role', $user->role) == 'secretaire') ? 'selected' : '' }}>Secrétaire</option>
           </select>
       </div>
+      <div class="form-check form-switch mb-3">
+          <input class="form-check-input" type="checkbox" id="active" name="active" value="1" {{ old('active', $user->active) ? 'checked' : '' }}>
+          <label class="form-check-label" for="active">Compte actif</label>
+      </div>
       <div class="row g-3" id="roleFields">
         <div class="col-md-6 role-medecin d-none">
           <label class="form-label">Spécialité</label>

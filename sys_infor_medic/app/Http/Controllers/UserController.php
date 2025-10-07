@@ -3,11 +3,81 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\AuditLog;
 use Illuminate\Http\Request;
 
 class UserController extends Controller
 {
-    // Liste utilisateurs (hors patients)
+    // Liste utilisateurs (tous) avec filtres
+    public function index(Request $request)
+    {
+        $query = User::query();
+        if ($request->filled('role') && $request->role !== 'all') {
+            $query->where('role', $request->role);
+        }
+        if ($request->filled('active') && in_array($request->active, ['0','1'], true)) {
+            $query->where('active', (bool)$request->active);
+        }
+        if ($request->filled('q')) {
+            $q = $request->q;
+            $query->where(function($qq) use ($q){
+                $qq->where('name','like',"%$q%")
+                   ->orWhere('email','like',"%$q%");
+            });
+        }
+        $users = $query->orderBy('name')->paginate(20)->withQueryString();
+        return view('admin.users.index', [
+            'users' => $users,
+            'filters' => [
+                'role' => $request->role ?? 'all',
+                'active' => $request->active ?? 'all',
+                'q' => $request->q ?? '',
+            ],
+        ]);
+    }
+
+    // Export CSV des utilisateurs filtrés
+    public function exportCsv(Request $request)
+    {
+        $query = User::query();
+        if ($request->filled('role') && $request->role !== 'all') {
+            $query->where('role', $request->role);
+        }
+        if ($request->filled('active') && in_array($request->active, ['0','1'], true)) {
+            $query->where('active', (bool)$request->active);
+        }
+        if ($request->filled('q')) {
+            $q = $request->q;
+            $query->where(function($qq) use ($q){
+                $qq->where('name','like',"%$q%")
+                   ->orWhere('email','like',"%$q%");
+            });
+        }
+        $rows = $query->orderBy('name')->get(['name','email','role','active','created_at']);
+        $filename = 'utilisateurs_'.now()->format('Ymd_His').'.csv';
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"$filename\"",
+        ];
+        return response()->streamDownload(function() use ($rows){
+            $out = fopen('php://output', 'w');
+            // BOM UTF-8 pour Excel
+            fwrite($out, "\xEF\xBB\xBF");
+            fputcsv($out, ['Nom','Email','Rôle','Actif','Créé le'], ';');
+            foreach ($rows as $r) {
+                fputcsv($out, [
+                    $r->name,
+                    $r->email,
+                    $r->role,
+                    $r->active ? '1' : '0',
+                    optional($r->created_at)->format('Y-m-d H:i:s'),
+                ], ';');
+            }
+            fclose($out);
+        }, $filename, $headers);
+    }
+
+    // Liste utilisateurs (hors patients) - conservé pour dashboard
     public function dashboard()
     {
         $users = User::where('role', '!=', 'patient')->get();
@@ -26,6 +96,7 @@ class UserController extends Controller
             'email'      => 'required|email|unique:users,email',
             'role'       => 'required|in:admin,medecin,infirmier,secretaire',
             'password'   => 'required|string|min:6|confirmed',
+            'active'     => 'nullable|boolean',
             // Champs optionnels
             'specialite' => 'nullable|string|max:255',
             'pro_phone'  => 'nullable|string|max:255',
@@ -41,6 +112,7 @@ class UserController extends Controller
         if (!in_array($data['role'], ['secretaire','infirmier','admin'])) {
             unset($data['pro_phone']);
         }
+        $data['active'] = (bool)($request->input('active', true));
         User::create($data);
 
         return redirect()->route('admin.dashboard')->with('success', 'Utilisateur ajouté');
@@ -58,8 +130,9 @@ class UserController extends Controller
         $data = $request->validate([
             'name'       => 'required|string|max:255',
             'email'      => "required|email|unique:users,email,{$id}",
-            'role'       => 'required|in:admin,medecin,infirmier,secretaire',
+'role'       => 'required|in:admin,medecin,infirmier,secretaire',
             'password'   => 'nullable|string|min:6|confirmed',
+            'active'     => 'nullable|boolean',
             // Champs optionnels
             'specialite' => 'nullable|string|max:255',
             'pro_phone'  => 'nullable|string|max:255',
@@ -79,6 +152,7 @@ class UserController extends Controller
         if (!in_array($data['role'], ['secretaire','infirmier','admin'])) {
             unset($data['pro_phone']);
         }
+        $data['active'] = (bool)($request->input('active', $user->active));
         $user->update($data);
 
         return redirect()->route('admin.dashboard')->with('success', 'Utilisateur modifié');
@@ -91,9 +165,20 @@ class UserController extends Controller
     }
 
     // Patients
-    public function patientsList()
+public function patientsList(\Illuminate\Http\Request $request)
     {
-        $patients = User::where('role', 'patient')->get();
+        $query = User::where('role', 'patient');
+        if ($request->filled('q')) {
+            $q = $request->q;
+            $query->where(function($qq) use ($q){
+                $qq->where('name','like',"%$q%")
+                   ->orWhere('email','like',"%$q%");
+            });
+        }
+        if ($request->filled('active') && in_array($request->active, ['0','1'], true)) {
+            $query->where('active', (bool)$request->active);
+        }
+        $patients = $query->orderBy('name')->get();
         return view('admin.patients.index', compact('patients'));
     }
 
@@ -216,5 +301,24 @@ class UserController extends Controller
         ]);
         $user->update(['role' => $data['role']]);
         return redirect()->route('admin.dashboard')->with('success', 'Rôle mis à jour');
+    }
+
+    public function updateActive(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+        $validated = $request->validate([
+            'active' => 'required|boolean',
+        ]);
+        $before = ['active' => (bool)$user->active];
+        $user->update(['active' => (bool)$validated['active']]);
+        $after = ['active' => (bool)$user->active];
+        AuditLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'user_active_updated',
+            'auditable_type' => User::class,
+            'auditable_id' => $user->id,
+            'changes' => ['before' => $before, 'after' => $after],
+        ]);
+        return redirect()->route('admin.dashboard')->with('success', 'Statut du compte mis à jour');
     }
 }

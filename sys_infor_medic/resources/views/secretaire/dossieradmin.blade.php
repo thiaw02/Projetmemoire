@@ -11,8 +11,8 @@
         <a href="{{ route('secretaire.dashboard') }}" class="btn btn-danger">
             <i class="bi bi-arrow-left"></i> Retour vers le dashboard
         </a>
-        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addPatientModal">
-            <i class="bi bi-person-plus"></i> Ajouter un patient
+        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addPatientModal" title="Ajouter un patient" aria-label="Ajouter un patient">
+            ➕ Ajouter un patient
         </button>
     </div>
 
@@ -38,9 +38,7 @@
                     <td>{{ $patient->email }}</td>
                     <td>{{ $patient->telephone }}</td>
                     <td>
-                        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#viewPatientModal{{ $patient->id }}">
-                            Voir / Modifier
-                        </button>
+                        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#viewPatientModal{{ $patient->id }}" title="Voir / Modifier" aria-label="Voir / Modifier">👁️✏️</button>
                     </td>
                 </tr>
                 @empty
