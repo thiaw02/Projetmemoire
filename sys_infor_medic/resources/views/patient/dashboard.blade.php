@@ -34,6 +34,11 @@
 
     <div class="admin-header d-flex align-items-center justify-content-between mb-3">
       <h2 class="mb-0 text-success">Espace Patient</h2>
+      <div class="d-flex gap-2">
+        <a href="{{ route('patient.payments.index') }}" class="btn btn-success btn-sm" title="Payer en ligne">
+          <i class="bi bi-credit-card me-1"></i> Payer
+        </a>
+      </div>
     </div>
 
     @if(session('success'))

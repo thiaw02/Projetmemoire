@@ -69,6 +69,23 @@ class User extends Authenticatable
     return $this->hasMany(\App\Models\Consultations::class, 'medecin_id');
     }
 
+    /**
+     * Infirmiers affectés à ce médecin
+     */
+    public function nurses()
+    {
+        return $this->belongsToMany(User::class, 'medecin_infirmier', 'medecin_id', 'infirmier_id')
+            ->where('users.role', 'infirmier');
+    }
+
+    /**
+     * Médecins auxquels cet infirmier est affecté
+     */
+    public function doctors()
+    {
+        return $this->belongsToMany(User::class, 'medecin_infirmier', 'infirmier_id', 'medecin_id')
+            ->where('users.role', 'medecin');
+    }
 
     /**
      * Ajoute d'autres relations selon les besoins

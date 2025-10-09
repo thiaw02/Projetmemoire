@@ -50,6 +50,15 @@
       </div>
     </div>
   </div>
+  <div class="col-md-3">
+    <div class="card text-center">
+      <div class="card-body">
+        <div class="text-muted small">Paiements (mois)</div>
+        <div class="h5 mb-0">{{ number_format($kpis['paymentsPaidThisMonth'] ?? 0, 0, ',', ' ') }} XOF</div>
+        <div class="small text-muted">En attente: {{ $kpis['paymentsPending'] ?? 0 }}</div>
+      </div>
+    </div>
+  </div>
 </div>
 
 {{-- Styles locaux pour onglets sur une ligne --}}
@@ -92,6 +101,9 @@
     <li class="nav-item" role="presentation">
         <button class="nav-link" id="permissions-tab" data-bs-toggle="tab" data-bs-target="#permissions" type="button" role="tab" aria-controls="permissions" aria-selected="false"><i class="bi bi-shield-lock me-1"></i> Gestion rôles & permissions</button>
     </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="payments-tab" data-bs-toggle="tab" data-bs-target="#payments" type="button" role="tab" aria-controls="payments" aria-selected="false"><i class="bi bi-wallet2 me-1"></i> Paiements</button>
+    </li>
 </ul>
 </div>
 
@@ -104,6 +116,7 @@
           <div class="d-flex align-items-center gap-2">
             <input type="text" id="searchUsers" class="form-control form-control-sm" placeholder="Rechercher..." style="max-width: 240px;">
 <a href="{{ route('admin.users.index') }}" class="btn btn-outline-primary btn-sm">Liste avancée</a>
+            <a href="{{ route('admin.affectations.index') }}" class="btn btn-outline-success btn-sm" title="Affecter infirmiers aux médecins">Affectations Médecin–Infirmier</a>
             <a href="{{ route('admin.users.create') }}" class="btn btn-success btn-sm" title="Ajouter un utilisateur" aria-label="Ajouter un utilisateur">➕ Ajouter</a>
           </div>
         </div>
@@ -115,6 +128,7 @@
                     <th>Email</th>
                     <th>Rôle</th>
                     <th>Spécialité</th>
+                    <th>Liens</th>
                     <th>Actif</th>
                     <th>Actions</th>
                 </tr>
@@ -127,6 +141,21 @@
                         <td>{{ $user->email }}</td>
                         <td>{{ ucfirst($user->role) }}</td>
                         <td>{{ $user->specialite ?? '-' }}</td>
+                        <td>
+                          @if($user->role==='medecin')
+                            @php
+                              $names = ($user->nurses ?? collect())->pluck('name')->all();
+                            @endphp
+                            <span class="badge bg-light text-dark border" title="{{ implode(', ', $names) }}">{{ count($names) }} infirmier(s)</span>
+                          @elseif($user->role==='infirmier')
+                            @php
+                              $names = ($user->doctors ?? collect())->pluck('name')->all();
+                            @endphp
+                            <span class="badge bg-light text-dark border" title="{{ implode(', ', $names) }}">{{ count($names) }} médecin(s)</span>
+                          @else
+                            —
+                          @endif
+                        </td>
                         <td>
                           <form method="POST" action="{{ route('admin.users.updateActive', $user->id) }}" class="mb-0">
                             @csrf
@@ -373,6 +402,51 @@
             <button class="btn btn-success"><i class="bi bi-check2-circle me-1"></i> Enregistrer</button>
           </div>
         </form>
+</div>
+
+    {{-- Paiements --}}
+    <div class="tab-pane fade" id="payments" role="tabpanel" aria-labelledby="payments-tab">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0">Paiements récents</h4>
+        <a href="{{ route('secretaire.payments') }}" class="btn btn-outline-primary btn-sm">Gérer (Secrétaire)</a>
+      </div>
+      @php($recentOrders = \App\Models\Order::with('items','user')->orderByDesc('created_at')->take(20)->get())
+      <div class="table-responsive">
+        <table class="table table-sm align-middle">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Patient</th>
+              <th>Libellé</th>
+              <th class="text-end">Montant</th>
+              <th>Prestataire</th>
+              <th>Statut</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @forelse($recentOrders as $o)
+              <tr>
+                <td>{{ $o->created_at->format('Y-m-d H:i') }}</td>
+                <td>{{ $o->user->name ?? '—' }}</td>
+                <td>{{ optional($o->items->first())->label ?? '—' }}</td>
+                <td class="text-end">{{ number_format($o->total_amount, 0, ',', ' ') }} XOF</td>
+                <td>{{ strtoupper($o->provider ?? '—') }}</td>
+                <td>
+                  <span class="badge {{ $o->status==='paid' ? 'bg-success' : ($o->status==='pending' ? 'bg-warning text-dark' : 'bg-secondary') }}">{{ $o->status }}</span>
+                </td>
+                <td class="text-end d-flex gap-1 justify-content-end">
+                  @if($o->status==='paid')
+                    <a href="{{ route('payments.receipt', $o->id) }}" class="btn btn-outline-success btn-sm">Quittance</a>
+                  @endif
+                </td>
+              </tr>
+            @empty
+              <tr><td colspan="7" class="text-muted">Aucun paiement</td></tr>
+            @endforelse
+          </tbody>
+        </table>
+      </div>
     </div>
 
 </div>
@@ -467,65 +541,26 @@
     const rdvPendingSeriesFull = @json($rdvPendingSeries ?? []);
     const rdvConfirmedSeriesFull = @json($rdvConfirmedSeries ?? []);
     const rdvCancelledSeriesFull = @json($rdvCancelledSeries ?? []);
-
+    
+    // Variables globales pour les graphiques
+    let chartsInitialized = false;
+    let monthlyChart, rdvStatusMonthlyChart;
+    let windowMonths = 12; // défaut 12 mois
+    
     // Palette
     const colors = {
       green: '#27ae60', darkGreen: '#145a32', teal: '#20c997', orange: '#fd7e14', pink: '#e83e8c', blue: '#3b82f6', red: '#ef4444', yellow: '#eab308'
     };
-
-    // Répartition des rôles (bar)
-    const rolesLabels = Object.keys(rolesCount);
-    const rolesValues = Object.values(rolesCount);
-    new Chart(document.getElementById('rolesChart'), {
-      type: 'bar',
-      data: {
-        labels: rolesLabels.map(l => l.charAt(0).toUpperCase() + l.slice(1)),
-        datasets: [{
-          label: "Utilisateurs",
-          data: rolesValues,
-          backgroundColor: [colors.blue, colors.green, colors.yellow, colors.teal, colors.red]
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { display: false }, title: { display: true, text: 'Utilisateurs par rôle' } },
-        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
-      }
-    });
-
-    // Statuts des rendez-vous (donut)
-    const rdvStatusLabels = Object.keys(rdvStatusCounts).map(s => (s || 'non défini').replace('_',' '));
-    const rdvStatusValues = Object.values(rdvStatusCounts);
-    new Chart(document.getElementById('rendezvousChart'), {
-      type: 'doughnut',
-      data: {
-        labels: rdvStatusLabels,
-        datasets: [{
-          data: rdvStatusValues,
-          backgroundColor: [colors.green, colors.orange, colors.red, colors.blue, colors.pink, colors.yellow]
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { position: 'bottom' }, title: { display: true, text: 'Répartition des statuts de RDV' } }
-      }
-    });
-
+    
     // Outil: slicer pour fenêtre N derniers mois
     function lastN(arr, n){ return (arr || []).slice(Math.max((arr || []).length - n, 0)); }
-
-    // Crée les graphiques et permet mise à jour
-    const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
-    const rdvStatusMonthlyCtx = document.getElementById('rdvStatusMonthlyChart').getContext('2d');
-
-    let windowMonths = 12; // défaut 12 mois
-
+    
     function windowLabelText(n){
       if (n===2) return '2 derniers mois';
       if (n===6) return '6 derniers mois';
       return '12 derniers mois';
     }
-
+    
     function buildMonthlyConfig(n){
       const lbls = lastN(months, n);
       return {
@@ -546,7 +581,7 @@
         }
       };
     }
-
+    
     function buildRdvStatusMonthlyConfig(n){
       const lbls = lastN(months, n);
       return {
@@ -566,18 +601,169 @@
         }
       };
     }
+    
+    // Fonction pour initialiser tous les graphiques
+    function initializeCharts() {
+        if (chartsInitialized) return;
+        
+        // Vérifier si Chart.js est chargé
+        if (typeof Chart === 'undefined') {
+            console.error('Chart.js n\'est pas chargé !');
+            return;
+        }
+        
+        console.log('Initialisation des graphiques...');
+        initRolesChart();
+        initRendezVousChart();
+        initMonthlyCharts();
+        
+        chartsInitialized = true;
+    }
+    
+    // Graphique des rôles
+    function initRolesChart() {
 
-    let monthlyChart = new Chart(monthlyCtx, buildMonthlyConfig(windowMonths));
-    let rdvStatusMonthlyChart = new Chart(rdvStatusMonthlyCtx, buildRdvStatusMonthlyConfig(windowMonths));
+        const rolesLabels = Object.keys(rolesCount);
+        const rolesValues = Object.values(rolesCount);
+        
+        const rolesChartElement = document.getElementById('rolesChart');
+        if (!rolesChartElement) {
+            console.error('Élément rolesChart non trouvé !');
+            return;
+        }
+        
+        new Chart(rolesChartElement, {
+          type: 'bar',
+          data: {
+            labels: rolesLabels.map(l => l.charAt(0).toUpperCase() + l.slice(1)),
+            datasets: [{
+              label: "Utilisateurs",
+              data: rolesValues,
+              backgroundColor: [colors.blue, colors.green, colors.yellow, colors.teal, colors.red]
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { display: false }, title: { display: true, text: 'Utilisateurs par rôle' } },
+            scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+          }
+        });
+    }
+    
+    // Graphique des statuts RDV
+    function initRendezVousChart() {
+
+        const rdvStatusLabels = Object.keys(rdvStatusCounts).map(s => (s || 'non défini').replace('_',' '));
+        const rdvStatusValues = Object.values(rdvStatusCounts);
+        
+        const rendezvousChartElement = document.getElementById('rendezvousChart');
+        if (!rendezvousChartElement) {
+            console.error('Élément rendezvousChart non trouvé !');
+            return;
+        }
+        
+        new Chart(rendezvousChartElement, {
+          type: 'doughnut',
+          data: {
+            labels: rdvStatusLabels,
+            datasets: [{
+              data: rdvStatusValues,
+              backgroundColor: [colors.green, colors.orange, colors.red, colors.blue, colors.pink, colors.yellow]
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { position: 'bottom' }, title: { display: true, text: 'Répartition des statuts de RDV' } }
+          }
+        });
+    }
+    
+    // Graphiques mensuels
+    function initMonthlyCharts() {
+        console.log('Initialisation des graphiques mensuels...');
+        
+        // Vérifier les données nécessaires
+        if (!months || months.length === 0) {
+            console.error('Données des mois manquantes !', months);
+            return;
+        }
+        
+        if (!rdvSeries || rdvSeries.length === 0) {
+            console.error('Données RDV manquantes !', rdvSeries);
+            return;
+        }
+        
+        console.log('Vérification des éléments canvas...');
+        const monthlyChartElement = document.getElementById('monthlyChart');
+        const rdvStatusMonthlyElement = document.getElementById('rdvStatusMonthlyChart');
+        
+        if (!monthlyChartElement) {
+            console.error('Élément monthlyChart non trouvé !', monthlyChartElement);
+            return;
+        }
+        
+        if (!rdvStatusMonthlyElement) {
+            console.error('Élément rdvStatusMonthlyChart non trouvé !', rdvStatusMonthlyElement);
+            return;
+        }
+        
+        console.log('Éléments canvas trouvés:', {
+            monthlyChart: monthlyChartElement,
+            rdvStatusChart: rdvStatusMonthlyElement
+        });
+        
+        try {
+            console.log('Création du graphique monthlyChart...');
+            const monthlyCtx = monthlyChartElement.getContext('2d');
+            const monthlyConfig = buildMonthlyConfig(windowMonths);
+            console.log('Configuration monthlyChart:', monthlyConfig);
+            monthlyChart = new Chart(monthlyCtx, monthlyConfig);
+            console.log('MonthlyChart créé:', monthlyChart);
+        } catch (error) {
+            console.error('Erreur lors de la création du monthlyChart:', error);
+        }
+        
+        try {
+            console.log('Création du graphique rdvStatusMonthlyChart...');
+            const rdvStatusMonthlyCtx = rdvStatusMonthlyElement.getContext('2d');
+            const rdvStatusConfig = buildRdvStatusMonthlyConfig(windowMonths);
+            console.log('Configuration rdvStatusChart:', rdvStatusConfig);
+            rdvStatusMonthlyChart = new Chart(rdvStatusMonthlyCtx, rdvStatusConfig);
+            console.log('RdvStatusChart créé:', rdvStatusMonthlyChart);
+        } catch (error) {
+            console.error('Erreur lors de la création du rdvStatusChart:', error);
+        }
+        
+        console.log('Graphiques mensuels - Processus terminé !');
+    }
+
+
 
     function setWindow(n){
       windowMonths = n;
       document.getElementById('windowLabel').textContent = windowLabelText(n);
       document.getElementById('windowLabelStatus').textContent = windowLabelText(n);
-      monthlyChart.destroy();
-      rdvStatusMonthlyChart.destroy();
-      monthlyChart = new Chart(monthlyCtx, buildMonthlyConfig(n));
-      rdvStatusMonthlyChart = new Chart(rdvStatusMonthlyCtx, buildRdvStatusMonthlyConfig(n));
+      
+      // Vérifier que les graphiques existent avant de les détruire
+      if (monthlyChart) {
+          monthlyChart.destroy();
+      }
+      if (rdvStatusMonthlyChart) {
+          rdvStatusMonthlyChart.destroy();
+      }
+      
+      // Recréer les graphiques s'ils existaient
+      const monthlyChartElement = document.getElementById('monthlyChart');
+      const rdvStatusMonthlyElement = document.getElementById('rdvStatusMonthlyChart');
+      
+      if (monthlyChartElement && rdvStatusMonthlyElement) {
+          const monthlyCtx = monthlyChartElement.getContext('2d');
+          const rdvStatusMonthlyCtx = rdvStatusMonthlyElement.getContext('2d');
+          
+          monthlyChart = new Chart(monthlyCtx, buildMonthlyConfig(n));
+          rdvStatusMonthlyChart = new Chart(rdvStatusMonthlyCtx, buildRdvStatusMonthlyConfig(n));
+      }
+      
       // Boutons actifs
       document.querySelectorAll('[data-window]').forEach(b=>b.classList.toggle('active', parseInt(b.dataset.window,10)===n));
     }
@@ -586,18 +772,45 @@
     document.querySelectorAll('[data-window]').forEach(btn=>{
       btn.addEventListener('click', ()=> setWindow(parseInt(btn.dataset.window,10)) );
     });
+    
+    // Initialiser les graphiques quand l'onglet statistiques est ouvert
+    const statsTabButton = document.getElementById('stats-tab');
+    if (statsTabButton) {
+        statsTabButton.addEventListener('click', function() {
+            // Attendre un peu que l'onglet soit visible
+            setTimeout(initializeCharts, 100);
+        });
+    }
+    
+    // Si l'onglet statistiques est déjà actif au chargement de la page
+    const statsTab = document.getElementById('stats');
+    if (statsTab && statsTab.classList.contains('active')) {
+        setTimeout(initializeCharts, 100);
+    }
 
-<script>
-  // Filtres simples tables Admin
-  function filterTable(inputId, tableId){
-    const q = (document.getElementById(inputId)?.value || '').toLowerCase();
-    const rows = document.querySelectorAll(`#${tableId} tbody tr`);
-    rows.forEach(tr => {
-      const text = tr.innerText.toLowerCase();
-      tr.style.display = text.includes(q) ? '' : 'none';
-    });
-  }
-  document.getElementById('searchUsers')?.addEventListener('input', ()=>filterTable('searchUsers','usersTable'));
-  document.getElementById('searchPatients')?.addEventListener('input', ()=>filterTable('searchPatients','patientsTable'));
+    // Filtres simples tables Admin
+    function filterTable(inputId, tableId){
+      const q = (document.getElementById(inputId)?.value || '').toLowerCase();
+      const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+      rows.forEach(tr => {
+        const text = tr.innerText.toLowerCase();
+        tr.style.display = text.includes(q) ? '' : 'none';
+      });
+    }
+    document.getElementById('searchUsers')?.addEventListener('input', ()=>filterTable('searchUsers','usersTable'));
+    document.getElementById('searchPatients')?.addEventListener('input', ()=>filterTable('searchPatients','patientsTable'));
+
+    // Debug: Affichage des données pour vérification
+    console.log('Données pour graphiques:');
+    console.log('Rôles:', rolesCount);
+    console.log('Mois:', months);
+    console.log('RDV:', rdvSeries);
+    console.log('Consultations:', consultsSeries);
+    console.log('Admissions:', admissionsSeries);
+    console.log('Patients:', patientsSeries);
+    console.log('Statuts RDV:', rdvStatusCounts);
+    console.log('RDV Pending:', rdvPendingSeriesFull);
+    console.log('RDV Confirmed:', rdvConfirmedSeriesFull);
+    console.log('RDV Cancelled:', rdvCancelledSeriesFull);
 </script>
 @endsection

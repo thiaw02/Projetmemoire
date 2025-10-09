@@ -10,6 +10,122 @@ use Carbon\Carbon;
 
 class SecretaireController extends Controller
 {
+    public function payments()
+    {
+        $patients = \App\Models\User::where('role','patient')->orderBy('name')->get(['id','name','email']);
+        $orders = \App\Models\Order::with('items','user')->orderByDesc('created_at')->take(20)->get();
+        $defaults = [
+            'consultation' => (int)(\App\Models\Setting::getValue('price.consultation', 5000)),
+            'analyse' => (int)(\App\Models\Setting::getValue('price.analyse', 10000)),
+            'acte' => (int)(\App\Models\Setting::getValue('price.acte', 7000)),
+            'currency' => (string)(\App\Models\Setting::getValue('currency', 'XOF')),
+        ];
+        return view('secretaire.payments', compact('patients','orders','defaults'));
+    }
+
+    public function createPaymentLink(\Illuminate\Http\Request $request, \App\Services\PaymentService $svc)
+    {
+        $data = $request->validate([
+            'patient_user_id' => ['required','integer','exists:users,id'],
+            'provider' => ['required','in:wave,orangemoney'],
+            'kind' => ['required','in:consultation,analyse,acte'],
+            'amount' => ['required','integer','min:100'],
+            'label' => ['nullable','string','max:255'],
+        ]);
+        $patientUser = \App\Models\User::findOrFail($data['patient_user_id']);
+        $label = $data['label'] ?: ucfirst($data['kind']);
+        $order = \App\Models\Order::create([
+            'user_id' => $patientUser->id,
+            'patient_id' => optional($patientUser->patient)->id,
+            'currency' => 'XOF',
+            'total_amount' => (int)$data['amount'],
+            'status' => 'pending',
+            'provider' => $data['provider'],
+            'metadata' => ['created_by' => auth()->id()],
+        ]);
+        \App\Models\OrderItem::create([
+            'order_id' => $order->id,
+            'item_type' => $data['kind'],
+            'item_id' => null,
+            'label' => $label,
+            'amount' => (int)$data['amount'],
+        ]);
+        $order = $svc->createCheckout($order, $data['provider']);
+
+        // notifier par e-mail le patient avec le lien
+        try {
+            if ($patientUser->email && $order->payment_url) {
+                $patientUser->notify(new \App\Notifications\PaymentLinkNotification($order));
+            }
+        } catch (\Throwable $e) {}
+
+        return redirect()->route('secretaire.payments')->with('success','Lien de paiement généré.')->with('payment_url',$order->payment_url);
+    }
+
+    public function exportPaymentsCsv(\Illuminate\Http\Request $request)
+    {
+        $rows = \App\Models\Order::with('items','user')->orderByDesc('created_at')->get();
+        $filename = 'paiements_'.now()->format('Ymd_His').'.csv';
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"$filename\"",
+        ];
+        return response()->streamDownload(function() use ($rows){
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF"); // BOM UTF-8
+            fputcsv($out, ['Date','Patient','Libellé','Montant','Prestataire','Statut'], ';');
+            foreach ($rows as $o) {
+                $label = optional($o->items->first())->label ?: '';
+                fputcsv($out, [
+                    optional($o->created_at)->format('Y-m-d H:i:s'),
+                    optional($o->user)->name,
+                    $label,
+                    $o->total_amount,
+                    strtoupper($o->provider ?? ''),
+                    $o->status,
+                ], ';');
+            }
+            fclose($out);
+        }, $filename, $headers);
+    }
+
+    public function paymentsSettings()
+    {
+        $defaults = [
+            'consultation' => (int)(\App\Models\Setting::getValue('price.consultation', 5000)),
+            'analyse' => (int)(\App\Models\Setting::getValue('price.analyse', 10000)),
+            'acte' => (int)(\App\Models\Setting::getValue('price.acte', 7000)),
+            'currency' => (string)(\App\Models\Setting::getValue('currency', 'XOF')),
+        ];
+        return view('secretaire.payments_settings', compact('defaults'));
+    }
+
+    public function savePaymentsSettings(\Illuminate\Http\Request $request)
+    {
+        $data = $request->validate([
+            'price_consultation' => ['required','integer','min:100'],
+            'price_analyse' => ['required','integer','min:100'],
+            'price_acte' => ['required','integer','min:100'],
+            'currency' => ['required','string','max:8'],
+        ]);
+        \App\Models\Setting::updateOrCreate(['key'=>'price.consultation'], ['value'=>$data['price_consultation']]);
+        \App\Models\Setting::updateOrCreate(['key'=>'price.analyse'], ['value'=>$data['price_analyse']]);
+        \App\Models\Setting::updateOrCreate(['key'=>'price.acte'], ['value'=>$data['price_acte']]);
+        \App\Models\Setting::updateOrCreate(['key'=>'currency'], ['value'=>$data['currency']]);
+        return redirect()->route('secretaire.payments.settings')->with('success','Tarifs mis à jour.');
+    }
+
+    public function exportPaymentsPdf()
+    {
+        $orders = \App\Models\Order::with('items','user')->orderByDesc('created_at')->get();
+        $data = ['orders' => $orders, 'generatedAt' => now()];
+        if (class_exists(\Barryvdh\DomPDF\Facade\Pdf::class)) {
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('secretaire.payments_pdf', $data);
+            return $pdf->download('paiements_'.now()->format('Ymd_His').'.pdf');
+        }
+        return view('secretaire.payments_pdf', $data);
+    }
+
     public function dashboard()
     {
         $totalPatients = Patient::count();
@@ -40,9 +156,18 @@ class SecretaireController extends Controller
             ->orderBy('heure')
             ->get();
 
+        // Données de paiement pour l'onglet paiements
+        $recentOrders = \App\Models\Order::with('items','user')->orderByDesc('created_at')->take(20)->get();
+        $totalPaymentsThisMonth = \App\Models\Order::where('status','paid')
+            ->whereYear('paid_at', now()->year)
+            ->whereMonth('paid_at', now()->month)
+            ->sum('total_amount');
+        $pendingPayments = \App\Models\Order::where('status','pending')->count();
+        
         return view('secretaire.dashboard', compact(
             'totalPatients','months','rendezvousData','admissionsData',
-            'pendingRdvCount','patientsATraiterCount','pendingRdvList'
+            'pendingRdvCount','patientsATraiterCount','pendingRdvList',
+            'recentOrders','totalPaymentsThisMonth','pendingPayments'
         ));
     }
 

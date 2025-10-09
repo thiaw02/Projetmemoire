@@ -14,6 +14,19 @@ return [
     |
     */
 
+    'wave' => [
+        'api_key' => env('WAVE_API_KEY'),
+        'merchant_id' => env('WAVE_MERCHANT_ID'),
+        'webhook_secret' => env('WAVE_WEBHOOK_SECRET'),
+    ],
+
+    'orangemoney' => [
+        'api_key' => env('OM_API_KEY'),
+        'merchant_id' => env('OM_MERCHANT_ID'),
+        'secret' => env('OM_SECRET'),
+        'webhook_secret' => env('OM_WEBHOOK_SECRET'),
+    ],
+
     'postmark' => [
         'token' => env('POSTMARK_TOKEN'),
     ],

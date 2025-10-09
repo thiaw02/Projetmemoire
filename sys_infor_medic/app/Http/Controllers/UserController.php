@@ -25,7 +25,7 @@ class UserController extends Controller
                    ->orWhere('email','like',"%$q%");
             });
         }
-        $users = $query->orderBy('name')->paginate(20)->withQueryString();
+        $users = $query->with(['nurses:id,name','doctors:id,name'])->orderBy('name')->paginate(20)->withQueryString();
         return view('admin.users.index', [
             'users' => $users,
             'filters' => [

@@ -72,6 +72,12 @@ Route::prefix('admin')->middleware('auth')->group(function () {
         Route::delete('/{id}', [UserController::class, 'destroy'])->name('admin.users.destroy');
     });
 
+    // Affectations Médecin ↔ Infirmiers (admin uniquement)
+    Route::middleware('role:admin')->group(function () {
+        Route::get('/affectations', [\App\Http\Controllers\AffectationsController::class, 'index'])->name('admin.affectations.index');
+        Route::put('/affectations/{doctor}', [\App\Http\Controllers\AffectationsController::class, 'update'])->name('admin.affectations.update');
+    });
+
     // Patients
     Route::prefix('patients')->group(function () {
         Route::get('/', [UserController::class, 'patientsList'])->name('admin.patients.index');
@@ -102,6 +108,14 @@ Route::prefix('secretaire')->middleware(['auth'])->group(function() {
     Route::get('/admissions', [SecretaireController::class, 'admissions'])->name('secretaire.admissions');
     Route::post('/admissions', [SecretaireController::class, 'storeAdmission'])->name('secretaire.storeAdmission');
     Route::put('/admissions/{id}', [SecretaireController::class, 'updateAdmission'])->name('secretaire.updateAdmission');
+
+    // Paiements
+    Route::get('/payments', [SecretaireController::class, 'payments'])->name('secretaire.payments');
+    Route::post('/payments', [SecretaireController::class, 'createPaymentLink'])->name('secretaire.payments.create');
+    Route::get('/payments/settings', [SecretaireController::class, 'paymentsSettings'])->name('secretaire.payments.settings');
+    Route::post('/payments/settings', [SecretaireController::class, 'savePaymentsSettings'])->name('secretaire.payments.settings.save');
+    Route::get('/payments/export/csv', [SecretaireController::class, 'exportPaymentsCsv'])->name('secretaire.payments.export.csv');
+    Route::get('/payments/export/pdf', [SecretaireController::class, 'exportPaymentsPdf'])->name('secretaire.payments.export.pdf');
 });
 
 // ===================== MEDECIN =====================
@@ -109,6 +123,19 @@ Route::prefix('medecin')->middleware(['auth','role:medecin'])->group(function ()
     Route::get('/dashboard', [MedecinController::class, 'dashboard'])->name('medecin.dashboard');
     Route::get('/dossierpatient', [MedecinController::class, 'dossierpatient'])->name('medecin.dossierpatient');
     Route::get('/patients/{patientId}', [MedecinController::class, 'showPatient'])->name('medecin.patients.show');
+    Route::get('/patients/{patientId}/refresh', [MedecinController::class, 'refreshPatientData'])->name('medecin.patients.refresh');
+    
+    // Routes pour les analyses
+    Route::get('/analyses', [\App\Http\Controllers\AnalyseController::class, 'index'])->name('medecin.analyses.index');
+    Route::get('/analyses/create', [\App\Http\Controllers\AnalyseController::class, 'create'])->name('medecin.analyses.create');
+    Route::post('/analyses', [\App\Http\Controllers\AnalyseController::class, 'store'])->name('medecin.analyses.store');
+    Route::get('/analyses/{id}', [\App\Http\Controllers\AnalyseController::class, 'show'])->name('medecin.analyses.show');
+    Route::get('/analyses/{id}/edit', [\App\Http\Controllers\AnalyseController::class, 'edit'])->name('medecin.analyses.edit');
+    Route::put('/analyses/{id}', [\App\Http\Controllers\AnalyseController::class, 'update'])->name('medecin.analyses.update');
+    Route::delete('/analyses/{id}', [\App\Http\Controllers\AnalyseController::class, 'destroy'])->name('medecin.analyses.destroy');
+    Route::get('/analyses/export/csv', [\App\Http\Controllers\AnalyseController::class, 'exportCsv'])->name('medecin.analyses.export.csv');
+    Route::get('/analyses/export/pdf', [\App\Http\Controllers\AnalyseController::class, 'exportPdf'])->name('medecin.analyses.export.pdf');
+    Route::get('/patients/{patientId}/analyses', [\App\Http\Controllers\AnalyseController::class, 'getPatientAnalyses'])->name('medecin.patients.analyses');
     Route::get('/consultations', [MedecinController::class, 'consultations'])->name('medecin.consultations');
     Route::post('/consultations', [MedecinController::class, 'storeConsultation'])->name('medecin.consultations.store');
     Route::get('/consultations/{id}/edit', [MedecinController::class, 'editConsultation'])->name('medecin.consultations.edit');
@@ -136,7 +163,21 @@ Route::prefix('patient')->middleware('auth')->group(function () {
     Route::get('/dossiermedical', [PatientController::class, 'dossier'])->name('patient.dossier');
     Route::get('/ordonnances/{id}/download', [PatientController::class, 'downloadOrdonnance'])->name('patient.ordonnances.download');
     Route::post('/ordonnances/{id}/resend', [PatientController::class, 'resendOrdonnance'])->name('patient.ordonnances.resend');
+
+    // Paiements
+    Route::get('/paiements', [\App\Http\Controllers\PaymentController::class, 'patientIndex'])->name('patient.payments.index');
+    Route::post('/paiements/checkout', [\App\Http\Controllers\PaymentController::class, 'checkout'])->name('patient.payments.checkout');
 });
+
+// Paiements: callbacks & sandbox
+Route::get('/payments/success', [\App\Http\Controllers\PaymentController::class, 'success'])->name('payments.success');
+Route::get('/payments/cancel', [\App\Http\Controllers\PaymentController::class, 'cancel'])->name('payments.cancel');
+Route::get('/payments/sandbox/{order}', [\App\Http\Controllers\PaymentController::class, 'sandbox'])->middleware('auth')->name('payments.sandbox');
+Route::get('/payments/{order}/receipt', [\App\Http\Controllers\PaymentController::class, 'receipt'])->middleware('auth')->name('payments.receipt');
+
+// Webhooks
+Route::post('/webhooks/wave', [\App\Http\Controllers\PaymentController::class, 'webhookWave'])->name('webhooks.wave');
+Route::post('/webhooks/orangemoney', [\App\Http\Controllers\PaymentController::class, 'webhookOrangeMoney'])->name('webhooks.orangemoney');
 
 // Page succès inscription
 Route::get('/register/success', function () {

@@ -15,7 +15,7 @@ class AdminController extends Controller
 {
     public function dashboard()
     {
-        $users = User::all();
+        $users = User::with(['nurses:id,name','doctors:id,name'])->get();
 
         // Comptes par rôle
         $rolesCount = [
@@ -60,6 +60,9 @@ class AdminController extends Controller
             'totalPatients' => $rolesCount['patient'],
             'rdvThisMonth' => Rendez_vous::whereYear('date', now()->year)->whereMonth('date', now()->month)->count(),
             'consultsThisMonth' => Consultations::whereYear('date_consultation', now()->year)->whereMonth('date_consultation', now()->month)->count(),
+            // Paiements
+            'paymentsPaidThisMonth' => \App\Models\Order::where('status','paid')->whereYear('paid_at', now()->year)->whereMonth('paid_at', now()->month)->sum('total_amount'),
+            'paymentsPending' => \App\Models\Order::where('status','pending')->count(),
         ];
 
         // Répartition des statuts de RDV (tous)

@@ -33,6 +33,7 @@
             <a href="{{ route('medecin.consultations') }}" class="btn btn-outline-primary">🩺 Consultations</a>
             <a href="{{ route('medecin.ordonnances') }}" class="btn btn-outline-warning">💊 Ordonnances</a>
             <a href="{{ route('medecin.dossierpatient') }}" class="btn btn-outline-success">📁 Consulter les dossiers</a>
+            <a href="{{ route('medecin.analyses.index') }}" class="btn btn-outline-info">🧪 Analyses</a>
         </div>
 
         <div class="row">
@@ -129,7 +130,7 @@
         <!-- KPIs en bas -->
         <div class="row g-3 mt-2">
           <div class="col-md-4">
-            <div class="card text-center shadow-sm">
+            <div class="card text-center shadow-sm h-100">
               <div class="card-body py-3">
                 <div class="text-muted small">À consulter (RDV confirmés)</div>
                 <div class="display-6">{{ $stats['aConsulter'] ?? 0 }}</div>
@@ -137,7 +138,7 @@
             </div>
           </div>
           <div class="col-md-4">
-            <div class="card text-center shadow-sm">
+            <div class="card text-center shadow-sm h-100">
               <div class="card-body py-3">
                 <div class="text-muted small">RDV en attente</div>
                 <div class="display-6">{{ $stats['rdvEnAttente'] ?? 0 }}</div>
@@ -145,10 +146,42 @@
             </div>
           </div>
           <div class="col-md-4">
-            <div class="card text-center shadow-sm">
+            <div class="card text-center shadow-sm h-100">
               <div class="card-body py-3">
                 <div class="text-muted small">Patients traités (mois)</div>
                 <div class="display-6">{{ $stats['consultesCeMois'] ?? 0 }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-3 mt-2">
+          <div class="col-md-12">
+            <div class="card shadow-sm">
+              <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Infirmiers affectés</span>
+                <span class="badge bg-light text-dark border">{{ $medecin->nurses->count() }}</span>
+              </div>
+              <div class="card-body">
+                @if(($medecin->nurses ?? collect())->isEmpty())
+                  <div class="text-muted">Aucun infirmier affecté</div>
+                @else
+                  <div class="row g-2">
+                    @foreach($medecin->nurses as $n)
+                      <div class="col-lg-4 col-md-6">
+                        <div class="d-flex justify-content-between align-items-center border rounded p-2">
+                          <div>
+                            <div class="fw-semibold">{{ $n->name }}</div>
+                            <div class="small text-muted">{{ $n->pro_phone ?? '—' }}</div>
+                          </div>
+                          <div>
+                            <a class="btn btn-sm btn-outline-success" href="{{ route('chat.index', ['partner_id' => $n->id]) }}" title="Envoyer un message"><i class="bi bi-chat"></i></a>
+                          </div>
+                        </div>
+                      </div>
+                    @endforeach
+                  </div>
+                @endif
               </div>
             </div>
           </div>

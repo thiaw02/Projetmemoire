@@ -29,8 +29,17 @@ class InfirmierController extends Controller
             ->take(10)
             ->get();
 
+        // Médecins liés à cet infirmier
+        $infirmier = auth()->user();
+        $infirmier->load(['doctors' => function($q){ $q->select('users.id','users.name','users.specialite'); }]);
+
         // ⚡️ Envoi des variables à la vue
-        return view('infirmier.dashboard', compact('suivis', 'dossiers', 'upcomingRdv'));
+        return view('infirmier.dashboard', [
+            'suivis' => $suivis,
+            'dossiers' => $dossiers,
+            'upcomingRdv' => $upcomingRdv,
+            'infirmier' => $infirmier,
+        ]);
     }
 
 

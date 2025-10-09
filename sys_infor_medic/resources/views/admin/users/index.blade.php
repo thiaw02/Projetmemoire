@@ -16,7 +16,7 @@
   <form method="GET" class="d-flex gap-2" role="search" aria-label="Filtrer les utilisateurs">
     <input type="text" name="q" class="form-control form-control-sm" placeholder="Recherche (nom/email)" value="{{ $filters['q'] ?? '' }}" style="max-width: 220px;">
     <select name="role" class="form-select form-select-sm" style="max-width: 180px;">
-      @php($r = $filters['role'] ?? 'all')
+      @php $r = $filters['role'] ?? 'all'; @endphp
       <option value="all" {{ $r==='all'?'selected':'' }}>Tous rôles</option>
       <option value="admin" {{ $r==='admin'?'selected':'' }}>Admin</option>
       <option value="secretaire" {{ $r==='secretaire'?'selected':'' }}>Secrétaire</option>
@@ -25,7 +25,7 @@
       <option value="patient" {{ $r==='patient'?'selected':'' }}>Patient</option>
     </select>
     <select name="active" class="form-select form-select-sm" style="max-width: 160px;">
-      @php($a = $filters['active'] ?? 'all')
+      @php $a = $filters['active'] ?? 'all'; @endphp
       <option value="all" {{ $a==='all'?'selected':'' }}>Tous statuts</option>
       <option value="1" {{ $a==='1'?'selected':'' }}>Actifs</option>
       <option value="0" {{ $a==='0'?'selected':'' }}>Inactifs</option>
@@ -56,6 +56,7 @@
             <th>Email</th>
             <th>Rôle</th>
             <th>Spécialité</th>
+            <th>Liens</th>
             <th>Actif</th>
             <th>Actions</th>
         </tr>
@@ -67,6 +68,21 @@
             <td>{{ $user->email }}</td>
             <td>{{ ucfirst($user->role) }}</td>
             <td>{{ $user->specialite ?? '-' }}</td>
+            <td>
+              @if($user->role==='medecin')
+                @php
+                  $names = ($user->nurses ?? collect())->pluck('name')->all();
+                @endphp
+                <span class="badge bg-light text-dark border" title="{{ implode(', ', $names) }}">{{ count($names) }} infirmier(s)</span>
+              @elseif($user->role==='infirmier')
+                @php
+                  $names = ($user->doctors ?? collect())->pluck('name')->all();
+                @endphp
+                <span class="badge bg-light text-dark border" title="{{ implode(', ', $names) }}">{{ count($names) }} médecin(s)</span>
+              @else
+                —
+              @endif
+            </td>
             <td>
               <form method="POST" action="{{ route('admin.users.updateActive', $user->id) }}">
                 @csrf

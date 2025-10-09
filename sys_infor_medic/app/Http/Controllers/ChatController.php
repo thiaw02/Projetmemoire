@@ -23,9 +23,13 @@ class ChatController extends Controller
                 $allowed = false;
             }
         }
-        // Médecin <-> Infirmier autorisé
+        // Médecin <-> Infirmier autorisé SEULEMENT si affectation réciproque existe
         if ((($a==='medecin' && $b==='infirmier') || ($a==='infirmier' && $b==='medecin'))){
-            $allowed = true;
+            if ($a==='medecin' && $b==='infirmier') {
+                $allowed = $user->nurses()->where('users.id', $partner->id)->exists();
+            } elseif ($a==='infirmier' && $b==='medecin') {
+                $allowed = $user->doctors()->where('users.id', $partner->id)->exists();
+            }
         }
         // Patient uniquement avec secretaire et si assigné
         if ($a==='patient' || $b==='patient') {
@@ -42,28 +46,23 @@ class ChatController extends Controller
         $user = Auth::user();
         $partnerId = (int) $request->query('partner_id', 0);
 
-        // Partenaires autorisés en fonction du rôle
-        $partnersQuery = User::query();
-        switch ($user->role) {
-            case 'secretaire':
-                $partnersQuery->whereIn('role', ['admin','medecin','infirmier','patient']);
-                break;
-            case 'admin':
-                $partnersQuery->where('role','secretaire');
-                break;
-            case 'medecin':
-                $partnersQuery->whereIn('role',['secretaire','infirmier']);
-                break;
-            case 'infirmier':
-                $partnersQuery->whereIn('role',['secretaire','medecin']);
-                break;
-            case 'patient':
-                $partnersQuery->where('role','secretaire');
-                break;
-            default:
-                $partnersQuery->whereRaw('1=0');
+        // Partenaires autorisés en fonction du rôle, avec restriction sur les affectations
+        $partners = collect();
+        if ($user->role === 'secretaire') {
+            $partners = User::whereIn('role', ['admin','medecin','infirmier','patient'])->orderBy('name')->get();
+        } elseif ($user->role === 'admin') {
+            $partners = User::where('role','secretaire')->orderBy('name')->get();
+        } elseif ($user->role === 'medecin') {
+            $user->load(['nurses' => function($q){ $q->select('users.id','users.name'); }]);
+            $partners = collect([$user->nurses, User::where('role','secretaire')->orderBy('name')->get()])->flatten(1)->unique('id')->values();
+        } elseif ($user->role === 'infirmier') {
+            $user->load(['doctors' => function($q){ $q->select('users.id','users.name'); }]);
+            $partners = collect([$user->doctors, User::where('role','secretaire')->orderBy('name')->get()])->flatten(1)->unique('id')->values();
+        } elseif ($user->role === 'patient') {
+            $partners = User::where('role','secretaire')->orderBy('name')->get();
+        } else {
+            $partners = collect();
         }
-        $partners = $partnersQuery->orderBy('name')->get();
 
         if (!$partnerId && $partners->count()) {
             $partnerId = $partners->first()->id;

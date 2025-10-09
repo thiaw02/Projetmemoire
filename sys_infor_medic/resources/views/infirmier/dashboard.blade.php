@@ -115,12 +115,47 @@
 
             <hr>
 
+            <div class="row g-3 mb-3">
+              <div class="col-12">
+                <div class="card shadow-sm">
+                  <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Médecins liés</span>
+                    <span class="badge bg-light text-dark border">{{ ($infirmier->doctors ?? collect())->count() }}</span>
+                  </div>
+                  <div class="card-body">
+                    @if(($infirmier->doctors ?? collect())->isEmpty())
+                      <div class="text-muted">Aucun médecin lié</div>
+                    @else
+                      <div class="row g-2">
+                        @foreach($infirmier->doctors as $doc)
+                          <div class="col-lg-4 col-md-6">
+                            <div class="d-flex justify-content-between align-items-center border rounded p-2">
+                              <div>
+                                <div class="fw-semibold">{{ $doc->name }}</div>
+                                <div class="small text-muted">{{ $doc->specialite ?? '—' }}</div>
+                              </div>
+                              <div>
+                                <a class="btn btn-sm btn-outline-success" href="{{ route('chat.index', ['partner_id' => $doc->id]) }}" title="Envoyer un message"><i class="bi bi-chat"></i></a>
+                              </div>
+                            </div>
+                          </div>
+                        @endforeach
+                      </div>
+                    @endif
+                  </div>
+                </div>
+              </div>
+            </div>
+
         <div class="mb-4 quick-actions d-flex flex-wrap gap-2">
                 <a href="{{ route('suivi.create') }}" class="btn btn-outline-info position-relative qa-btn">
                   📋 Saisir un suivi patient
                   @if(isset($suivis))
                   <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-info text-white">{{ $suivis->count() }}</span>
                   @endif
+                </a>
+                <a href="{{ route('dossier.create') }}" class="btn btn-outline-primary position-relative qa-btn">
+                  📝 Nouveau dossier
                 </a>
                 <a href="{{ route('dossier.index') }}" class="btn btn-outline-warning position-relative qa-btn">
                   📁 Mettre à jour un dossier
@@ -129,7 +164,7 @@
                   @endif
                 </a>
                 <a href="{{ route('historique.index') }}" class="btn btn-outline-success position-relative qa-btn">
-                  🔍 Voir l’historique des soins
+                  🔍 Voir l'historique des soins
                 </a>
             </div>
         </div>

@@ -31,6 +31,9 @@ class MedecinController extends Controller
             ->take(10)
             ->get();
 
+        // Infirmiers affectés à ce médecin
+        $medecin = \App\Models\User::with(['nurses' => function($q){ $q->select('users.id','users.name','users.pro_phone'); }])->find($medecinId);
+
         // Dossiers récents consultés par ce médecin (session)
         $sessionKey = 'recent_patients_' . $medecinId;
         $recentIds = session($sessionKey, []);
@@ -314,5 +317,29 @@ $consult = \App\Models\Consultations::where('id',$id)->where('medecin_id',$medId
         // La colonne statut est un ENUM ['en_attente','confirmé','annulé','terminé']
         $rdv->update(['statut' => 'terminé']);
         return back()->with('success', 'RDV marqué comme consulté (terminé).');
+    }
+
+    // Méthode pour rafraîchir les données patient en AJAX
+    public function refreshPatientData(int $patientId)
+    {
+        $medecinId = Auth::id();
+
+        $patient = Patient::with([
+            'suivis' => fn ($q) => $q->orderByDesc('created_at'),
+            'consultations' => fn ($q) => $q->where('medecin_id', $medecinId)->orderByDesc('date_consultation'),
+            'ordonnances' => fn ($q) => $q->orderByDesc('created_at'),
+            'analyses' => fn ($q) => $q->orderByDesc('date_analyse'),
+        ])->findOrFail($patientId);
+
+        return response()->json([
+            'success' => true,
+            'patient' => $patient->only(['id', 'nom', 'prenom', 'email', 'telephone']),
+            'lastSuivi' => $patient->suivis->first(),
+            'suivis' => $patient->suivis->take(10), // Limiter à 10 derniers suivis
+            'consultations' => $patient->consultations->take(10), // Limiter à 10 dernières consultations
+            'ordonnances' => $patient->ordonnances->take(10), // Limiter à 10 dernières ordonnances
+            'analyses' => $patient->analyses->take(10), // Limiter à 10 dernières analyses
+            'updated_at' => now()->format('Y-m-d H:i:s')
+        ]);
     }
 }

@@ -47,6 +47,21 @@ return Application::configure(basePath: dirname(__DIR__))
                 }
             }
         })->dailyAt('07:00');
+
+        // Rappels de paiement: commandes pending depuis N jours (défaut 2)
+        $schedule->call(function() {
+            $days = (int)(env('PAYMENT_REMINDER_DAYS', 2));
+            $threshold = now()->subDays(max($days,1));
+            $orders = \App\Models\Order::with('user')
+                ->where('status','pending')
+                ->where('created_at','<=',$threshold)
+                ->get();
+            foreach ($orders as $order) {
+                if ($order->user) {
+                    try { $order->user->notify(new \App\Notifications\PaymentPendingReminderNotification($order)); } catch (\Throwable $e) {}
+                }
+            }
+        })->dailyAt('09:00');
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
