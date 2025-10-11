@@ -23,6 +23,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [\App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
     Route::put('/profile/password', [\App\Http\Controllers\ProfileController::class, 'updatePassword'])->name('profile.password.update');
     Route::post('/profile/avatar', [\App\Http\Controllers\ProfileController::class, 'updateAvatar'])->name('profile.avatar.update');
+    Route::delete('/profile/avatar', [\App\Http\Controllers\ProfileController::class, 'deleteAvatar'])->name('profile.avatar.delete');
     Route::put('/profile/patient', [\App\Http\Controllers\ProfileController::class, 'updatePatientInfo'])->name('profile.patient.update');
     Route::put('/admin/settings', [\App\Http\Controllers\ProfileController::class, 'updateSettings'])->name('admin.settings.update');
     Route::post('/profile/patient/document', [\App\Http\Controllers\ProfileController::class, 'uploadPatientDocument'])->name('profile.patient.document.upload');
@@ -50,6 +51,19 @@ Route::get('/forgot-password', [\App\Http\Controllers\Auth\PasswordResetLinkCont
 Route::post('/forgot-password', [\App\Http\Controllers\Auth\PasswordResetLinkController::class, 'store'])->name('password.email');
 Route::get('/reset-password/{token}', [\App\Http\Controllers\Auth\NewPasswordController::class, 'create'])->name('password.reset');
 Route::post('/reset-password', [\App\Http\Controllers\Auth\NewPasswordController::class, 'store'])->name('password.update');
+
+// Email verification routes
+Route::get('/email/verify', [\App\Http\Controllers\Auth\EmailVerificationController::class, 'show'])
+    ->middleware('auth')
+    ->name('verification.notice');
+
+Route::get('/email/verify/{id}/{hash}', [\App\Http\Controllers\Auth\EmailVerificationController::class, 'verify'])
+    ->middleware(['auth', 'signed'])
+    ->name('verification.verify');
+
+Route::post('/email/verification-notification', [\App\Http\Controllers\Auth\EmailVerificationController::class, 'resend'])
+    ->middleware(['auth', 'throttle:6,1'])
+    ->name('verification.send');
 
 // Inscription Patient uniquement
 Route::get('/inscription', [AuthController::class, 'showRegistrationForm'])->name('register');
@@ -91,8 +105,19 @@ Route::prefix('admin')->middleware('auth')->group(function () {
     // Enregistrement des permissions
     Route::post('/permissions', [AdminController::class, 'savePermissions'])->name('admin.permissions.save');
 
-    // Audit logs
-Route::get('/audit-logs', [App\Http\Controllers\AuditLogController::class, 'index'])->name('admin.audit.index');
+    // Système d'audit complet
+    Route::prefix('audit')->group(function () {
+        Route::get('/', [\App\Http\Controllers\AuditLogController::class, 'index'])->name('admin.audit.index');
+        Route::get('/{id}', [\App\Http\Controllers\AuditLogController::class, 'show'])->name('admin.audit.show');
+        Route::get('/export/csv', [\App\Http\Controllers\AuditLogController::class, 'export'])->name('admin.audit.export');
+        Route::post('/cleanup', [\App\Http\Controllers\AuditLogController::class, 'cleanup'])->name('admin.audit.cleanup');
+        Route::post('/clear-cache', [\App\Http\Controllers\AuditLogController::class, 'clearCache'])->name('admin.audit.clear-cache');
+        
+        // API endpoints
+        Route::get('/api/timeline', [\App\Http\Controllers\AuditLogController::class, 'timelineData'])->name('admin.audit.timeline');
+        Route::get('/api/ip-activity', [\App\Http\Controllers\AuditLogController::class, 'ipActivity'])->name('admin.audit.ip-activity');
+        Route::get('/api/user/{userId}/logs', [\App\Http\Controllers\AuditLogController::class, 'userLogs'])->name('admin.audit.user-logs');
+    });
 });
 
 /// ===================== SECRETAIRE =====================
@@ -152,7 +177,7 @@ Route::prefix('medecin')->middleware(['auth','role:medecin'])->group(function ()
 // ===================== INFIRMIER =====================
 Route::prefix('infirmier')->middleware('auth')->group(function () {
     Route::get('/dashboard', [InfirmierController::class, 'dashboard'])->name('infirmier.dashboard');
-    Route::get('/dossiers', [InfirmierController::class, 'dossiers']);
+    Route::get('/dossiers', [InfirmierController::class, 'dossiers'])->name('infirmier.dossiers');
 });
 
 // ===================== PATIENT =====================
@@ -167,6 +192,12 @@ Route::prefix('patient')->middleware('auth')->group(function () {
     // Paiements
     Route::get('/paiements', [\App\Http\Controllers\PaymentController::class, 'patientIndex'])->name('patient.payments.index');
     Route::post('/paiements/checkout', [\App\Http\Controllers\PaymentController::class, 'checkout'])->name('patient.payments.checkout');
+    
+    // Paramètres et personnalisation
+    Route::get('/settings', [\App\Http\Controllers\PatientSettingsController::class, 'index'])->name('patient.settings');
+    Route::post('/settings', [\App\Http\Controllers\PatientSettingsController::class, 'updatePreferences'])->name('patient.settings.update');
+    Route::get('/settings/reset', [\App\Http\Controllers\PatientSettingsController::class, 'resetPreferences'])->name('patient.settings.reset');
+    Route::get('/settings/api/preferences', [\App\Http\Controllers\PatientSettingsController::class, 'getPreferences'])->name('patient.settings.api.preferences');
 });
 
 // Paiements: callbacks & sandbox
@@ -190,3 +221,11 @@ Route::resource('suivi', SuiviController::class);
 Route::resource('dossier', DossierController::class);
 Route::resource('historique', HistoriqueController::class);
 Route::get('/rendezvous/create', [PatientController::class, 'createRendez'])->name('rendez.create');
+Route::post('/rendezvous/store', [PatientController::class, 'storeRendez'])->name('rendez.store');
+
+// Routes de monitoring des performances (Admin uniquement)
+Route::middleware(['auth', 'role:admin'])->prefix('admin/performance')->group(function () {
+    Route::get('/', [App\Http\Controllers\PerformanceController::class, 'index'])->name('admin.performance.index');
+    Route::get('/stats', [App\Http\Controllers\PerformanceController::class, 'stats'])->name('admin.performance.stats');
+    Route::post('/clear-cache', [App\Http\Controllers\PerformanceController::class, 'clearCache'])->name('admin.performance.clear-cache');
+});

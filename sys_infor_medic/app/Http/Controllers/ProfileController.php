@@ -135,12 +135,47 @@ class ProfileController extends Controller
         $request->validate([
             'avatar' => ['required','image','mimes:jpg,jpeg,png,webp','max:2048']
         ]);
+        
+        $user = $request->user();
+        
+        // Supprimer l'ancien avatar s'il existe
+        if ($user->avatar_url) {
+            $oldPath = str_replace('/storage/', '', $user->avatar_url);
+            if (Storage::disk('public')->exists($oldPath)) {
+                Storage::disk('public')->delete($oldPath);
+            }
+        }
+        
+        // Sauvegarder le nouveau
         $path = $request->file('avatar')->store('avatars', 'public');
         $url = Storage::url($path);
-        $user = $request->user();
         $user->avatar_url = $url;
         $user->save();
-        return Redirect::route('profile.edit')->with('success', 'Photo de profil mise à jour');
+        
+        // Rediriger vers la page paramètres patient si c'est un patient
+        $route = $user->role === 'patient' ? 'patient.settings' : 'profile.edit';
+        return Redirect::route($route)->with('success', 'Photo de profil mise à jour');
+    }
+    
+    public function deleteAvatar(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+        
+        if ($user->avatar_url) {
+            // Supprimer le fichier du stockage
+            $path = str_replace('/storage/', '', $user->avatar_url);
+            if (Storage::disk('public')->exists($path)) {
+                Storage::disk('public')->delete($path);
+            }
+            
+            // Supprimer l'URL de la base de données
+            $user->avatar_url = null;
+            $user->save();
+        }
+        
+        // Rediriger vers la page paramètres patient si c'est un patient
+        $route = $user->role === 'patient' ? 'patient.settings' : 'profile.edit';
+        return Redirect::route($route)->with('success', 'Photo de profil supprimée');
     }
 
     public function uploadPatientDocument(Request $request): RedirectResponse

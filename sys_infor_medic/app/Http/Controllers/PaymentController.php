@@ -167,11 +167,28 @@ class PaymentController extends Controller
             ],
             'generatedAt' => now(),
         ];
+        
         if (class_exists(\Barryvdh\DomPDF\Facade\Pdf::class)) {
-            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('payments.receipt', $data);
-            $filename = 'Quittance_'.$order->id.'.pdf';
-            return $pdf->download($filename);
+            try {
+                $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('payments.receipt', $data);
+                $pdf->setOptions([
+                    'isHtml5ParserEnabled' => true,
+                    'isPhpEnabled' => false,
+                    'isRemoteEnabled' => false,
+                    'defaultFont' => 'Arial',
+                    'dpi' => 150,
+                ]);
+                $filename = 'Quittance_'.$order->id.'.pdf';
+                return $pdf->download($filename);
+            } catch (\Exception $e) {
+                \Log::error('Erreur génération PDF reçu: ' . $e->getMessage(), [
+                    'order_id' => $orderId,
+                    'trace' => $e->getTraceAsString()
+                ]);
+                // Fallback vers HTML en cas d'erreur PDF
+            }
         }
+        
         $html = view('payments.receipt', $data)->render();
         return response($html)->header('Content-Type','text/html');
     }

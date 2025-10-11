@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -10,7 +12,7 @@ use Illuminate\Support\Facades\Hash;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, Auditable, SoftDeletes;
 
     // Attributs modifiables en masse
     protected $fillable = [
@@ -85,6 +87,49 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(User::class, 'medecin_infirmier', 'infirmier_id', 'medecin_id')
             ->where('users.role', 'medecin');
+    }
+
+    /**
+     * Configuration de l'audit pour le modèle User
+     */
+    protected function getAuditableCriticalFields(): array
+    {
+        return [
+            'password',
+            'email',
+            'role',
+            'active',
+        ];
+    }
+
+    protected function getAuditableImportantFields(): array
+    {
+        return [
+            'name',
+            'pro_phone',
+            'specialite',
+            'matricule',
+        ];
+    }
+
+    protected function getAuditableExcludes(): array
+    {
+        // Utiliser les exclusions par défaut du trait et ajouter les spécifiques
+        return array_merge($this->getDefaultAuditableExcludes(), [
+            'avatar_url', // Changements d'avatar moins critiques pour les utilisateurs
+        ]);
+    }
+
+    /**
+     * Contexte métadonnées spécifique aux utilisateurs
+     */
+    public function getAuditContextMetadata(): array
+    {
+        return [
+            'user_role' => $this->role,
+            'user_active' => $this->active,
+            'specialite' => $this->specialite,
+        ];
     }
 
     /**

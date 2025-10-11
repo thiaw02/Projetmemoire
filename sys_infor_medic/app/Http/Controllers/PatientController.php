@@ -17,38 +17,79 @@ class PatientController extends Controller
     $user = Auth::user();
     $patient = $user->patient;
 
-    $patientId = $patient?->id;
-    $ordonnances = $patient?->ordonnances ?? collect();
-    $analyses = $patient?->analyses ?? collect();
+    if (!$patient) {
+        abort(404, 'Profil patient non trouvé');
+    }
 
+    $patientId = $patient->id;
+    
+    // Cache des données patient pour 5 minutes
+    $cacheKey = 'patient_dashboard_' . $patientId . '_' . now()->format('Y-m-d-H-i');
+    
+    $data = \Cache::remember($cacheKey, 300, function() use ($patient, $patientId, $user) {
+        // Requêtes optimisées avec limites
+        $ordonnances = $patient->ordonnances()
+            ->with('medecin:id,name')
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
+            
+        $analyses = $patient->analyses()
+            ->orderBy('date_analyse', 'desc')
+            ->limit(10)
+            ->get();
 
-    // Historique des consultations avec ordonnances, analyses et médecin
-    $consultations = Consultations::with(['ordonnances', 'analyses', 'medecin'])
-                                  ->where('patient_id', $patientId)
-                                  ->orderBy('date_consultation', 'desc')
-                                  ->get();
+        // Consultations avec relations optimisées
+        $consultations = Consultations::with([
+                'ordonnances' => fn($q) => $q->limit(5),
+                'analyses' => fn($q) => $q->limit(5),
+                'medecin:id,name'
+            ])
+            ->where('patient_id', $patientId)
+            ->orderBy('date_consultation', 'desc')
+            ->limit(15)
+            ->get();
 
-    // Rendez-vous (liste complète pour l'onglet Mes rendez-vous)
-    $rendezVous = $patient ? $patient->rendez_vous()->with('medecin')->orderBy('date','desc')->orderBy('heure','desc')->get() : collect();
+        // Rendez-vous avec limitation
+        $rendezVous = $patient->rendez_vous()
+            ->with('medecin:id,name')
+            ->orderBy('date', 'desc')
+            ->orderBy('heure', 'desc')
+            ->limit(20)
+            ->get();
 
-    // Prochain rendez-vous (à venir)
-    $nextRdv = \App\Models\Rendez_vous::with('medecin')
-        ->where('user_id', $user->id)
-        ->whereDate('date', '>=', now()->toDateString())
-        ->orderBy('date', 'asc')->orderBy('heure','asc')
-        ->first();
+        // Prochain rendez-vous
+        $nextRdv = \App\Models\Rendez_vous::with('medecin:id,name')
+            ->where('user_id', $user->id)
+            ->whereDate('date', '>=', now()->toDateString())
+            ->orderBy('date', 'asc')
+            ->orderBy('heure', 'asc')
+            ->first();
 
-    // Statistiques simples côté patient
-    $stats = [
-        'totalConsultations' => Consultations::where('patient_id', $patientId)->count(),
-'rdvEnAttente' => \App\Models\Rendez_vous::where('user_id', $user->id)->whereIn('statut',["en_attente","pending"])->count(),
-    ];
+        // Statistiques en une requête
+        $stats = [
+            'totalConsultations' => $consultations->count(),
+            'rdvEnAttente' => $rendezVous->whereIn('statut', ["en_attente", "pending"])->count(),
+        ];
+        
+        return compact('ordonnances', 'analyses', 'consultations', 'rendezVous', 'nextRdv', 'stats');
+    });
+    
+    extract($data);
 
-    // Récupérer la liste des médecins pour le formulaire
-    $medecins = User::where('role', 'medecin')->orderBy('name')->get();
+    // Médecins avec cache séparé (changé rarement)
+    $medecins = \Cache::remember('medecins_list', 3600, function() {
+        return User::where('role', 'medecin')
+            ->select('id', 'name')
+            ->orderBy('name')
+            ->get();
+    });
 
+    // Charger les préférences utilisateur
+    $preferences = $this->loadUserPreferences();
+    
     // Passe toutes les variables à la vue
-    return view('patient.dashboard', compact('user','patient','consultations','rendezVous','medecins','ordonnances','analyses','nextRdv','stats'));
+    return view('patient.dashboard', compact('user','patient','consultations','rendezVous','medecins','ordonnances','analyses','nextRdv','stats','preferences'));
 }
 
 
@@ -142,5 +183,38 @@ class PatientController extends Controller
         abort_unless($ord->patient_id === $patient->id, 403);
         $user->notify(new \App\Notifications\OrdonnanceCreatedNotification($ord));
         return back()->with('success', 'Ordonnance renvoyée sur votre e-mail.');
+    }
+    
+    /**
+     * Charger les préférences utilisateur
+     */
+    private function loadUserPreferences()
+    {
+        $user = Auth::user();
+        $preferencesPath = "preferences/patient_{$user->id}.json";
+        
+        if (\Storage::exists($preferencesPath)) {
+            $preferences = json_decode(\Storage::get($preferencesPath), true);
+            return array_merge($this->getDefaultPreferences(), $preferences);
+        }
+        
+        return $this->getDefaultPreferences();
+    }
+    
+    /**
+     * Obtenir les préférences par défaut
+     */
+    private function getDefaultPreferences()
+    {
+        return [
+            'theme_color' => 'blue',
+            'card_style' => 'modern',
+            'animation_speed' => 'normal',
+            'compact_mode' => false,
+            'dark_mode' => false,
+            'show_health_score' => true,
+            'show_statistics' => true,
+            'default_tab' => 'rdv'
+        ];
     }
 }

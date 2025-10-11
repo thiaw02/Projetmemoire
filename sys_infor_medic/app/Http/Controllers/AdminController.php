@@ -15,55 +15,128 @@ class AdminController extends Controller
 {
     public function dashboard()
     {
-        $users = User::with(['nurses:id,name','doctors:id,name'])->get();
+        // Cache des statistiques pour 10 minutes
+        $cacheKey = 'admin_dashboard_stats_' . now()->format('Y-m-d-H') . '_' . floor(now()->minute / 10);
+        
+        $stats = \Cache::remember($cacheKey, 600, function() {
+            // Récupération optimisée des utilisateurs avec pagination
+            $users = User::with(['nurses:id,name','doctors:id,name'])
+                ->select('id', 'name', 'role', 'active', 'created_at')
+                ->limit(50) // Limiter l'affichage
+                ->get();
 
-        // Comptes par rôle
-        $rolesCount = [
-            'admin' => User::where('role','admin')->count(),
-            'medecin' => User::where('role','medecin')->count(),
-            'infirmier' => User::where('role','infirmier')->count(),
-            'secretaire' => User::where('role','secretaire')->count(),
-            'patient' => User::where('role','patient')->count(),
-        ];
+            // Comptes par rôle en une seule requête
+            $rolesCountData = User::selectRaw('role, COUNT(*) as count')
+                ->groupBy('role')
+                ->pluck('count', 'role')
+                ->toArray();
+                
+            $rolesCount = [
+                'admin' => $rolesCountData['admin'] ?? 0,
+                'medecin' => $rolesCountData['medecin'] ?? 0,
+                'infirmier' => $rolesCountData['infirmier'] ?? 0,
+                'secretaire' => $rolesCountData['secretaire'] ?? 0,
+                'patient' => $rolesCountData['patient'] ?? 0,
+            ];
+            
+            return compact('users', 'rolesCount');
+        });
+        
+        extract($stats);
 
-        // Séries mensuelles (jusqu'à 12 derniers mois: mois courant inclus)
-        $months = [];
-        $rendezvousCounts = [];
-        $admissionsCounts = [];
-        $consultationsCounts = [];
-        $patientsCounts = [];
-        $rdvPendingSeries = [];
-        $rdvConfirmedSeries = [];
-        $rdvCancelledSeries = [];
-        for ($i=11; $i>=0; $i--) {
-            $m = Carbon::now()->subMonths($i);
-            $months[] = $m->format('M');
-            $rendezvousCounts[] = Rendez_vous::whereYear('date', $m->year)->whereMonth('date', $m->month)->count();
-            $admissionsCounts[] = Admissions::whereYear('date_admission', $m->year)->whereMonth('date_admission', $m->month)->count();
-            $consultationsCounts[] = Consultations::whereYear('date_consultation', $m->year)->whereMonth('date_consultation', $m->month)->count();
-            $patientsCounts[] = Patient::whereYear('created_at', $m->year)->whereMonth('created_at', $m->month)->count();
-            // RDV par statut
-            $pending = Rendez_vous::whereYear('date', $m->year)->whereMonth('date', $m->month)
-                ->whereIn('statut', ['en_attente','en attente','pending'])->count();
-            $confirmed = Rendez_vous::whereYear('date', $m->year)->whereMonth('date', $m->month)
-                ->whereIn('statut', ['confirmé','confirme','confirmee','confirmée'])->count();
-            $cancelled = Rendez_vous::whereYear('date', $m->year)->whereMonth('date', $m->month)
-                ->whereIn('statut', ['annulé','annule','annulee','annulée','cancelled','canceled'])->count();
-            $rdvPendingSeries[] = $pending;
-            $rdvConfirmedSeries[] = $confirmed;
-            $rdvCancelledSeries[] = $cancelled;
-        }
+        // Cache des statistiques mensuelles pour 1 heure
+        $monthlyStatsKey = 'admin_monthly_stats_' . now()->format('Y-m-d-H');
+        
+        $monthlyStats = \Cache::remember($monthlyStatsKey, 3600, function() {
+            $months = [];
+            $rendezvousCounts = [];
+            $admissionsCounts = [];
+            $consultationsCounts = [];
+            $patientsCounts = [];
+            $rdvPendingSeries = [];
+            $rdvConfirmedSeries = [];
+            $rdvCancelledSeries = [];
+            
+            // Générer les 12 derniers mois
+            $monthsData = [];
+            for ($i = 11; $i >= 0; $i--) {
+                $m = Carbon::now()->subMonths($i);
+                $months[] = $m->format('M');
+                $monthsData[] = [
+                    'year' => $m->year,
+                    'month' => $m->month,
+                    'key' => $m->format('Y-m')
+                ];
+            }
+            
+            // Requêtes optimisées avec une seule requête par table
+            $rdvStats = Rendez_vous::selectRaw('YEAR(date) as year, MONTH(date) as month, COUNT(*) as total, statut')
+                ->where('date', '>=', Carbon::now()->subMonths(12))
+                ->groupBy('year', 'month', 'statut')
+                ->get()
+                ->groupBy(function($item) {
+                    return $item->year . '-' . str_pad($item->month, 2, '0', STR_PAD_LEFT);
+                });
+                
+            $consultationsStats = Consultations::selectRaw('YEAR(date_consultation) as year, MONTH(date_consultation) as month, COUNT(*) as total')
+                ->where('date_consultation', '>=', Carbon::now()->subMonths(12))
+                ->groupBy('year', 'month')
+                ->pluck('total', DB::raw('CONCAT(year, "-", LPAD(month, 2, "0"))'))
+                ->toArray();
+                
+            $patientsStats = Patient::selectRaw('YEAR(created_at) as year, MONTH(created_at) as month, COUNT(*) as total')
+                ->where('created_at', '>=', Carbon::now()->subMonths(12))
+                ->groupBy('year', 'month')
+                ->pluck('total', DB::raw('CONCAT(year, "-", LPAD(month, 2, "0"))'))
+                ->toArray();
+                
+            // Construire les séries de données
+            foreach ($monthsData as $monthData) {
+                $key = $monthData['key'];
+                
+                // RDV totaux
+                $monthRdvs = $rdvStats->get($key, collect());
+                $rendezvousCounts[] = $monthRdvs->sum('total');
+                
+                // RDV par statut
+                $rdvPendingSeries[] = $monthRdvs->whereIn('statut', ['en_attente','en attente','pending'])->sum('total');
+                $rdvConfirmedSeries[] = $monthRdvs->whereIn('statut', ['confirmé','confirme','confirmee','confirmée'])->sum('total');
+                $rdvCancelledSeries[] = $monthRdvs->whereIn('statut', ['annulé','annule','annulee','annulée','cancelled','canceled'])->sum('total');
+                
+                // Autres statistiques
+                $consultationsCounts[] = $consultationsStats[$key] ?? 0;
+                $patientsCounts[] = $patientsStats[$key] ?? 0;
+                $admissionsCounts[] = 0; // À implémenter si nécessaire
+            }
+            
+            return compact('months', 'rendezvousCounts', 'admissionsCounts', 'consultationsCounts', 
+                          'patientsCounts', 'rdvPendingSeries', 'rdvConfirmedSeries', 'rdvCancelledSeries');
+        });
+        
+        extract($monthlyStats);
 
-        // KPI
-        $kpis = [
-            'totalUsers' => User::count(),
-            'totalPatients' => $rolesCount['patient'],
-            'rdvThisMonth' => Rendez_vous::whereYear('date', now()->year)->whereMonth('date', now()->month)->count(),
-            'consultsThisMonth' => Consultations::whereYear('date_consultation', now()->year)->whereMonth('date_consultation', now()->month)->count(),
-            // Paiements
-            'paymentsPaidThisMonth' => \App\Models\Order::where('status','paid')->whereYear('paid_at', now()->year)->whereMonth('paid_at', now()->month)->sum('total_amount'),
-            'paymentsPending' => \App\Models\Order::where('status','pending')->count(),
-        ];
+        // KPIs avec cache pour 5 minutes
+        $kpisKey = 'admin_kpis_' . now()->format('Y-m-d-H-i');
+        $kpis = \Cache::remember($kpisKey, 300, function() use ($rolesCount) {
+            $currentMonth = now();
+            
+            return [
+                'totalUsers' => array_sum($rolesCount),
+                'totalPatients' => $rolesCount['patient'],
+                'rdvThisMonth' => Rendez_vous::whereYear('date', $currentMonth->year)
+                    ->whereMonth('date', $currentMonth->month)->count(),
+                'consultsThisMonth' => Consultations::whereYear('date_consultation', $currentMonth->year)
+                    ->whereMonth('date_consultation', $currentMonth->month)->count(),
+                // Paiements (si la table existe)
+                'paymentsPaidThisMonth' => class_exists('\App\Models\Order') ? 
+                    \App\Models\Order::where('status','paid')
+                        ->whereYear('paid_at', $currentMonth->year)
+                        ->whereMonth('paid_at', $currentMonth->month)
+                        ->sum('total_amount') : 0,
+                'paymentsPending' => class_exists('\App\Models\Order') ?
+                    \App\Models\Order::where('status','pending')->count() : 0,
+            ];
+        });
 
         // Répartition des statuts de RDV (tous)
         $rdvStatusCounts = Rendez_vous::select('statut', DB::raw('COUNT(*) as total'))

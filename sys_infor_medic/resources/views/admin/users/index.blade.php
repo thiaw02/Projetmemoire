@@ -1,112 +1,1182 @@
 @extends('layouts.app')
 
 @section('content')
-<style>
-  /* Harmoniser la présentation avec les autres pages (dashboard, médecins, etc.) */
-  body > .container { max-width: 1500px !important; }
-  .sidebar-sticky { position: sticky; top: 1rem; }
-  .sidebar-sticky img[alt="Photo de profil"] { width: 96px !important; height: 96px !important; }
-</style>
-
-<div class="d-flex justify-content-between align-items-center mb-2">
-  <h4 class="mb-0">Liste des utilisateurs</h4>
-  <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Retour</a>
-</div>
-<div class="d-flex justify-content-between align-items-center mb-2">
-  <form method="GET" class="d-flex gap-2" role="search" aria-label="Filtrer les utilisateurs">
-    <input type="text" name="q" class="form-control form-control-sm" placeholder="Recherche (nom/email)" value="{{ $filters['q'] ?? '' }}" style="max-width: 220px;">
-    <select name="role" class="form-select form-select-sm" style="max-width: 180px;">
-      @php $r = $filters['role'] ?? 'all'; @endphp
-      <option value="all" {{ $r==='all'?'selected':'' }}>Tous rôles</option>
-      <option value="admin" {{ $r==='admin'?'selected':'' }}>Admin</option>
-      <option value="secretaire" {{ $r==='secretaire'?'selected':'' }}>Secrétaire</option>
-      <option value="medecin" {{ $r==='medecin'?'selected':'' }}>Médecin</option>
-      <option value="infirmier" {{ $r==='infirmier'?'selected':'' }}>Infirmier</option>
-      <option value="patient" {{ $r==='patient'?'selected':'' }}>Patient</option>
-    </select>
-    <select name="active" class="form-select form-select-sm" style="max-width: 160px;">
-      @php $a = $filters['active'] ?? 'all'; @endphp
-      <option value="all" {{ $a==='all'?'selected':'' }}>Tous statuts</option>
-      <option value="1" {{ $a==='1'?'selected':'' }}>Actifs</option>
-      <option value="0" {{ $a==='0'?'selected':'' }}>Inactifs</option>
-    </select>
-    <button class="btn btn-outline-secondary btn-sm">Filtrer</button>
-  </form>
-  <div class="btn-group">
-    <a href="{{ route('admin.users.create') }}" class="btn btn-success btn-sm" title="Ajouter"><i class="bi bi-plus-lg"></i> Ajouter</a>
-    <button type="button" class="btn btn-outline-primary btn-sm dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
-      <span class="visually-hidden">Actions</span>
-    </button>
-    <ul class="dropdown-menu dropdown-menu-end">
-      <li><a class="dropdown-item" href="{{ route('admin.users.export', request()->query()) }}"><i class="bi bi-filetype-csv me-1"></i> Exporter CSV</a></li>
-      <li><a class="dropdown-item" href="{{ route('admin.audit.index') }}"><i class="bi bi-clipboard-data me-1"></i> Voir les logs</a></li>
-    </ul>
+{{-- Header moderne pour gestion des utilisateurs --}}
+<div class="users-admin-header">
+  <div class="header-content">
+    <div class="header-title">
+      <i class="bi bi-people-fill"></i>
+      <span>Gestion des Utilisateurs</span>
+    </div>
+    <div class="header-actions">
+      <div class="search-box">
+        <i class="bi bi-search"></i>
+        <input type="text" id="usersSearch" placeholder="Rechercher un utilisateur..." class="form-control">
+      </div>
+      <a href="{{ route('admin.dashboard') }}" class="action-btn">
+        <i class="bi bi-arrow-left"></i>
+        Retour Dashboard
+      </a>
+    </div>
   </div>
 </div>
 
 @if(session('success'))
-    <div class="alert alert-success">{{ session('success') }}</div>
+  <div class="alert alert-success alert-dismissible fade show" role="alert">
+    {{ session('success') }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
 @endif
 
-<div class="table-responsive">
-<table class="table table-bordered table-sm align-middle">
-    <thead>
-        <tr>
-            <th>Nom</th>
-            <th>Email</th>
-            <th>Rôle</th>
-            <th>Spécialité</th>
-            <th>Liens</th>
-            <th>Actif</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach($users as $user)
-        <tr>
-            <td>{{ $user->name }}</td>
-            <td>{{ $user->email }}</td>
-            <td>{{ ucfirst($user->role) }}</td>
-            <td>{{ $user->specialite ?? '-' }}</td>
-            <td>
-              @if($user->role==='medecin')
-                @php
-                  $names = ($user->nurses ?? collect())->pluck('name')->all();
-                @endphp
-                <span class="badge bg-light text-dark border" title="{{ implode(', ', $names) }}">{{ count($names) }} infirmier(s)</span>
-              @elseif($user->role==='infirmier')
-                @php
-                  $names = ($user->doctors ?? collect())->pluck('name')->all();
-                @endphp
-                <span class="badge bg-light text-dark border" title="{{ implode(', ', $names) }}">{{ count($names) }} médecin(s)</span>
-              @else
-                —
-              @endif
-            </td>
-            <td>
-              <form method="POST" action="{{ route('admin.users.updateActive', $user->id) }}">
-                @csrf
-                @method('PUT')
-                <input type="hidden" name="active" value="{{ $user->active ? 0 : 1 }}">
-                <button class="btn btn-sm {{ $user->active ? 'btn-success' : 'btn-outline-secondary' }}" title="{{ $user->active ? 'Désactiver' : 'Activer' }}">
-                  {{ $user->active ? 'Actif' : 'Inactif' }}
-                </button>
-              </form>
-            </td>
-            <td>
-<div class="d-flex gap-1" role="group" aria-label="Actions utilisateur">
-                  <a href="{{ route('admin.users.edit', $user->id) }}" class="btn btn-outline-primary btn-sm" title="Modifier" aria-label="Modifier"><i class="bi bi-pencil"></i></a>
-                  <form action="{{ route('admin.users.destroy', $user->id) }}" method="POST" onsubmit="return confirm('Confirmer la suppression ?');">
-                      @csrf
-                      @method('DELETE')
-                      <button class="btn btn-outline-danger btn-sm" title="Supprimer" aria-label="Supprimer"><i class="bi bi-trash"></i></button>
-                  </form>
-                </div>
-            </td>
-        </tr>
-        @endforeach
-    </tbody>
-</table>
+@if(session('error'))
+  <div class="alert alert-danger alert-dismissible fade show" role="alert">
+    {{ session('error') }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+@endif
+
+{{-- Statistiques rapides --}}
+<div class="stats-grid mb-4">
+  <div class="stat-card stat-total">
+    <div class="stat-icon">
+      <i class="bi bi-people-fill"></i>
+    </div>
+    <div class="stat-content">
+      <div class="stat-number">{{ $users->total() }}</div>
+      <div class="stat-label">Total utilisateurs</div>
+    </div>
+  </div>
+  
+  <div class="stat-card stat-active">
+    <div class="stat-icon">
+      <i class="bi bi-person-check-fill"></i>
+    </div>
+    <div class="stat-content">
+      <div class="stat-number">{{ $users->where('active', 1)->count() }}</div>
+      <div class="stat-label">Utilisateurs actifs</div>
+    </div>
+  </div>
+  
+  <div class="stat-card stat-medecins">
+    <div class="stat-icon">
+      <i class="bi bi-person-hearts"></i>
+    </div>
+    <div class="stat-content">
+      <div class="stat-number">{{ $users->where('role', 'medecin')->count() }}</div>
+      <div class="stat-label">Médecins</div>
+    </div>
+  </div>
+  
+  <div class="stat-card stat-secretaires">
+    <div class="stat-icon">
+      <i class="bi bi-person-workspace"></i>
+    </div>
+    <div class="stat-content">
+      <div class="stat-number">{{ $users->where('role', 'secretaire')->count() }}</div>
+      <div class="stat-label">Secrétaires</div>
+    </div>
+  </div>
 </div>
-<div class="mt-2">{{ $users->links() }}</div>
+
+{{-- Actions et filtres modernes --}}
+<div class="actions-container mb-4">
+  <div class="actions-header">
+    <h5 class="mb-0"><i class="bi bi-funnel me-2"></i>Filtres et Actions</h5>
+  </div>
+  <div class="actions-body">
+    <div class="filters-row">
+      <form method="GET" class="filters-form">
+        <div class="form-group">
+          <label for="q" class="form-label">Recherche</label>
+          <input type="text" name="q" id="q" class="form-control" placeholder="Nom, email..." value="{{ $filters['q'] ?? '' }}">
+        </div>
+        
+        <div class="form-group">
+          <label for="role" class="form-label">Rôle</label>
+          <select name="role" id="role" class="form-control">
+            @php $r = $filters['role'] ?? 'all'; @endphp
+            <option value="all" {{ $r==='all'?'selected':'' }}>Tous les rôles</option>
+            <option value="admin" {{ $r==='admin'?'selected':'' }}>Administrateur</option>
+            <option value="secretaire" {{ $r==='secretaire'?'selected':'' }}>Secrétaire</option>
+            <option value="medecin" {{ $r==='medecin'?'selected':'' }}>Médecin</option>
+            <option value="infirmier" {{ $r==='infirmier'?'selected':'' }}>Infirmier</option>
+            <option value="patient" {{ $r==='patient'?'selected':'' }}>Patient</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="active" class="form-label">Statut</label>
+          <select name="active" id="active" class="form-control">
+            @php $a = $filters['active'] ?? 'all'; @endphp
+            <option value="all" {{ $a==='all'?'selected':'' }}>Tous les statuts</option>
+            <option value="1" {{ $a==='1'?'selected':'' }}>Actifs uniquement</option>
+            <option value="0" {{ $a==='0'?'selected':'' }}>Inactifs uniquement</option>
+          </select>
+        </div>
+        
+        <div class="form-actions">
+          <button type="submit" class="btn-filter">
+            <i class="bi bi-search"></i>
+            Filtrer
+          </button>
+          <a href="{{ route('admin.users.index') }}" class="btn-reset">
+            <i class="bi bi-arrow-clockwise"></i>
+            Réinitialiser
+          </a>
+        </div>
+      </form>
+    </div>
+    
+    <div class="quick-actions">
+      <a href="{{ route('admin.users.create') }}" class="btn-add-user">
+        <i class="bi bi-person-plus"></i>
+        Ajouter un utilisateur
+      </a>
+      
+      <div class="dropdown">
+        <button class="btn-dropdown" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+          <i class="bi bi-three-dots-vertical"></i>
+          Plus d'actions
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end modern-dropdown">
+          <li>
+            <a class="dropdown-item" href="{{ route('admin.users.export', request()->query()) }}">
+              <i class="bi bi-download me-2"></i>
+              Exporter en CSV
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item" href="{{ route('admin.audit.index') }}">
+              <i class="bi bi-clipboard-data me-2"></i>
+              Logs d'audit
+            </a>
+          </li>
+          <li><hr class="dropdown-divider"></li>
+          <li>
+            <a class="dropdown-item text-warning" href="{{ route('admin.users.index', ['active' => '0']) }}">
+              <i class="bi bi-person-x me-2"></i>
+              Voir les inactifs
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+{{-- Liste des utilisateurs moderne --}}
+<div class="users-container">
+  <div class="users-header-section">
+    <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>Liste des utilisateurs ({{ $users->total() }} utilisateurs)</h5>
+    <div class="users-count-info">
+      <span class="count-badge">{{ $users->total() }}</span>
+    </div>
+  </div>
+  
+  @if($users->isEmpty())
+    <div class="empty-state">
+      <i class="bi bi-person-x"></i>
+      <h5>Aucun utilisateur pour le moment</h5>
+      <p>Les utilisateurs du système apparaîtront ici une fois créés.</p>
+      <a href="{{ route('admin.users.create') }}" class="btn-create-first">
+        <i class="bi bi-person-plus me-2"></i>
+        Créer le premier utilisateur
+      </a>
+    </div>
+  @else
+    <div class="users-list">
+      <div class="table-responsive">
+        <table class="table users-table" id="usersTable">
+          <thead>
+            <tr>
+              <th><i class="bi bi-person me-1"></i>Utilisateur</th>
+              <th><i class="bi bi-envelope me-1"></i>Contact</th>
+              <th><i class="bi bi-person-badge me-1"></i>Rôle & Spécialité</th>
+              <th><i class="bi bi-diagram-3 me-1"></i>Relations</th>
+              <th><i class="bi bi-toggle-on me-1"></i>Statut</th>
+              <th><i class="bi bi-gear me-1"></i>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @foreach($users as $user)
+              <tr data-user="{{ strtolower($user->name . ' ' . $user->email . ' ' . $user->role) }}">
+                <td>
+                  <div class="user-info-inline">
+                    <div class="user-avatar">
+                      {{ strtoupper(substr($user->name, 0, 1)) }}
+                    </div>
+                    <div class="user-details">
+                      <div class="user-name">{{ $user->name }}</div>
+                      <div class="user-meta">
+                        <small class="text-muted">ID: #{{ $user->id }}</small>
+                        @if($user->created_at)
+                          <small class="text-muted"> • Créé le {{ $user->created_at->format('d/m/Y') }}</small>
+                        @endif
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="contact-info">
+                    <div class="email">
+                      <i class="bi bi-envelope text-muted me-1"></i>
+                      {{ $user->email }}
+                    </div>
+                    @if($user->telephone)
+                      <div class="phone">
+                        <i class="bi bi-telephone text-muted me-1"></i>
+                        {{ $user->telephone }}
+                      </div>
+                    @endif
+                  </div>
+                </td>
+                <td>
+                  <div class="role-info">
+                    <div class="role-badge role-{{ $user->role }}">
+                      @php
+                        $roleIcons = [
+                          'admin' => 'bi-shield-check',
+                          'medecin' => 'bi-heart-pulse',
+                          'secretaire' => 'bi-person-workspace',
+                          'infirmier' => 'bi-bandaid',
+                          'patient' => 'bi-person'
+                        ];
+                      @endphp
+                      <i class="bi {{ $roleIcons[$user->role] ?? 'bi-person' }}"></i>
+                      {{ ucfirst($user->role) }}
+                    </div>
+                    @if($user->specialite)
+                      <div class="specialite">
+                        <small class="text-muted">{{ $user->specialite }}</small>
+                      </div>
+                    @endif
+                  </div>
+                </td>
+                <td>
+                  <div class="relations-info">
+                    @if($user->role === 'medecin')
+                      @php
+                        $nursesCount = ($user->nurses ?? collect())->count();
+                        $nursesNames = ($user->nurses ?? collect())->pluck('name')->take(3)->implode(', ');
+                      @endphp
+                      @if($nursesCount > 0)
+                        <div class="relation-badge relation-nurse" title="{{ $nursesNames }}{{ $nursesCount > 3 ? ' et ' . ($nursesCount - 3) . ' autres' : '' }}">
+                          <i class="bi bi-people"></i>
+                          {{ $nursesCount }} infirmier{{ $nursesCount > 1 ? 's' : '' }}
+                        </div>
+                      @else
+                        <span class="text-muted">Aucun infirmier assigné</span>
+                      @endif
+                    @elseif($user->role === 'infirmier')
+                      @php
+                        $doctorsCount = ($user->doctors ?? collect())->count();
+                        $doctorsNames = ($user->doctors ?? collect())->pluck('name')->take(3)->implode(', ');
+                      @endphp
+                      @if($doctorsCount > 0)
+                        <div class="relation-badge relation-doctor" title="{{ $doctorsNames }}{{ $doctorsCount > 3 ? ' et ' . ($doctorsCount - 3) . ' autres' : '' }}">
+                          <i class="bi bi-person-hearts"></i>
+                          {{ $doctorsCount }} médecin{{ $doctorsCount > 1 ? 's' : '' }}
+                        </div>
+                      @else
+                        <span class="text-muted">Aucun médecin assigné</span>
+                      @endif
+                    @else
+                      <span class="text-muted">—</span>
+                    @endif
+                  </div>
+                </td>
+                <td>
+                  <div class="status-toggle">
+                    <form method="POST" action="{{ route('admin.users.updateActive', $user->id) }}" class="status-form">
+                      @csrf
+                      @method('PUT')
+                      <input type="hidden" name="active" value="{{ $user->active ? 0 : 1 }}">
+                      <button type="submit" class="status-btn {{ $user->active ? 'status-active' : 'status-inactive' }}" 
+                              title="{{ $user->active ? 'Cliquer pour désactiver' : 'Cliquer pour activer' }}">
+                        <i class="bi {{ $user->active ? 'bi-toggle-on' : 'bi-toggle-off' }}"></i>
+                        <span>{{ $user->active ? 'Actif' : 'Inactif' }}</span>
+                      </button>
+                    </form>
+                  </div>
+                </td>
+                <td>
+                  <div class="user-actions">
+                    <a href="{{ route('admin.users.edit', $user->id) }}" 
+                       class="btn-user-action btn-edit" title="Modifier l'utilisateur">
+                      <i class="bi bi-pencil"></i>
+                    </a>
+                    
+                    <button type="button" class="btn-user-action btn-delete" 
+                            title="Supprimer l'utilisateur" 
+                            onclick="confirmDelete({{ $user->id }}, '{{ $user->name }}')">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                    
+                    @if($user->role !== 'admin')
+                      <div class="dropdown">
+                        <button class="btn-user-action btn-more" type="button" data-bs-toggle="dropdown" title="Plus d'actions">
+                          <i class="bi bi-three-dots"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                          @if($user->role === 'medecin' || $user->role === 'infirmier')
+                            <li>
+                              <a class="dropdown-item" href="{{ route('admin.affectations.index', ['user' => $user->id]) }}">
+                                <i class="bi bi-diagram-3 me-2"></i>
+                                Gérer les affectations
+                              </a>
+                            </li>
+                          @endif
+                          <li>
+                            <a class="dropdown-item" href="#" onclick="resetPassword({{ $user->id }})">
+                              <i class="bi bi-key me-2"></i>
+                              Réinitialiser le mot de passe
+                            </a>
+                          </li>
+                        </ul>
+                      </div>
+                    @endif
+                  </div>
+                </td>
+              </tr>
+            @endforeach
+          </tbody>
+        </table>
+      </div>
+      
+      {{-- Pagination moderne --}}
+      <div class="pagination-container">
+        {{ $users->appends(request()->query())->links() }}
+      </div>
+    </div>
+  @endif
+</div>
+
+{{-- Modal de confirmation de suppression --}}
+<div class="modal fade" id="deleteModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content modern-modal">
+      <div class="modal-header border-0">
+        <div class="modal-icon-warning">
+          <i class="bi bi-exclamation-triangle"></i>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center">
+        <h5 class="mb-3">Confirmer la suppression</h5>
+        <p class="text-muted mb-4">Êtes-vous sûr de vouloir supprimer l'utilisateur <strong id="userName"></strong> ? Cette action est définitive et ne peut pas être annulée.</p>
+        <div class="modal-actions">
+          <button type="button" class="btn-modal-cancel" data-bs-dismiss="modal">
+            <i class="bi bi-x-lg me-2"></i>Annuler
+          </button>
+          <form id="deleteForm" method="POST" style="display: inline;">
+            @csrf
+            @method('DELETE')
+            <button type="submit" class="btn-modal-confirm">
+              <i class="bi bi-trash me-2"></i>Supprimer
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{{-- Styles modernes complets pour la gestion des utilisateurs --}}
+<style>
+  /* Conteneur principal */
+  body > .container { max-width: 1500px !important; }
+  
+  /* Header moderne admin users */
+  .users-admin-header {
+    background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%);
+    color: white;
+    padding: 1.5rem 2rem;
+    border-radius: 16px;
+    margin-bottom: 2rem;
+    box-shadow: 0 8px 25px rgba(30, 64, 175, 0.15);
+  }
+  
+  .header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 2rem;
+  }
+  
+  .header-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+  
+  .header-title i {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 0.5rem;
+    border-radius: 10px;
+    font-size: 1.2rem;
+  }
+  
+  .header-actions {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
+  
+  .search-box {
+    position: relative;
+    min-width: 300px;
+  }
+  
+  .search-box i {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6b7280;
+    z-index: 2;
+  }
+  
+  .search-box .form-control {
+    padding-left: 3rem;
+    border: none;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.9);
+    color: #374151;
+  }
+  
+  .search-box .form-control:focus {
+    background: white;
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
+  }
+  
+  .action-btn {
+    background: rgba(255, 255, 255, 0.15);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 0.6rem 1.2rem;
+    border-radius: 10px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .action-btn:hover {
+    background: white;
+    color: #1e40af;
+    transform: translateY(-2px);
+  }
+  
+  /* Grille des statistiques */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+  }
+  
+  .stat-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(30, 64, 175, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all 0.3s ease;
+  }
+  
+  .stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 32px rgba(30, 64, 175, 0.15);
+  }
+  
+  .stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: white;
+    flex-shrink: 0;
+  }
+  
+  .stat-total .stat-icon { background: linear-gradient(135deg, #1e40af, #1d4ed8); }
+  .stat-active .stat-icon { background: linear-gradient(135deg, #10b981, #059669); }
+  .stat-medecins .stat-icon { background: linear-gradient(135deg, #ef4444, #dc2626); }
+  .stat-secretaires .stat-icon { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+  
+  .stat-content {
+    flex: 1;
+  }
+  
+  .stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1f2937;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  
+  .stat-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  /* Conteneur actions */
+  .actions-container {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(30, 64, 175, 0.1);
+    overflow: hidden;
+  }
+  
+  .actions-header {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  
+  .actions-body {
+    padding: 2rem;
+  }
+  
+  .filters-row {
+    margin-bottom: 2rem;
+  }
+  
+  .filters-form {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr auto;
+    gap: 1.5rem;
+    align-items: end;
+  }
+  
+  .form-group {
+    margin-bottom: 0;
+  }
+  
+  .form-label {
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.5rem;
+    display: block;
+  }
+  
+  .form-control {
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    transition: all 0.3s ease;
+    background: #f9fafb;
+  }
+  
+  .form-control:focus {
+    border-color: #1e40af;
+    box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+    background: white;
+  }
+  
+  .form-actions {
+    display: flex;
+    gap: 1rem;
+  }
+  
+  .btn-filter {
+    background: linear-gradient(135deg, #1e40af, #1d4ed8);
+    color: white;
+    border: none;
+    padding: 0.75rem 2rem;
+    border-radius: 10px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .btn-filter:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(30, 64, 175, 0.3);
+    color: white;
+  }
+  
+  .btn-reset {
+    background: white;
+    border: 2px solid #e5e7eb;
+    color: #6b7280;
+    padding: 0.75rem 1.5rem;
+    border-radius: 10px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .btn-reset:hover {
+    border-color: #1e40af;
+    color: #1e40af;
+  }
+  
+  .quick-actions {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e2e8f0;
+  }
+  
+  .btn-add-user {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    border: none;
+    padding: 0.8rem 2rem;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2);
+  }
+  
+  .btn-add-user:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+    color: white;
+  }
+  
+  .btn-dropdown {
+    background: #f3f4f6;
+    border: 2px solid #e5e7eb;
+    color: #6b7280;
+    padding: 0.8rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .btn-dropdown:hover {
+    background: white;
+    border-color: #1e40af;
+    color: #1e40af;
+  }
+  
+  .modern-dropdown {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    padding: 0.5rem 0;
+  }
+  
+  .modern-dropdown .dropdown-item {
+    padding: 0.75rem 1.5rem;
+    transition: all 0.3s ease;
+  }
+  
+  .modern-dropdown .dropdown-item:hover {
+    background: #f8fafc;
+    color: #1e40af;
+  }
+  
+  /* Conteneur utilisateurs */
+  .users-container {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(30, 64, 175, 0.1);
+    overflow: hidden;
+  }
+  
+  .users-header-section {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .users-header-section h5 {
+    color: #374151;
+    font-weight: 600;
+    margin: 0;
+  }
+  
+  .count-badge {
+    background: linear-gradient(135deg, #1e40af, #1d4ed8);
+    color: white;
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+  
+  /* Table utilisateurs */
+  .users-table {
+    margin: 0;
+  }
+  
+  .users-table th {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    color: #475569;
+    font-weight: 600;
+    padding: 1rem 1.5rem;
+    border: none;
+    font-size: 0.85rem;
+  }
+  
+  .users-table td {
+    padding: 1rem 1.5rem;
+    border: none;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+  }
+  
+  .users-table tbody tr:hover {
+    background: #f8fafc;
+  }
+  
+  .user-info-inline {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  
+  .user-avatar {
+    width: 45px;
+    height: 45px;
+    background: linear-gradient(135deg, #1e40af, #1d4ed8);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+  }
+  
+  .user-name {
+    font-weight: 600;
+    color: #1f2937;
+    font-size: 1rem;
+  }
+  
+  .user-meta {
+    margin-top: 2px;
+  }
+  
+  .contact-info .email {
+    margin-bottom: 4px;
+    font-weight: 500;
+  }
+  
+  .contact-info .phone {
+    font-size: 0.9rem;
+    color: #6b7280;
+  }
+  
+  /* Badges de rôle */
+  .role-badge {
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 4px;
+  }
+  
+  .role-admin {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+  }
+  
+  .role-medecin {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+  }
+  
+  .role-secretaire {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    color: white;
+  }
+  
+  .role-infirmier {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+  }
+  
+  .role-patient {
+    background: linear-gradient(135deg, #6b7280, #4b5563);
+    color: white;
+  }
+  
+  .specialite {
+    margin-top: 2px;
+  }
+  
+  /* Badges de relations */
+  .relation-badge {
+    padding: 0.3rem 0.6rem;
+    border-radius: 15px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+  
+  .relation-nurse {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fed7aa;
+  }
+  
+  .relation-doctor {
+    background: #dbeafe;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+  }
+  
+  /* Statut toggle */
+  .status-btn {
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  
+  .status-active {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+  }
+  
+  .status-inactive {
+    background: #f3f4f6;
+    color: #6b7280;
+    border: 1px solid #e5e7eb;
+  }
+  
+  .status-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    color: inherit;
+  }
+  
+  /* Actions des utilisateurs */
+  .user-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+  
+  .btn-user-action {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    font-size: 0.9rem;
+  }
+  
+  .btn-edit {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+  }
+  
+  .btn-delete {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+  }
+  
+  .btn-more {
+    background: #f3f4f6;
+    color: #6b7280;
+    border: 1px solid #e5e7eb;
+  }
+  
+  .btn-user-action:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    color: white;
+  }
+  
+  .btn-more:hover {
+    background: white;
+    border-color: #1e40af;
+    color: #1e40af;
+  }
+  
+  /* État vide */
+  .empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #6b7280;
+  }
+  
+  .empty-state i {
+    font-size: 4rem;
+    color: #1e40af;
+    margin-bottom: 1.5rem;
+    opacity: 0.6;
+  }
+  
+  .empty-state h5 {
+    color: #374151;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+  }
+  
+  .btn-create-first {
+    background: linear-gradient(135deg, #1e40af, #1d4ed8);
+    color: white;
+    padding: 0.8rem 2rem;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    margin-top: 1rem;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+  }
+  
+  .btn-create-first:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(30, 64, 175, 0.3);
+    color: white;
+  }
+  
+  /* Pagination */
+  .pagination-container {
+    padding: 2rem;
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: center;
+  }
+  
+  /* Modal moderne */
+  .modern-modal {
+    border-radius: 16px;
+    border: none;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  }
+  
+  .modal-icon-warning {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 24px;
+    margin: 0 auto 1rem;
+  }
+  
+  .modal-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+  }
+  
+  .btn-modal-cancel {
+    background: #f3f4f6;
+    color: #6b7280;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 10px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+  }
+  
+  .btn-modal-cancel:hover {
+    background: #e5e7eb;
+    color: #374151;
+  }
+  
+  .btn-modal-confirm {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 10px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+  }
+  
+  .btn-modal-confirm:hover {
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    transform: translateY(-2px);
+    color: white;
+  }
+  
+  /* Responsive */
+  @media (max-width: 768px) {
+    .header-content {
+      flex-direction: column;
+      text-align: center;
+    }
+    
+    .search-box {
+      min-width: 250px;
+    }
+    
+    .filters-form {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+    
+    .form-actions {
+      flex-direction: column;
+    }
+    
+    .quick-actions {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    
+    .users-header-section {
+      flex-direction: column;
+      gap: 1rem;
+      text-align: center;
+    }
+    
+    .modal-actions {
+      flex-direction: column;
+    }
+  }
+</style>
+
+@endsection
+
+@section('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Recherche d'utilisateurs
+    const searchInput = document.getElementById('usersSearch');
+    const userRows = document.querySelectorAll('.users-table tbody tr');
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const query = this.value.toLowerCase();
+            
+            userRows.forEach(row => {
+                const userData = row.dataset.user;
+                row.style.display = userData.includes(query) ? '' : 'none';
+            });
+        });
+    }
+    
+    // Fonction de confirmation de suppression
+    window.confirmDelete = function(userId, userName) {
+        const form = document.getElementById('deleteForm');
+        const userNameSpan = document.getElementById('userName');
+        
+        form.action = `/admin/users/${userId}`;
+        userNameSpan.textContent = userName;
+        
+        const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        modal.show();
+    };
+    
+    // Fonction de réinitialisation du mot de passe
+    window.resetPassword = function(userId) {
+        if (confirm('Confirmer la réinitialisation du mot de passe ?')) {
+            fetch(`/admin/users/${userId}/reset-password`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            }).then(response => {
+                if (response.ok) {
+                    alert('Mot de passe réinitialisé avec succès');
+                } else {
+                    alert('Erreur lors de la réinitialisation');
+                }
+            }).catch(error => {
+                alert('Erreur de réseau');
+            });
+        }
+    };
+    
+    // Animation des cartes statistiques au scroll
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+    
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.animationDelay = `${Array.from(entry.target.parentNode.children).indexOf(entry.target) * 100}ms`;
+                entry.target.classList.add('animate-fadeInUp');
+            }
+        });
+    }, observerOptions);
+    
+    // Observer les cartes de statistiques
+    document.querySelectorAll('.stat-card').forEach(card => {
+        observer.observe(card);
+    });
+});
+
+// Styles pour les animations
+const additionalStyles = `
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .animate-fadeInUp {
+        animation: fadeInUp 0.6s ease forwards;
+    }
+`;
+
+const styleSheet = document.createElement('style');
+styleSheet.textContent = additionalStyles;
+document.head.appendChild(styleSheet);
+</script>
 @endsection

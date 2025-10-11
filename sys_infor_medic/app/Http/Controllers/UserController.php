@@ -160,8 +160,19 @@ class UserController extends Controller
 
     public function destroy($id)
     {
-        User::destroy($id);
-        return redirect()->route('admin.dashboard')->with('success', 'Utilisateur supprimé');
+        $user = User::findOrFail($id);
+        
+        // Empêcher la suppression de son propre compte
+        if ($user->id === auth()->id()) {
+            return redirect()->route('admin.dashboard')
+                ->with('error', 'Vous ne pouvez pas supprimer votre propre compte.');
+        }
+        
+        // Soft delete (sécurisé)
+        $user->delete();
+        
+        return redirect()->route('admin.dashboard')
+            ->with('success', 'Utilisateur supprimé avec succès. Il peut être restauré si nécessaire.');
     }
 
     // Patients
@@ -289,8 +300,19 @@ public function patientsList(\Illuminate\Http\Request $request)
 
     public function destroyPatient($id)
     {
-        User::destroy($id);
-        return redirect()->route('admin.dashboard')->with('success', 'Patient supprimé');
+        $user = User::findOrFail($id);
+        
+        // Vérifier que c'est bien un patient
+        if ($user->role !== 'patient') {
+            return redirect()->route('admin.dashboard')
+                ->with('error', 'Seuls les comptes patients peuvent être supprimés via cette méthode.');
+        }
+        
+        // Soft delete (sécurisé pour les dossiers médicaux)
+        $user->delete();
+        
+        return redirect()->route('admin.dashboard')
+            ->with('success', 'Patient supprimé avec succès. Le dossier peut être restauré si nécessaire.');
     }
 
     public function updateRole(Request $request, $id)
@@ -320,5 +342,73 @@ public function patientsList(\Illuminate\Http\Request $request)
             'changes' => ['before' => $before, 'after' => $after],
         ]);
         return redirect()->route('admin.dashboard')->with('success', 'Statut du compte mis à jour');
+    }
+    
+    /**
+     * Afficher la liste des utilisateurs supprimés (corbeille)
+     */
+    public function trashed(Request $request)
+    {
+        $query = User::onlyTrashed();
+        
+        if ($request->filled('role') && $request->role !== 'all') {
+            $query->where('role', $request->role);
+        }
+        
+        if ($request->filled('q')) {
+            $q = $request->q;
+            $query->where(function($qq) use ($q){
+                $qq->where('name','like',"%$q%")
+                   ->orWhere('email','like',"%$q%");
+            });
+        }
+        
+        $trashedUsers = $query->orderBy('deleted_at', 'desc')->paginate(20)->withQueryString();
+        
+        return view('admin.users.trashed', [
+            'users' => $trashedUsers,
+            'filters' => [
+                'role' => $request->role ?? 'all',
+                'q' => $request->q ?? '',
+            ],
+        ]);
+    }
+    
+    /**
+     * Restaurer un utilisateur supprimé
+     */
+    public function restore($id)
+    {
+        $user = User::withTrashed()->findOrFail($id);
+        
+        if (!$user->trashed()) {
+            return redirect()->route('admin.users.index')
+                ->with('error', 'Cet utilisateur n\'est pas supprimé.');
+        }
+        
+        $user->restore();
+        
+        return redirect()->route('admin.users.index')
+            ->with('success', 'Utilisateur restauré avec succès.');
+    }
+    
+    /**
+     * Supprimer définitivement un utilisateur
+     */
+    public function forceDestroy($id)
+    {
+        $user = User::withTrashed()->findOrFail($id);
+        
+        // Empêcher la suppression définitive de son propre compte
+        if ($user->id === auth()->id()) {
+            return redirect()->route('admin.users.trashed')
+                ->with('error', 'Vous ne pouvez pas supprimer définitivement votre propre compte.');
+        }
+        
+        // Supprimer définitivement (irréversible !)
+        $user->forceDelete();
+        
+        return redirect()->route('admin.users.trashed')
+            ->with('success', 'Utilisateur supprimé définitivement. Cette action est irréversible.');
     }
 }

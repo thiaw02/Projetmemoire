@@ -9,79 +9,1193 @@
   </div>
   <div class="col-lg-9">
 
-<div class="admin-header d-flex align-items-center justify-content-between mb-3">
-  <h2 class="mb-0">Dashboard Administrateur</h2>
+{{-- Header moderne simple --}}
+<div class="admin-modern-header">
+  <div class="header-content">
+    <div class="header-title">
+      <i class="bi bi-speedometer2"></i>
+      <span>Administration</span>
+    </div>
+    <div class="header-badge">
+      <i class="bi bi-shield-check"></i>
+      <span>{{ Auth::user()->name }}</span>
+    </div>
+  </div>
 </div>
 
 @if(session('success'))
     <div class="alert alert-success">{{ session('success') }}</div>
 @endif
 
-<div class="row g-3 mb-3">
-  <div class="col-md-3">
-    <div class="card text-center">
-      <div class="card-body">
-        <div class="text-muted small">Utilisateurs</div>
-        <div class="display-6">{{ $kpis['totalUsers'] ?? ($users->count() ?? 0) }}</div>
+{{-- KPIs modernes sur une seule ligne --}}
+<div class="row g-3 mb-4">
+  {{-- Utilisateurs --}}
+  <div class="col">
+    <div class="kpi-card">
+      <div class="kpi-icon users">
+        <i class="bi bi-people-fill"></i>
+      </div>
+      <div class="kpi-content">
+        <div class="kpi-value">{{ $kpis['totalUsers'] ?? ($users->count() ?? 0) }}</div>
+        <div class="kpi-label">Utilisateurs</div>
       </div>
     </div>
   </div>
-  <div class="col-md-3">
-    <div class="card text-center">
-      <div class="card-body">
-        <div class="text-muted small">Patients</div>
-        <div class="display-6">{{ $kpis['totalPatients'] ?? ($rolesCount['patient'] ?? ($users?->where('role','patient')->count() ?? 0)) }}</div>
+  
+  {{-- Patients --}}
+  <div class="col">
+    <div class="kpi-card">
+      <div class="kpi-icon patients">
+        <i class="bi bi-person-hearts"></i>
+      </div>
+      <div class="kpi-content">
+        <div class="kpi-value">{{ $kpis['totalPatients'] ?? ($rolesCount['patient'] ?? ($users?->where('role','patient')->count() ?? 0)) }}</div>
+        <div class="kpi-label">Patients</div>
       </div>
     </div>
   </div>
-  <div class="col-md-3">
-    <div class="card text-center">
-      <div class="card-body">
-        <div class="text-muted small">RDV (mois)</div>
-        <div class="display-6">{{ $kpis['rdvThisMonth'] ?? 0 }}</div>
+  
+  {{-- Rendez-vous --}}
+  <div class="col">
+    <div class="kpi-card">
+      <div class="kpi-icon rdv">
+        <i class="bi bi-calendar-check"></i>
+      </div>
+      <div class="kpi-content">
+        <div class="kpi-value">{{ $kpis['rdvThisMonth'] ?? 0 }}</div>
+        <div class="kpi-label">RDV ce mois</div>
       </div>
     </div>
   </div>
-  <div class="col-md-3">
-    <div class="card text-center">
-      <div class="card-body">
-        <div class="text-muted small">Consultations (mois)</div>
-        <div class="display-6">{{ $kpis['consultsThisMonth'] ?? 0 }}</div>
+  
+  {{-- Consultations --}}
+  <div class="col">
+    <div class="kpi-card">
+      <div class="kpi-icon consultations">
+        <i class="bi bi-clipboard2-pulse"></i>
+      </div>
+      <div class="kpi-content">
+        <div class="kpi-value">{{ $kpis['consultsThisMonth'] ?? 0 }}</div>
+        <div class="kpi-label">Consultations</div>
       </div>
     </div>
   </div>
-  <div class="col-md-3">
-    <div class="card text-center">
-      <div class="card-body">
-        <div class="text-muted small">Paiements (mois)</div>
-        <div class="h5 mb-0">{{ number_format($kpis['paymentsPaidThisMonth'] ?? 0, 0, ',', ' ') }} XOF</div>
-        <div class="small text-muted">En attente: {{ $kpis['paymentsPending'] ?? 0 }}</div>
+  
+  {{-- Paiements --}}
+  <div class="col">
+    <div class="kpi-card">
+      <div class="kpi-icon payments">
+        <i class="bi bi-wallet2"></i>
+      </div>
+      <div class="kpi-content">
+        <div class="kpi-value">{{ number_format(($kpis['paymentsPaidThisMonth'] ?? 0) / 1000, 0) }}K</div>
+        <div class="kpi-label">Paiements (XOF)</div>
+        <div class="kpi-sub">{{ $kpis['paymentsPending'] ?? 0 }} en attente</div>
       </div>
     </div>
   </div>
 </div>
 
-{{-- Styles locaux pour onglets sur une ligne --}}
+{{-- Styles modernes minimalistes pour admin --}}
 <style>
-  /* Pleine largeur pour ce dashboard */
-  /* Conteneur un peu réduit par rapport à la pleine largeur */
+  /* Header admin moderne simple */
+  .admin-modern-header {
+    background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%);
+    color: white;
+    padding: 1.5rem 2rem;
+    border-radius: 16px;
+    margin-bottom: 2rem;
+    box-shadow: 0 8px 25px rgba(30, 64, 175, 0.15);
+  }
+  
+  .header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .header-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+  
+  .header-title i {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 0.5rem;
+    border-radius: 10px;
+    font-size: 1.2rem;
+  }
+  
+  .header-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(255, 255, 255, 0.15);
+    padding: 0.5rem 1rem;
+    border-radius: 12px;
+    font-weight: 500;
+    font-size: 0.9rem;
+  }
+  
+  /* Optimisation KPIs - plus compacts */
+  .kpi-card {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 4px 20px rgba(39, 174, 96, 0.08);
+    border: 1px solid rgba(39, 174, 96, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: all 0.3s ease;
+    height: 100px;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #27ae60, #2ecc71);
+  }
+  
+  .kpi-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 32px rgba(39, 174, 96, 0.15);
+  }
+  
+  .kpi-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: white;
+    flex-shrink: 0;
+  }
+  
+  .kpi-icon.users { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+  .kpi-icon.patients { background: linear-gradient(135deg, #ef4444, #dc2626); }
+  .kpi-icon.rdv { background: linear-gradient(135deg, #f59e0b, #d97706); }
+  .kpi-icon.consultations { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+  .kpi-icon.payments { background: linear-gradient(135deg, #10b981, #059669); }
+  
+  .kpi-content {
+    flex: 1;
+  }
+  
+  .kpi-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #1f2937;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  
+  .kpi-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+  }
+  
+  .kpi-sub {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    font-weight: 500;
+  }
+  
+  /* Responsive pour KPIs */
+  @media (max-width: 1200px) {
+    .kpi-value { font-size: 2rem; }
+    .kpi-icon { width: 50px; height: 50px; font-size: 20px; }
+    .kpi-card { padding: 20px; height: 90px; }
+  }
+  
+  @media (max-width: 768px) {
+    .kpi-value { font-size: 1.75rem; }
+    .kpi-label { font-size: 0.75rem; }
+    .kpi-icon { width: 45px; height: 45px; font-size: 18px; }
+    .kpi-card { padding: 16px; height: 80px; gap: 12px; }
+  }
+  
+  /* Conteneur dashboard */
   body > .container { max-width: 1500px !important; }
   .page-section { padding-left: .75rem; padding-right: .75rem; }
   .content-card { background: #fff; border-radius: .75rem; box-shadow: 0 8px 24px rgba(0,0,0,.06); padding: 1rem; }
 
   /* Header collant pour un comportement moderne */
   .admin-header { position: sticky; top: 0; background: #fff; z-index: 10; padding-top: .25rem; border-bottom: 1px solid rgba(0,0,0,.05); }
-  /* Tabs modernes sur une ligne */
-  /* Onglets sur une seule ligne, tous visibles sans défilement */
-  .admin-tabs { display: flex; flex-wrap: nowrap; justify-content: flex-start; gap: .5rem; }
-  .admin-tabs .nav-link { flex: 0 0 auto; min-width: 160px; text-align: center; padding: .5rem .75rem; border: 0; border-bottom: 2px solid transparent; white-space: nowrap; color: #27ae60; font-weight: 600; }
-  .admin-tabs .nav-link.active { border-bottom-color: #27ae60; color: #145a32; background: transparent; }
-  .tab-scroll { overflow: visible; }
-  .tab-scroll::-webkit-scrollbar { height: 0; }
-  .tab-scroll::-webkit-scrollbar-thumb { background: transparent; }
-  /* Sidebar collante et un peu plus compacte */
+  /* Onglets admin ultra-modernisés */
+  .admin-tabs { 
+    display: flex; 
+    flex-wrap: nowrap;
+    gap: 4px; 
+    background: linear-gradient(145deg, #f8fafc, #e2e8f0);
+    padding: 8px; 
+    border-radius: 16px;
+    margin-bottom: 2rem;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.06);
+    border: 1px solid rgba(0,0,0,0.08);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .admin-tabs::-webkit-scrollbar {
+    height: 4px;
+  }
+  
+  .admin-tabs::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .admin-tabs::-webkit-scrollbar-thumb {
+    background: rgba(0,0,0,0.2);
+    border-radius: 2px;
+  }
+  
+  .admin-tabs .nav-item {
+    flex-shrink: 0;
+  }
+  
+  .admin-tabs .nav-link { 
+    position: relative;
+    min-width: 160px;
+    padding: 12px 20px; 
+    border: none; 
+    border-radius: 12px;
+    white-space: nowrap; 
+    color: #64748b; 
+    font-weight: 600;
+    font-size: 0.9rem;
+    background: transparent;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    overflow: hidden;
+  }
+  
+  .admin-tabs .nav-link::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.8), rgba(255,255,255,0.4));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    border-radius: 12px;
+  }
+  
+  .admin-tabs .nav-link:hover::before {
+    opacity: 1;
+  }
+  
+  .admin-tabs .nav-link:hover {
+    transform: translateY(-2px);
+    color: #334155;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+  }
+  
+  .admin-tabs .nav-link.active { 
+    background: linear-gradient(135deg, #1e40af, #1d4ed8);
+    color: white;
+    box-shadow: 0 8px 25px rgba(30, 64, 175, 0.3);
+    transform: translateY(-1px);
+  }
+  
+  .admin-tabs .nav-link.active::before {
+    opacity: 0;
+  }
+  
+  .admin-tabs .nav-link i {
+    font-size: 1rem;
+    opacity: 0.8;
+    transition: all 0.3s ease;
+  }
+  
+  .admin-tabs .nav-link:hover i,
+  .admin-tabs .nav-link.active i {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+  
+  /* Onglet spécifiques - couleurs thématiques */
+  .admin-tabs .nav-link:nth-child(1).active {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+  }
+  
+  .admin-tabs .nav-link:nth-child(2).active {
+    background: linear-gradient(135deg, #10b981, #059669);
+    box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+  }
+  
+  .admin-tabs .nav-link:nth-child(3).active {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    box-shadow: 0 8px 25px rgba(245, 158, 11, 0.3);
+  }
+  
+  .admin-tabs .nav-link:nth-child(4).active {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    box-shadow: 0 8px 25px rgba(139, 92, 246, 0.3);
+  }
+  
+  .admin-tabs .nav-link:nth-child(5).active {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    box-shadow: 0 8px 25px rgba(239, 68, 68, 0.3);
+  }
+  
+  .admin-tabs .nav-link:nth-child(6).active {
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    box-shadow: 0 8px 25px rgba(6, 182, 212, 0.3);
+  }
+  
+  .tab-scroll { 
+    overflow: visible; 
+  }
+  
+  /* Tableaux admin modernes */
+  .table-container {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  }
+  
+  .admin-table {
+    margin: 0;
+  }
+  
+  .admin-table th {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    color: #475569;
+    font-weight: 600;
+    padding: 1rem 0.75rem;
+    border: none;
+    font-size: 0.85rem;
+  }
+  
+  .admin-table td {
+    padding: 0.75rem;
+    border: none;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+  }
+  
+  .admin-table tbody tr:hover {
+    background: #f8fafc;
+  }
+  
+  /* Boutons admin optimisés */
+  .btn-sm {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+    border-radius: 6px;
+  }
+  
+  /* Sidebar collante et compacte */
   .sidebar-sticky { position: sticky; top: 1rem; }
   .sidebar-sticky img[alt="Photo de profil"] { width: 96px !important; height: 96px !important; }
+  
+  /* ========== STYLES POUR ONGLET SUPERVISION DES RÔLES ========== */
+  .roles-supervision-header {
+    background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    border: 1px solid rgba(0,0,0,0.08);
+  }
+  
+  .text-purple { color: #8b5cf6 !important; }
+  
+  .roles-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  
+  .role-stat-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    border: 1px solid rgba(0,0,0,0.06);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .role-stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  }
+  
+  .role-stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--bs-primary), var(--bs-info));
+  }
+  
+  .role-stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .role-stat-number {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #1f2937;
+    line-height: 1;
+  }
+  
+  .role-stat-label {
+    font-size: 0.875rem;
+    color: #6b7280;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .role-stat-trend {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    font-size: 1.2rem;
+  }
+  
+  .roles-management-table {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.06);
+  }
+  
+  .role-badge {
+    font-weight: 600;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+  }
+  
+  .status-badge {
+    font-weight: 500;
+    padding: 0.4rem 0.6rem;
+    border-radius: 6px;
+  }
+  
+  /* ========== STYLES POUR ONGLET STATISTIQUES ========== */
+  .stats-header {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    border: 1px solid rgba(0,0,0,0.08);
+  }
+  
+  .stats-period-selector {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .stats-charts-grid {
+    padding: 0;
+  }
+  
+  .stats-chart-card {
+    background: white;
+    border-radius: 16px;
+    border: 1px solid rgba(0,0,0,0.06);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+    overflow: hidden;
+  }
+  
+  .stats-chart-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  }
+  
+  .stats-chart-header {
+    background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .stats-chart-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.2rem;
+  }
+  
+  .stats-chart-body {
+    padding: 1.5rem;
+  }
+  
+  /* ========== STYLES POUR ONGLET PERMISSIONS ========== */
+  .permissions-header {
+    background: linear-gradient(135deg, #fecaca, #fca5a5);
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+    border: 1px solid rgba(0,0,0,0.08);
+  }
+  
+  .permissions-alerts {
+    margin-bottom: 2rem;
+  }
+  
+  .permissions-matrix {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.06);
+  }
+  
+  .permissions-card {
+    border: none;
+  }
+  
+  .permissions-card-header {
+    background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+    padding: 1.5rem;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .permission-module-icon {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+  }
+  
+  .permissions-table-container {
+    overflow-x: auto;
+  }
+  
+  .permissions-table {
+    margin: 0;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+  
+  .permissions-table th {
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+    color: #475569;
+    font-weight: 600;
+    padding: 1rem;
+    border: none;
+    font-size: 0.9rem;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+  
+  .permissions-table td {
+    padding: 1rem;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+  }
+  
+  .permission-row:hover {
+    background: #f8fafc;
+  }
+  
+  .role-cell {
+    min-width: 200px;
+  }
+  
+  .role-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.1rem;
+  }
+  
+  .role-name {
+    font-weight: 600;
+    color: #1f2937;
+  }
+  
+  .permission-level-selector {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+  }
+  
+  .permission-btn {
+    min-width: 80px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    border-radius: 6px;
+  }
+  
+  .permissions-actions-footer {
+    background: #f8fafc;
+    padding: 1.5rem;
+    border-top: 1px solid rgba(0,0,0,0.06);
+    margin-top: 2rem;
+    border-radius: 0 0 16px 16px;
+  }
+  
+  /* Responsive pour les nouveaux composants */
+  @media (max-width: 768px) {
+    .roles-stats-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .role-stat-number {
+      font-size: 2rem;
+    }
+    
+    .stats-period-selector {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    
+    .permission-level-selector {
+      flex-direction: column;
+      gap: 2px;
+    }
+    
+    .permission-btn {
+      min-width: 60px;
+      font-size: 0.7rem;
+    }
+    
+    .permissions-card-header,
+    .stats-header .d-flex,
+    .roles-supervision-header .d-flex {
+      flex-direction: column;
+      gap: 1rem;
+      text-align: center;
+    }
+  }
+  
+  /* ========== STYLES POUR ONGLET PAIEMENTS ========== */
+  .payments-header {
+    background: linear-gradient(135deg, #e0f2fe, #b3e5fc);
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    border: 1px solid rgba(0,0,0,0.08);
+  }
+  
+  .payments-kpis-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  
+  .payment-kpi-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    border: 1px solid rgba(0,0,0,0.06);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  
+  .payment-kpi-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  }
+  
+  .payment-kpi-card.revenue::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #10b981, #059669);
+  }
+  
+  .payment-kpi-card.pending::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #f59e0b, #d97706);
+  }
+  
+  .payment-kpi-card.success-rate::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+  }
+  
+  .payment-kpi-card.providers::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #8b5cf6, #7c3aed);
+  }
+  
+  .payment-kpi-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+    flex-shrink: 0;
+  }
+  
+  .payment-kpi-card.revenue .payment-kpi-icon {
+    background: linear-gradient(135deg, #10b981, #059669);
+  }
+  
+  .payment-kpi-card.pending .payment-kpi-icon {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+  }
+  
+  .payment-kpi-card.success-rate .payment-kpi-icon {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  }
+  
+  .payment-kpi-card.providers .payment-kpi-icon {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  }
+  
+  .payment-kpi-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1f2937;
+    line-height: 1;
+  }
+  
+  .payment-kpi-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .payment-kpi-sub {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    font-weight: 500;
+  }
+  
+  .payment-kpi-trend {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+  
+  .payment-kpi-trend.up {
+    color: #10b981;
+  }
+  
+  .payment-kpi-trend.warning {
+    color: #f59e0b;
+  }
+  
+  .payment-kpi-trend.neutral {
+    color: #6b7280;
+  }
+  
+  .payments-table-section {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.06);
+  }
+  
+  .payment-date,
+  .payment-service,
+  .payment-amount {
+    line-height: 1.2;
+  }
+  
+  .provider-badge,
+  .action-badge,
+  .severity-badge {
+    font-weight: 600;
+    padding: 0.4rem 0.6rem;
+    border-radius: 6px;
+  }
+  
+  .provider-badge.stripe {
+    background: #635bff;
+    color: white;
+  }
+  
+  .provider-badge.paypal {
+    background: #0070ba;
+    color: white;
+  }
+  
+  .provider-badge.orange {
+    background: #ff6900;
+    color: white;
+  }
+  
+  .provider-badge.local {
+    background: #10b981;
+    color: white;
+  }
+  
+  .provider-badge.wave {
+    background: #f59e0b;
+    color: white;
+  }
+  
+  /* ========== STYLES POUR PAGE AUDIT ========== */
+  .audit-layout {
+    display: flex;
+    height: 100vh;
+    background: #f9fafb;
+  }
+  
+  .audit-sidebar {
+    width: 300px;
+    background: white;
+    border-right: 1px solid rgba(0,0,0,0.08);
+    box-shadow: 2px 0 10px rgba(0,0,0,0.05);
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+  
+  .audit-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 2rem;
+  }
+  
+  .audit-header {
+    background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+    padding: 2rem;
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+    margin-bottom: 2rem;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  
+  .audit-header h1 {
+    color: #1f2937;
+    font-weight: 700;
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .audit-subtitle {
+    color: #6b7280;
+    font-weight: 500;
+  }
+  
+  .audit-kpis-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  
+  .audit-kpi-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.25rem;
+    border: 1px solid rgba(0,0,0,0.06);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .audit-kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.12);
+  }
+  
+  .audit-kpi-card.info::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+  }
+  
+  .audit-kpi-card.warning::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #f59e0b, #d97706);
+  }
+  
+  .audit-kpi-card.danger::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #ef4444, #dc2626);
+  }
+  
+  .audit-kpi-card.success::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #10b981, #059669);
+  }
+  
+  .audit-kpi-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1f2937;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+  }
+  
+  .audit-kpi-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .audit-filters-section {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    border: 1px solid rgba(0,0,0,0.06);
+    margin-bottom: 2rem;
+  }
+  
+  .audit-table-section {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    border: 1px solid rgba(0,0,0,0.06);
+  }
+  
+  .action-badge.create {
+    background: #dcfce7;
+    color: #166534;
+  }
+  
+  .action-badge.update {
+    background: #fef3c7;
+    color: #92400e;
+  }
+  
+  .action-badge.delete {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+  
+  .action-badge.login {
+    background: #e0f2fe;
+    color: #0c4a6e;
+  }
+  
+  .severity-badge.low {
+    background: #f0f9ff;
+    color: #0369a1;
+  }
+  
+  .severity-badge.medium {
+    background: #fffbeb;
+    color: #d97706;
+  }
+  
+  .severity-badge.high {
+    background: #fef2f2;
+    color: #dc2626;
+  }
+  
+  .severity-badge.critical {
+    background: #450a0a;
+    color: #fecaca;
+  }
+  
+  .audit-modal .modal-content {
+    border-radius: 16px;
+    box-shadow: 0 20px 48px rgba(0,0,0,0.16);
+    border: none;
+  }
+  
+  .audit-modal .modal-header {
+    border-bottom: 1px solid #e5e7eb;
+    padding: 1.5rem;
+    background: #f9fafb;
+    border-radius: 16px 16px 0 0;
+  }
+  
+  .audit-modal .modal-body {
+    padding: 1.5rem;
+  }
+  
+  .diff-added {
+    background: #dcfce7;
+    color: #166534;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-family: monospace;
+  }
+  
+  .diff-removed {
+    background: #fee2e2;
+    color: #991b1b;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-family: monospace;
+    text-decoration: line-through;
+  }
+  
+  .diff-unchanged {
+    color: #6b7280;
+    padding: 0.25rem 0.5rem;
+    font-family: monospace;
+  }
+  
+  .sidebar-nav {
+    padding: 1.5rem;
+  }
+  
+  .sidebar-nav .nav-link {
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.5rem;
+    color: #6b7280;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  
+  .sidebar-nav .nav-link:hover {
+    background: #f3f4f6;
+    color: #374151;
+  }
+  
+  .sidebar-nav .nav-link.active {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+  }
+  
+  .sidebar-nav .nav-link i {
+    font-size: 1.1rem;
+  }
+  
+  /* ========== RESPONSIVE DESIGN ========== */
+  @media (max-width: 768px) {
+    .audit-layout {
+      flex-direction: column;
+      height: auto;
+    }
+    
+    .audit-sidebar {
+      width: 100%;
+      order: 2;
+    }
+    
+    .audit-content {
+      order: 1;
+      padding: 1rem;
+    }
+    
+    .payments-kpis-grid,
+    .audit-kpis-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .payment-kpi-card,
+    .audit-kpi-card {
+      padding: 1rem;
+    }
+    
+    .payments-table-section,
+    .audit-table-section,
+    .audit-filters-section {
+      padding: 1rem;
+    }
+  }
 </style>
 {{-- Nav tabs --}}
 <div class="tab-scroll">
@@ -121,18 +1235,19 @@
           </div>
         </div>
 
-        <table class="table table-striped" id="usersTable">
-            <thead>
-                <tr>
-                    <th>Nom</th>
-                    <th>Email</th>
-                    <th>Rôle</th>
-                    <th>Spécialité</th>
-                    <th>Liens</th>
-                    <th>Actif</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
+        <div class="table-container">
+          <table class="table admin-table" id="usersTable">
+              <thead>
+                  <tr>
+                      <th><i class="bi bi-person me-1"></i>Nom</th>
+                      <th><i class="bi bi-envelope me-1"></i>Email</th>
+                      <th><i class="bi bi-person-badge me-1"></i>Rôle</th>
+                      <th><i class="bi bi-briefcase me-1"></i>Spécialité</th>
+                      <th><i class="bi bi-link me-1"></i>Liens</th>
+                      <th><i class="bi bi-toggle-on me-1"></i>Actif</th>
+                      <th><i class="bi bi-gear me-1"></i>Actions</th>
+                  </tr>
+              </thead>
             <tbody>
                 @foreach($users as $user)
                     @if($user->role !== 'patient')
@@ -178,7 +1293,8 @@
                     @endif
                 @endforeach
             </tbody>
-        </table>
+          </table>
+        </div>
     </div>
     
     {{-- Gérer patients --}}
@@ -192,16 +1308,17 @@
           </div>
         </div>
 
-        <table class="table table-striped" id="patientsTable">
-            <thead>
-                <tr>
-                    <th>Nom</th>
-                    <th>Email</th>
-                    <th>Date création</th>
-                    <th>Actif</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
+        <div class="table-container">
+          <table class="table admin-table" id="patientsTable">
+              <thead>
+                  <tr>
+                      <th><i class="bi bi-person me-1"></i>Nom</th>
+                      <th><i class="bi bi-envelope me-1"></i>Email</th>
+                      <th><i class="bi bi-calendar-plus me-1"></i>Date création</th>
+                      <th><i class="bi bi-toggle-on me-1"></i>Actif</th>
+                      <th><i class="bi bi-gear me-1"></i>Actions</th>
+                  </tr>
+              </thead>
             <tbody>
                 @foreach($users as $user)
                     @if($user->role === 'patient')
@@ -231,52 +1348,136 @@
                     @endif
                 @endforeach
             </tbody>
-        </table>
+          </table>
+        </div>
     </div>
 
     {{-- Statistiques globales --}}
     <div class="tab-pane fade" id="stats" role="tabpanel" aria-labelledby="stats-tab">
-        <div class="d-flex align-items-center justify-content-between mb-2">
-          <h4 class="mb-0">Statistiques globales</h4>
-          <div class="btn-group" role="group" aria-label="Fenêtre temporelle">
-            <button type="button" class="btn btn-sm btn-outline-secondary" data-window="2">2 mois</button>
-            <button type="button" class="btn btn-sm btn-outline-secondary" data-window="6">6 mois</button>
-            <button type="button" class="btn btn-sm btn-outline-secondary active" data-window="12">12 mois (1 an)</button>
+        <div class="stats-header">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h4 class="mb-1"><i class="bi bi-graph-up text-warning me-2"></i>Statistiques & Analytics</h4>
+              <p class="text-muted mb-0">Tableau de bord des performances et tendances</p>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+              <div class="stats-period-selector">
+                <label class="form-label mb-0 me-2"><i class="bi bi-calendar3 me-1"></i>Période :</label>
+                <div class="btn-group" role="group" aria-label="Fenêtre temporelle">
+                  <input type="radio" class="btn-check" name="statsPeriod" id="period2" data-window="2">
+                  <label class="btn btn-outline-secondary btn-sm" for="period2">2 mois</label>
+                  
+                  <input type="radio" class="btn-check" name="statsPeriod" id="period6" data-window="6">
+                  <label class="btn btn-outline-secondary btn-sm" for="period6">6 mois</label>
+                  
+                  <input type="radio" class="btn-check" name="statsPeriod" id="period12" data-window="12" checked>
+                  <label class="btn btn-outline-secondary btn-sm" for="period12">1 an</label>
+                </div>
+              </div>
+              <div class="vr"></div>
+              <button class="btn btn-outline-primary btn-sm" title="Exporter les statistiques">
+                <i class="bi bi-download me-1"></i>Export
+              </button>
+            </div>
           </div>
         </div>
-        <div class="row">
-            <div class="col-lg-6">
-                <div class="card mb-4">
-                    <div class="card-header">Répartition des rôles</div>
-                    <div class="card-body">
-                        <canvas id="rolesChart" height="220"></canvas>
+        <div class="stats-charts-grid">
+            <div class="row g-4">
+                <div class="col-lg-6">
+                    <div class="stats-chart-card">
+                        <div class="stats-chart-header">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="stats-chart-icon bg-primary">
+                                    <i class="bi bi-people-fill"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">Répartition des Rôles</h6>
+                                    <small class="text-muted">Distribution par catégorie d'utilisateur</small>
+                                </div>
+                            </div>
+                            <button class="btn btn-sm btn-outline-secondary" title="Options">
+                                <i class="bi bi-three-dots"></i>
+                            </button>
+                        </div>
+                        <div class="stats-chart-body">
+                            <canvas id="rolesChart" height="220"></canvas>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="col-lg-6">
-                <div class="card mb-4">
-                    <div class="card-header">Statuts des Rendez-vous</div>
-                    <div class="card-body">
-                        <canvas id="rendezvousChart" height="220"></canvas>
+                <div class="col-lg-6">
+                    <div class="stats-chart-card">
+                        <div class="stats-chart-header">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="stats-chart-icon bg-success">
+                                    <i class="bi bi-calendar-check"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">Statuts des Rendez-vous</h6>
+                                    <small class="text-muted">Répartition par statut</small>
+                                </div>
+                            </div>
+                            <button class="btn btn-sm btn-outline-secondary" title="Options">
+                                <i class="bi bi-three-dots"></i>
+                            </button>
+                        </div>
+                        <div class="stats-chart-body">
+                            <canvas id="rendezvousChart" height="220"></canvas>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="col-12">
-                <div class="card mb-4">
-                    <div class="card-header">Volumes mensuels (<span id="windowLabel">12 derniers mois</span>)</div>
-                    <div class="card-body">
-                        <canvas id="monthlyChart" height="260"></canvas>
+                <div class="col-12">
+                    <div class="stats-chart-card">
+                        <div class="stats-chart-header">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="stats-chart-icon bg-warning">
+                                    <i class="bi bi-graph-up-arrow"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">Volumes Mensuels</h6>
+                                    <small class="text-muted">Evolution des activités (<span id="windowLabel">12 derniers mois</span>)</small>
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-sm btn-outline-secondary" title="Voir en plein écran">
+                                    <i class="bi bi-arrows-fullscreen"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary" title="Options">
+                                    <i class="bi bi-three-dots"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="stats-chart-body">
+                            <canvas id="monthlyChart" height="260"></canvas>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="col-12">
-                <div class="card mb-4">
-                    <div class="card-header">Rendez-vous par statut (<span id="windowLabelStatus">12 derniers mois</span>)</div>
-                    <div class="card-body">
-                        <canvas id="rdvStatusMonthlyChart" height="240"></canvas>
+                <div class="col-12">
+                    <div class="stats-chart-card">
+                        <div class="stats-chart-header">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="stats-chart-icon bg-info">
+                                    <i class="bi bi-calendar2-range"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">Tendances des Rendez-vous</h6>
+                                    <small class="text-muted">Evolution par statut (<span id="windowLabelStatus">12 derniers mois</span>)</small>
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-sm btn-outline-secondary" title="Voir en plein écran">
+                                    <i class="bi bi-arrows-fullscreen"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary" title="Options">
+                                    <i class="bi bi-three-dots"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="stats-chart-body">
+                            <canvas id="rdvStatusMonthlyChart" height="240"></canvas>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -285,168 +1486,536 @@
 
     {{-- Superviser rôles --}}
     <div class="tab-pane fade" id="roles" role="tabpanel" aria-labelledby="roles-tab">
-        <h4 class="mb-3">Superviser les rôles</h4>
-        <div class="row g-3 mb-3">
-          @foreach($rolesCount ?? [] as $roleName => $count)
-            <div class="col-md-2">
-              <div class="card text-center">
-                <div class="card-body py-2">
-                  <div class="text-muted small" style="text-transform: capitalize;">{{ $roleName }}</div>
-                  <div class="h4 mb-0">{{ $count }}</div>
+        <div class="roles-supervision-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h4 class="mb-1"><i class="bi bi-person-gear text-purple me-2"></i>Supervision des Rôles</h4>
+                    <p class="text-muted mb-0">Gestion avancée des rôles et permissions utilisateurs</p>
                 </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-primary btn-sm" title="Exporter les rôles">
+                        <i class="bi bi-download me-1"></i>Exporter
+                    </button>
+                    <button class="btn btn-outline-success btn-sm" title="Audit des permissions">
+                        <i class="bi bi-shield-check me-1"></i>Audit
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        {{-- Cartes statistiques des rôles --}}
+        <div class="roles-stats-grid">
+          @foreach($rolesCount ?? [] as $roleName => $count)
+            @php
+              $roleConfig = [
+                'admin' => ['icon' => 'bi-shield-fill-check', 'color' => '#ef4444', 'label' => 'Administrateurs'],
+                'secretaire' => ['icon' => 'bi-person-workspace', 'color' => '#06b6d4', 'label' => 'Secrétaires'],
+                'medecin' => ['icon' => 'bi-person-hearts', 'color' => '#10b981', 'label' => 'Médecins'],
+                'infirmier' => ['icon' => 'bi-person-plus-fill', 'color' => '#8b5cf6', 'label' => 'Infirmiers'],
+                'patient' => ['icon' => 'bi-person-circle', 'color' => '#f59e0b', 'label' => 'Patients']
+              ];
+              $config = $roleConfig[$roleName] ?? ['icon' => 'bi-person', 'color' => '#6b7280', 'label' => ucfirst($roleName)];
+            @endphp
+            <div class="role-stat-card">
+              <div class="role-stat-icon" style="background: linear-gradient(135deg, {{ $config['color'] }}, {{ $config['color'] }}dd);">
+                <i class="bi {{ $config['icon'] }}"></i>
+              </div>
+              <div class="role-stat-content">
+                <div class="role-stat-number">{{ $count }}</div>
+                <div class="role-stat-label">{{ $config['label'] }}</div>
+              </div>
+              <div class="role-stat-trend">
+                <i class="bi bi-arrow-up-right text-success"></i>
               </div>
             </div>
           @endforeach
         </div>
-        <div class="table-responsive">
-          <table class="table table-striped align-middle">
-            <thead>
-              <tr>
-                <th>Utilisateur</th>
-                <th>Email</th>
-                <th>Rôle actuel</th>
-                <th>Changer de rôle</th>
-              </tr>
-            </thead>
-            <tbody>
-              @foreach($users as $u)
-                <tr>
-                  <td>{{ $u->name }}</td>
-                  <td>{{ $u->email }}</td>
-                  <td><span class="badge bg-success" style="text-transform: capitalize;">{{ $u->role }}</span></td>
-                  <td>
-                    <button type="button"
-                            class="btn btn-sm btn-outline-primary js-open-role-modal"
-                            data-user-id="{{ $u->id }}"
-                            data-user-name="{{ $u->name }}"
-                            data-current-role="{{ $u->role }}"
-                            data-bs-toggle="modal"
-                            data-bs-target="#roleUpdateModal"
-                            title="Changer le rôle">
-                      <i class="bi bi-person-gear"></i>
-                    </button>
-                  </td>
-                </tr>
-              @endforeach
-            </tbody>
-          </table>
-        </div>
-    </div>
-
-    {{-- Gestion rôles & permissions (vue simplifiée) --}}
-    <div class="tab-pane fade" id="permissions" role="tabpanel" aria-labelledby="permissions-tab">
-        <h4 class="mb-2">Accès indispensables</h4>
-        <form method="POST" action="{{ route('admin.permissions.save') }}" id="permForm">
-          @csrf
-
-          <style>
-            .perm-card .card-header { display: flex; align-items: center; gap: .5rem; font-weight: 600; }
-            .perm-card .module-icon { font-size: 1.1rem; }
-            .perm-table th, .perm-table td { vertical-align: middle; }
-            .perm-level-group .btn { min-width: 92px; }
-          </style>
-
-          <div class="card perm-card shadow-sm">
-            <div class="card-header">
-              <i class="bi {{ $essentialModule['icon'] }} module-icon"></i>
-              <span>{{ $essentialModule['title'] }}</span>
-            </div>
-            <div class="card-body p-0">
-              <div class="table-responsive">
-                <table class="table table-sm perm-table mb-0">
-                  <thead>
-                    <tr>
-                      <th style="min-width: 320px;">Rôle</th>
-                      <th class="text-center">Niveau d'accès</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    @foreach(['admin','secretaire','medecin','infirmier','patient'] as $r)
-                      @php
-                        $keys = array_map(fn($p)=>$p['key'], $essentialModule['permissions']);
-                        $valsByKey = [];
-                        foreach ($keys as $k) { $valsByKey[$k] = ($rolePermissions[$r][$k] ?? false); }
-                        $countTrue = count(array_filter($valsByKey));
-                        if ($countTrue === count($keys)) {
-                          $currentLevel = 'full';
-                        } elseif ($countTrue === 1) {
-                          $viewKey = null;
-                          foreach ($keys as $k) { if (str_ends_with($k, '.view')) { $viewKey = $k; break; } }
-                          $currentLevel = ($viewKey && !empty($valsByKey[$viewKey])) ? 'read' : 'full';
-                        } else {
-                          $currentLevel = $countTrue > 0 ? 'full' : 'none';
-                        }
-                      @endphp
-                      <tr>
-                        <td class="text-capitalize">
-                          <i class="bi bi-person-badge text-muted me-1"></i> {{ $r }}
-                        </td>
-                        <td class="text-center">
-                          <div class="btn-group btn-group-sm perm-level-group" role="group" aria-label="Niveau d'accès">
-                            @foreach([['none','Aucun'],['read','Lecture'],['full','Complet']] as $opt)
-                              @php $id = 'lvl_ess_'.preg_replace('/\W+/','_', $essentialModule['title'].'_'.$r.'_'.$opt[0]); @endphp
-                              <input type="radio" class="btn-check" name="levels[{{ $essentialModule['title'] }}][{{ $r }}]" id="{{ $id }}" autocomplete="off" value="{{ $opt[0] }}" {{ $currentLevel===$opt[0]?'checked':'' }}>
-                              <label class="btn btn-outline-secondary" for="{{ $id }}">{{ $opt[1] }}</label>
-                            @endforeach
-                          </div>
-                        </td>
-                      </tr>
-                    @endforeach
-                  </tbody>
-                </table>
+        
+        {{-- Tableau de gestion des rôles --}}
+        <div class="roles-management-table">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0"><i class="bi bi-table me-2"></i>Gestion des Rôles Utilisateurs</h5>
+            <div class="d-flex align-items-center gap-2">
+              <input type="text" id="searchRoles" class="form-control form-control-sm" placeholder="Rechercher un utilisateur..." style="max-width: 200px;">
+              <div class="dropdown">
+                <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                  <i class="bi bi-funnel me-1"></i>Filtrer
+                </button>
+                <ul class="dropdown-menu">
+                  <li><a class="dropdown-item" href="#" data-filter="all">Tous les rôles</a></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><a class="dropdown-item" href="#" data-filter="admin">Administrateurs</a></li>
+                  <li><a class="dropdown-item" href="#" data-filter="medecin">Médecins</a></li>
+                  <li><a class="dropdown-item" href="#" data-filter="secretaire">Secrétaires</a></li>
+                  <li><a class="dropdown-item" href="#" data-filter="infirmier">Infirmiers</a></li>
+                </ul>
               </div>
             </div>
           </div>
+          
+          <div class="table-container">
+            <table class="table admin-table" id="rolesTable">
+              <thead>
+                <tr>
+                  <th><i class="bi bi-person me-1"></i>Utilisateur</th>
+                  <th><i class="bi bi-envelope me-1"></i>Email</th>
+                  <th><i class="bi bi-person-badge me-1"></i>Rôle actuel</th>
+                  <th><i class="bi bi-calendar me-1"></i>Depuis</th>
+                  <th><i class="bi bi-activity me-1"></i>Statut</th>
+                  <th><i class="bi bi-gear me-1"></i>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                @foreach($users as $u)
+                  <tr data-role="{{ $u->role }}">
+                    <td>
+                      <div class="d-flex align-items-center gap-2">
+                        @php
+                          $avatar = $u->avatar_url ? asset($u->avatar_url) : 'https://ui-avatars.com/api/?size=32&name=' . urlencode($u->name);
+                        @endphp
+                        <img src="{{ $avatar }}" alt="Avatar" class="rounded-circle" width="32" height="32">
+                        <div>
+                          <div class="fw-medium">{{ $u->name }}</div>
+                          <small class="text-muted">ID: {{ $u->id }}</small>
+                        </div>
+                      </div>
+                    </td>
+                    <td>{{ $u->email }}</td>
+                    <td>
+                      @php
+                        $roleClasses = [
+                          'admin' => 'bg-danger',
+                          'medecin' => 'bg-success', 
+                          'secretaire' => 'bg-info',
+                          'infirmier' => 'bg-primary',
+                          'patient' => 'bg-warning text-dark'
+                        ];
+                        $roleClass = $roleClasses[$u->role] ?? 'bg-secondary';
+                      @endphp
+                      <span class="badge {{ $roleClass }} role-badge">{{ ucfirst($u->role) }}</span>
+                    </td>
+                    <td>
+                      <small class="text-muted">{{ $u->created_at->diffForHumans() }}</small>
+                    </td>
+                    <td>
+                      <span class="badge {{ $u->active ? 'bg-success' : 'bg-secondary' }} status-badge">
+                        <i class="bi {{ $u->active ? 'bi-check-circle' : 'bi-x-circle' }} me-1"></i>
+                        {{ $u->active ? 'Actif' : 'Inactif' }}
+                      </span>
+                    </td>
+                    <td>
+                      <div class="d-flex gap-2">
+                        <button type="button"
+                                class="btn btn-sm btn-outline-primary js-open-role-modal"
+                                data-user-id="{{ $u->id }}"
+                                data-user-name="{{ $u->name }}"
+                                data-current-role="{{ $u->role }}"
+                                data-bs-toggle="modal"
+                                data-bs-target="#roleUpdateModal"
+                                title="Changer le rôle">
+                          <i class="bi bi-person-gear"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-info" title="Voir détails">
+                          <i class="bi bi-eye"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                @endforeach
+              </tbody>
+            </table>
+          </div>
+        </div>
+    </div>
 
-          <div class="d-flex justify-content-end mt-3">
-            <button class="btn btn-success"><i class="bi bi-check2-circle me-1"></i> Enregistrer</button>
+    {{-- Gestion rôles & permissions --}}
+    <div class="tab-pane fade" id="permissions" role="tabpanel" aria-labelledby="permissions-tab">
+        <div class="permissions-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h4 class="mb-1"><i class="bi bi-shield-lock text-danger me-2"></i>Gestion des Permissions</h4>
+                    <p class="text-muted mb-0">Configuration avancée des accès et autorisations par rôle</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-warning btn-sm" title="Sauvegarder une template">
+                        <i class="bi bi-save me-1"></i>Template
+                    </button>
+                    <button class="btn btn-outline-info btn-sm" title="Importer configuration">
+                        <i class="bi bi-upload me-1"></i>Importer
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm" title="Audit des permissions">
+                        <i class="bi bi-shield-check me-1"></i>Audit
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        {{-- Alertes de sécurité --}}
+        <div class="permissions-alerts">
+            <div class="alert alert-warning d-flex align-items-center" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-3"></i>
+                <div>
+                    <strong>Attention !</strong> Les modifications de permissions prennent effet immédiatement.
+                    Assurez-vous de tester les accès après chaque changement.
+                </div>
+            </div>
+        </div>
+        
+        <form method="POST" action="{{ route('admin.permissions.save') }}" id="permForm" class="permissions-form">
+          @csrf
+          
+          {{-- Matrice des permissions --}}
+          <div class="permissions-matrix">
+            <div class="permissions-card">
+                <div class="permissions-card-header">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="permission-module-icon">
+                            <i class="bi {{ $essentialModule['icon'] ?? 'bi-gear' }}"></i>
+                        </div>
+                        <div>
+                            <h5 class="mb-0">{{ $essentialModule['title'] ?? 'Module Principal' }}</h5>
+                            <small class="text-muted">Gestion des accès essentiels du système</small>
+                        </div>
+                    </div>
+                    <div class="permission-actions">
+                        <button type="button" class="btn btn-sm btn-outline-primary" title="Tout activer">
+                            <i class="bi bi-check-all"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" title="Tout désactiver">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="permissions-table-container">
+                    <table class="table permissions-table">
+                        <thead>
+                            <tr>
+                                <th class="role-column">
+                                    <i class="bi bi-person-badge me-2"></i>Rôle
+                                </th>
+                                <th class="text-center permission-column">
+                                    <i class="bi bi-shield me-2"></i>Niveau d'Accès
+                                </th>
+                                <th class="text-center status-column">
+                                    <i class="bi bi-activity me-2"></i>Statut
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach(['admin','secretaire','medecin','infirmier','patient'] as $r)
+                              @php
+                                $keys = array_map(fn($p)=>$p['key'], $essentialModule['permissions'] ?? []);
+                                $valsByKey = [];
+                                foreach ($keys as $k) { $valsByKey[$k] = ($rolePermissions[$r][$k] ?? false); }
+                                $countTrue = count(array_filter($valsByKey));
+                                if ($countTrue === count($keys)) {
+                                  $currentLevel = 'full';
+                                } elseif ($countTrue === 1) {
+                                  $viewKey = null;
+                                  foreach ($keys as $k) { if (str_ends_with($k, '.view')) { $viewKey = $k; break; } }
+                                  $currentLevel = ($viewKey && !empty($valsByKey[$viewKey])) ? 'read' : 'full';
+                                } else {
+                                  $currentLevel = $countTrue > 0 ? 'full' : 'none';
+                                }
+                                
+                                $roleConfig = [
+                                  'admin' => ['icon' => 'bi-shield-fill-check', 'color' => 'danger', 'label' => 'Administrateur'],
+                                  'secretaire' => ['icon' => 'bi-person-workspace', 'color' => 'info', 'label' => 'Secrétaire'],
+                                  'medecin' => ['icon' => 'bi-person-hearts', 'color' => 'success', 'label' => 'Médecin'],
+                                  'infirmier' => ['icon' => 'bi-person-plus-fill', 'color' => 'primary', 'label' => 'Infirmier'],
+                                  'patient' => ['icon' => 'bi-person-circle', 'color' => 'warning', 'label' => 'Patient']
+                                ];
+                                $config = $roleConfig[$r] ?? ['icon' => 'bi-person', 'color' => 'secondary', 'label' => ucfirst($r)];
+                              @endphp
+                              <tr class="permission-row">
+                                <td class="role-cell">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="role-avatar bg-{{ $config['color'] }}">
+                                            <i class="bi {{ $config['icon'] }}"></i>
+                                        </div>
+                                        <div>
+                                            <div class="role-name">{{ $config['label'] }}</div>
+                                            <small class="text-muted">{{ $r }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <div class="permission-level-selector">
+                                        @foreach([['none','Aucun','secondary'],['read','Lecture','warning'],['full','Complet','success']] as $opt)
+                                          @php $id = 'lvl_ess_'.preg_replace('/\\W+/','_', ($essentialModule['title'] ?? 'module').'_'.$r.'_'.$opt[0]); @endphp
+                                          <input type="radio" class="btn-check" name="levels[{{ $essentialModule['title'] ?? 'module' }}][{{ $r }}]" id="{{ $id }}" autocomplete="off" value="{{ $opt[0] }}" {{ $currentLevel===$opt[0]?'checked':'' }}>
+                                          <label class="btn btn-outline-{{ $opt[2] }} btn-sm permission-btn" for="{{ $id }}">
+                                              <i class="bi bi-{{ $opt[0] === 'none' ? 'x-circle' : ($opt[0] === 'read' ? 'eye' : 'check-circle') }} me-1"></i>
+                                              {{ $opt[1] }}
+                                          </label>
+                                        @endforeach
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-{{ $currentLevel === 'full' ? 'success' : ($currentLevel === 'read' ? 'warning' : 'secondary') }} status-badge">
+                                        <i class="bi bi-{{ $currentLevel === 'full' ? 'shield-fill-check' : ($currentLevel === 'read' ? 'shield-fill-exclamation' : 'shield-fill-x') }} me-1"></i>
+                                        {{ $currentLevel === 'full' ? 'Actif' : ($currentLevel === 'read' ? 'Limité' : 'Inactif') }}
+                                    </span>
+                                </td>
+                              </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+          </div>
+          
+          {{-- Actions de sauvegarde --}}
+          <div class="permissions-actions-footer">
+              <div class="d-flex justify-content-between align-items-center">
+                  <div class="d-flex align-items-center gap-2 text-muted">
+                      <i class="bi bi-info-circle"></i>
+                      <small>Dernière modification : {{ date('d/m/Y H:i') }}</small>
+                  </div>
+                  <div class="d-flex gap-2">
+                      <button type="button" class="btn btn-outline-secondary">
+                          <i class="bi bi-arrow-clockwise me-1"></i>Annuler
+                      </button>
+                      <button type="submit" class="btn btn-success">
+                          <i class="bi bi-shield-check me-1"></i>Enregistrer les Permissions
+                      </button>
+                  </div>
+              </div>
           </div>
         </form>
-</div>
+    </div>
 
     {{-- Paiements --}}
     <div class="tab-pane fade" id="payments" role="tabpanel" aria-labelledby="payments-tab">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4 class="mb-0">Paiements récents</h4>
-        <a href="{{ route('secretaire.payments') }}" class="btn btn-outline-primary btn-sm">Gérer (Secrétaire)</a>
-      </div>
-      @php($recentOrders = \App\Models\Order::with('items','user')->orderByDesc('created_at')->take(20)->get())
-      <div class="table-responsive">
-        <table class="table table-sm align-middle">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Patient</th>
-              <th>Libellé</th>
-              <th class="text-end">Montant</th>
-              <th>Prestataire</th>
-              <th>Statut</th>
-              <th class="text-end">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            @forelse($recentOrders as $o)
-              <tr>
-                <td>{{ $o->created_at->format('Y-m-d H:i') }}</td>
-                <td>{{ $o->user->name ?? '—' }}</td>
-                <td>{{ optional($o->items->first())->label ?? '—' }}</td>
-                <td class="text-end">{{ number_format($o->total_amount, 0, ',', ' ') }} XOF</td>
-                <td>{{ strtoupper($o->provider ?? '—') }}</td>
-                <td>
-                  <span class="badge {{ $o->status==='paid' ? 'bg-success' : ($o->status==='pending' ? 'bg-warning text-dark' : 'bg-secondary') }}">{{ $o->status }}</span>
-                </td>
-                <td class="text-end d-flex gap-1 justify-content-end">
-                  @if($o->status==='paid')
-                    <a href="{{ route('payments.receipt', $o->id) }}" class="btn btn-outline-success btn-sm">Quittance</a>
-                  @endif
-                </td>
-              </tr>
-            @empty
-              <tr><td colspan="7" class="text-muted">Aucun paiement</td></tr>
-            @endforelse
-          </tbody>
-        </table>
-      </div>
+        <div class="payments-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h4 class="mb-1"><i class="bi bi-wallet2 text-info me-2"></i>Gestion des Paiements</h4>
+                    <p class="text-muted mb-0">Suivi des transactions et revenus de la plateforme</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-success btn-sm" title="Exporter les paiements">
+                        <i class="bi bi-download me-1"></i>Export
+                    </button>
+                    <button class="btn btn-outline-warning btn-sm" title="Rapports financiers">
+                        <i class="bi bi-graph-up me-1"></i>Rapports
+                    </button>
+                    <a href="{{ route('secretaire.payments') }}" class="btn btn-primary btn-sm">
+                        <i class="bi bi-gear me-1"></i>Gérer (Secrétaire)
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        {{-- KPIs Paiements --}}
+        @php
+            $recentOrders = \App\Models\Order::with('items','user')->orderByDesc('created_at')->take(20)->get();
+            $totalRevenue = $recentOrders->where('status', 'paid')->sum('total_amount');
+            $pendingAmount = $recentOrders->where('status', 'pending')->sum('total_amount');
+            $paidCount = $recentOrders->where('status', 'paid')->count();
+            $pendingCount = $recentOrders->where('status', 'pending')->count();
+        @endphp
+        
+        <div class="payments-kpis-grid">
+            <div class="payment-kpi-card revenue">
+                <div class="payment-kpi-icon">
+                    <i class="bi bi-cash-stack"></i>
+                </div>
+                <div class="payment-kpi-content">
+                    <div class="payment-kpi-number">{{ number_format($totalRevenue / 1000, 0) }}K</div>
+                    <div class="payment-kpi-label">Revenus (XOF)</div>
+                    <div class="payment-kpi-sub">{{ $paidCount }} transactions</div>
+                </div>
+                <div class="payment-kpi-trend up">
+                    <i class="bi bi-arrow-up-right"></i>
+                    <span>+12%</span>
+                </div>
+            </div>
+            
+            <div class="payment-kpi-card pending">
+                <div class="payment-kpi-icon">
+                    <i class="bi bi-clock-history"></i>
+                </div>
+                <div class="payment-kpi-content">
+                    <div class="payment-kpi-number">{{ number_format($pendingAmount / 1000, 0) }}K</div>
+                    <div class="payment-kpi-label">En Attente</div>
+                    <div class="payment-kpi-sub">{{ $pendingCount }} transactions</div>
+                </div>
+                <div class="payment-kpi-trend neutral">
+                    <i class="bi bi-dash"></i>
+                    <span>0%</span>
+                </div>
+            </div>
+            
+            <div class="payment-kpi-card success-rate">
+                <div class="payment-kpi-icon">
+                    <i class="bi bi-check-circle"></i>
+                </div>
+                <div class="payment-kpi-content">
+                    @php $successRate = $recentOrders->count() > 0 ? ($paidCount / $recentOrders->count()) * 100 : 0; @endphp
+                    <div class="payment-kpi-number">{{ number_format($successRate, 0) }}%</div>
+                    <div class="payment-kpi-label">Taux de Réussite</div>
+                    <div class="payment-kpi-sub">{{ $recentOrders->count() }} total</div>
+                </div>
+                <div class="payment-kpi-trend up">
+                    <i class="bi bi-arrow-up-right"></i>
+                    <span>+5%</span>
+                </div>
+            </div>
+            
+            <div class="payment-kpi-card providers">
+                <div class="payment-kpi-icon">
+                    <i class="bi bi-building"></i>
+                </div>
+                <div class="payment-kpi-content">
+                    @php $providers = $recentOrders->pluck('provider')->unique()->filter()->count(); @endphp
+                    <div class="payment-kpi-number">{{ $providers }}</div>
+                    <div class="payment-kpi-label">Prestataires</div>
+                    <div class="payment-kpi-sub">Actifs</div>
+                </div>
+                <div class="payment-kpi-trend neutral">
+                    <i class="bi bi-dash"></i>
+                    <span>-</span>
+                </div>
+            </div>
+        </div>
+        
+        {{-- Tableau des paiements --}}
+        <div class="payments-table-section">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0"><i class="bi bi-table me-2"></i>Transactions Récentes</h5>
+                <div class="d-flex align-items-center gap-2">
+                    <input type="text" id="searchPayments" class="form-control form-control-sm" placeholder="Rechercher une transaction..." style="max-width: 220px;">
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-funnel me-1"></i>Filtrer
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" data-payment-filter="all">Toutes les transactions</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" data-payment-filter="paid">Payées</a></li>
+                            <li><a class="dropdown-item" href="#" data-payment-filter="pending">En attente</a></li>
+                            <li><a class="dropdown-item" href="#" data-payment-filter="failed">Echouées</a></li>
+                        </ul>
+                    </div>
+                    <button class="btn btn-outline-info btn-sm" title="Actualiser">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <table class="table admin-table" id="paymentsTable">
+                    <thead>
+                        <tr>
+                            <th><i class="bi bi-calendar me-1"></i>Date & Heure</th>
+                            <th><i class="bi bi-person me-1"></i>Patient</th>
+                            <th><i class="bi bi-tag me-1"></i>Libellé</th>
+                            <th class="text-end"><i class="bi bi-currency-exchange me-1"></i>Montant</th>
+                            <th><i class="bi bi-building me-1"></i>Prestataire</th>
+                            <th><i class="bi bi-activity me-1"></i>Statut</th>
+                            <th class="text-end"><i class="bi bi-gear me-1"></i>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($recentOrders as $o)
+                            <tr data-payment-status="{{ $o->status }}">
+                                <td>
+                                    <div class="payment-date">
+                                        <div class="fw-medium">{{ $o->created_at->format('d/m/Y') }}</div>
+                                        <small class="text-muted">{{ $o->created_at->format('H:i') }}</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        @if($o->user)
+                                            @php $avatar = $o->user->avatar_url ? asset($o->user->avatar_url) : 'https://ui-avatars.com/api/?size=32&name=' . urlencode($o->user->name); @endphp
+                                            <img src="{{ $avatar }}" alt="Avatar" class="rounded-circle" width="32" height="32">
+                                            <div>
+                                                <div class="fw-medium">{{ $o->user->name }}</div>
+                                                <small class="text-muted">{{ $o->user->email }}</small>
+                                            </div>
+                                        @else
+                                            <span class="text-muted">Utilisateur supprimé</span>
+                                        @endif
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="payment-service">
+                                        <div class="fw-medium">{{ optional($o->items->first())->label ?? 'Service médical' }}</div>
+                                        <small class="text-muted">ID: {{ $o->id }}</small>
+                                    </div>
+                                </td>
+                                <td class="text-end">
+                                    <div class="payment-amount">
+                                        <div class="fw-bold">{{ number_format($o->total_amount, 0, ',', ' ') }}</div>
+                                        <small class="text-muted">XOF</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    @php
+                                        $providerConfig = [
+                                            'wave' => ['name' => 'Wave', 'color' => 'primary', 'icon' => 'bi-credit-card'],
+                                            'orange' => ['name' => 'Orange Money', 'color' => 'warning', 'icon' => 'bi-phone'],
+                                            'mtn' => ['name' => 'MTN MoMo', 'color' => 'success', 'icon' => 'bi-phone'],
+                                            'bank' => ['name' => 'Virement', 'color' => 'info', 'icon' => 'bi-bank']
+                                        ];
+                                        $provider = $providerConfig[strtolower($o->provider ?? '')] ?? ['name' => strtoupper($o->provider ?? 'N/A'), 'color' => 'secondary', 'icon' => 'bi-question-circle'];
+                                    @endphp
+                                    <span class="badge bg-{{ $provider['color'] }} provider-badge">
+                                        <i class="bi {{ $provider['icon'] }} me-1"></i>
+                                        {{ $provider['name'] }}
+                                    </span>
+                                </td>
+                                <td>
+                                    @php
+                                        $statusConfig = [
+                                            'paid' => ['label' => 'Payé', 'color' => 'success', 'icon' => 'bi-check-circle'],
+                                            'pending' => ['label' => 'En attente', 'color' => 'warning', 'icon' => 'bi-clock'],
+                                            'failed' => ['label' => 'Echoué', 'color' => 'danger', 'icon' => 'bi-x-circle'],
+                                            'cancelled' => ['label' => 'Annulé', 'color' => 'secondary', 'icon' => 'bi-dash-circle']
+                                        ];
+                                        $status = $statusConfig[$o->status] ?? ['label' => ucfirst($o->status), 'color' => 'secondary', 'icon' => 'bi-question-circle'];
+                                    @endphp
+                                    <span class="badge bg-{{ $status['color'] }} status-badge">
+                                        <i class="bi {{ $status['icon'] }} me-1"></i>
+                                        {{ $status['label'] }}
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-flex gap-1 justify-content-end">
+                                        @if($o->status === 'paid')
+                                            <a href="{{ route('payments.receipt', $o->id) }}" class="btn btn-outline-success btn-sm" title="Télécharger la quittance">
+                                                <i class="bi bi-receipt"></i>
+                                            </a>
+                                        @endif
+                                        <button class="btn btn-outline-info btn-sm" title="Voir détails">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        @if($o->status === 'pending')
+                                            <button class="btn btn-outline-warning btn-sm" title="Relancer">
+                                                <i class="bi bi-arrow-clockwise"></i>
+                                            </button>
+                                        @endif
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="7" class="text-center py-5">
+                                    <div class="empty-state">
+                                        <i class="bi bi-wallet2 text-muted" style="font-size: 3rem;"></i>
+                                        <h6 class="text-muted mt-2">Aucune transaction</h6>
+                                        <p class="text-muted small">Les paiements apparaîtront ici</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
 </div>
@@ -768,9 +2337,18 @@
       document.querySelectorAll('[data-window]').forEach(b=>b.classList.toggle('active', parseInt(b.dataset.window,10)===n));
     }
 
-    // Bind boutons
+    // Bind boutons de période (ancienne méthode + nouvelle)
     document.querySelectorAll('[data-window]').forEach(btn=>{
       btn.addEventListener('click', ()=> setWindow(parseInt(btn.dataset.window,10)) );
+    });
+    
+    // Nouvelle méthode avec radio buttons
+    document.querySelectorAll('input[name="statsPeriod"]').forEach(radio => {
+      radio.addEventListener('change', function() {
+        if (this.checked) {
+          setWindow(parseInt(this.dataset.window, 10));
+        }
+      });
     });
     
     // Initialiser les graphiques quand l'onglet statistiques est ouvert
@@ -788,17 +2366,58 @@
         setTimeout(initializeCharts, 100);
     }
 
-    // Filtres simples tables Admin
-    function filterTable(inputId, tableId){
+    // Filtres avancés pour les tables Admin
+    function filterTable(inputId, tableId, filterAttribute = null){
       const q = (document.getElementById(inputId)?.value || '').toLowerCase();
       const rows = document.querySelectorAll(`#${tableId} tbody tr`);
       rows.forEach(tr => {
         const text = tr.innerText.toLowerCase();
-        tr.style.display = text.includes(q) ? '' : 'none';
+        let shouldShow = text.includes(q);
+        
+        // Filtre supplémentaire par attribut si spécifié
+        if (filterAttribute && filterAttribute !== 'all') {
+          const roleAttr = tr.getAttribute('data-role');
+          shouldShow = shouldShow && (roleAttr === filterAttribute);
+        }
+        
+        tr.style.display = shouldShow ? '' : 'none';
       });
     }
+    
+    // Filtres de base
     document.getElementById('searchUsers')?.addEventListener('input', ()=>filterTable('searchUsers','usersTable'));
     document.getElementById('searchPatients')?.addEventListener('input', ()=>filterTable('searchPatients','patientsTable'));
+    
+    // Nouveau filtre pour les rôles
+    document.getElementById('searchRoles')?.addEventListener('input', ()=>filterTable('searchRoles','rolesTable'));
+    
+    // Filtres par rôle dans l'onglet supervision
+    document.querySelectorAll('[data-filter]').forEach(filterBtn => {
+      filterBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        const filter = this.getAttribute('data-filter');
+        const searchInput = document.getElementById('searchRoles');
+        const currentQuery = searchInput?.value || '';
+        
+        // Appliquer le filtre
+        const rows = document.querySelectorAll('#rolesTable tbody tr');
+        rows.forEach(tr => {
+          const text = tr.innerText.toLowerCase();
+          const roleAttr = tr.getAttribute('data-role');
+          
+          let shouldShow = text.includes(currentQuery.toLowerCase());
+          if (filter !== 'all') {
+            shouldShow = shouldShow && (roleAttr === filter);
+          }
+          
+          tr.style.display = shouldShow ? '' : 'none';
+        });
+        
+        // Mettre à jour l'apparence du bouton actif
+        document.querySelectorAll('[data-filter]').forEach(btn => btn.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
 
     // Debug: Affichage des données pour vérification
     console.log('Données pour graphiques:');
