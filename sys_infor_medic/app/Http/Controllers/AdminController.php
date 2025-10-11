@@ -78,17 +78,29 @@ class AdminController extends Controller
                     return $item->year . '-' . str_pad($item->month, 2, '0', STR_PAD_LEFT);
                 });
                 
-            $consultationsStats = Consultations::selectRaw('YEAR(date_consultation) as year, MONTH(date_consultation) as month, COUNT(*) as total')
+            // Requête alternative plus robuste pour les consultations
+            $consultationsData = Consultations::selectRaw('YEAR(date_consultation) as year, MONTH(date_consultation) as month, COUNT(*) as total')
                 ->where('date_consultation', '>=', Carbon::now()->subMonths(12))
                 ->groupBy('year', 'month')
-                ->pluck('total', DB::raw('CONCAT(year, "-", LPAD(month, 2, "0"))'))
-                ->toArray();
+                ->get();
                 
-            $patientsStats = Patient::selectRaw('YEAR(created_at) as year, MONTH(created_at) as month, COUNT(*) as total')
+            $consultationsStats = [];
+            foreach ($consultationsData as $item) {
+                $key = $item->year . '-' . str_pad($item->month, 2, '0', STR_PAD_LEFT);
+                $consultationsStats[$key] = $item->total;
+            }
+                
+            // Requête alternative plus robuste pour les patients
+            $patientsData = Patient::selectRaw('YEAR(created_at) as year, MONTH(created_at) as month, COUNT(*) as total')
                 ->where('created_at', '>=', Carbon::now()->subMonths(12))
                 ->groupBy('year', 'month')
-                ->pluck('total', DB::raw('CONCAT(year, "-", LPAD(month, 2, "0"))'))
-                ->toArray();
+                ->get();
+                
+            $patientsStats = [];
+            foreach ($patientsData as $item) {
+                $key = $item->year . '-' . str_pad($item->month, 2, '0', STR_PAD_LEFT);
+                $patientsStats[$key] = $item->total;
+            }
                 
             // Construire les séries de données
             foreach ($monthsData as $monthData) {
