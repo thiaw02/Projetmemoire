@@ -135,37 +135,4 @@ class AdminController extends BaseController
             return $this->handleException($e, ['action' => 'save_permissions']);
         }
     }
-
-    public function savePermissions(\Illuminate\Http\Request $request)
-    {
-        // Niveaux soumis: none | read | full
-        $submitted = $request->input('levels', []);
-        $roles = ['admin','secretaire','medecin','infirmier','patient'];
-
-        // Si le formulaire provient de la vue simplifiée (Indispensables)
-        if (isset($submitted['Indispensables'])) {
-            $essentialPerms = [
-                'patients.view','patients.create','rdv.view','rdv.create','consultations.view','consultations.create','ordonnances.create'
-            ];
-            foreach ($roles as $role) {
-                $level = $submitted['Indispensables'][$role] ?? 'none';
-                foreach ($essentialPerms as $permKey) {
-                    $allowed = false;
-                    if ($level === 'full') {
-                        $allowed = true;
-                    } elseif ($level === 'read') {
-                        $allowed = str_ends_with($permKey, '.view');
-                    }
-                    RolePermission::updateOrCreate(
-                        ['role' => $role, 'permission' => $permKey],
-                        ['allowed' => (bool)$allowed]
-                    );
-                }
-            }
-            return redirect()->route('admin.dashboard')->with('success', 'Permissions mises à jour.');
-        }
-
-        // Vue avancée désactivée: si non 'Indispensables', ne rien faire
-        return redirect()->route('admin.dashboard')->with('success', 'Permissions mises à jour.');
-    }
 }
