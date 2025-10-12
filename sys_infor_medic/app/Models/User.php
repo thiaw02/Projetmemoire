@@ -68,7 +68,37 @@ class User extends Authenticatable
     }
     public function consultations()
     {
-    return $this->hasMany(\App\Models\Consultations::class, 'medecin_id');
+        return $this->hasMany(Consultations::class, 'medecin_id');
+    }
+
+    public function evaluationsRecues()
+    {
+        return $this->hasMany(EvaluationMedecin::class, 'medecin_id');
+    }
+
+    public function evaluationsVisibles()
+    {
+        return $this->hasMany(EvaluationMedecin::class, 'medecin_id')
+                    ->where('visible_publiquement', true)
+                    ->where('statut', 'validee');
+    }
+
+    // Obtenir la note moyenne du médecin
+    public function getNoteMoyenneAttribute(): ?float
+    {
+        return EvaluationMedecin::noteMoyenneMedecin($this->id);
+    }
+
+    // Obtenir le nombre d'évaluations
+    public function getNombreEvaluationsAttribute(): int
+    {
+        return EvaluationMedecin::nombreEvaluationsMedecin($this->id);
+    }
+
+    // Obtenir le pourcentage de recommandations
+    public function getPourcentageRecommandationsAttribute(): ?float
+    {
+        return EvaluationMedecin::pourcentageRecommandationsMedecin($this->id);
     }
 
     /**

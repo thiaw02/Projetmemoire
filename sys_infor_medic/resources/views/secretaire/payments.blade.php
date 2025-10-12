@@ -13,7 +13,7 @@
       <a href="{{ route('secretaire.payments.export.csv') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-filetype-csv me-1"></i> CSV</a>
       <a href="{{ route('secretaire.payments.export.pdf') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-filetype-pdf me-1"></i> PDF</a>
       <a href="{{ route('secretaire.payments.settings') }}" class="btn btn-light btn-sm"><i class="bi bi-gear me-1"></i> Tarifs</a>
-      <a href="{{ route('secretaire.dashboard') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-arrow-left me-1"></i> Retour</a>
+      <a href="{{ Auth::user()->hasRole('admin') ? route('admin.dashboard') : route('secretaire.dashboard') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-arrow-left me-1"></i> Retour</a>
     </div>
   </div>
 </div>

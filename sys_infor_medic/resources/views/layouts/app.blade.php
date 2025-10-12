@@ -12,6 +12,69 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     {{-- Bootstrap Icons --}}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    
+    {{-- Profile Sidebar CSS --}}
+    <link rel="stylesheet" href="{{ asset('css/profile-sidebar.css') }}">
+    
+    {{-- Sidebar Standardization CSS --}}
+    <style>
+        /* Standardisation de la sidebar sur toutes les pages */
+        .sidebar-standardized {
+            width: 100%;
+            position: sticky;
+            top: 1rem;
+            z-index: 1020;
+        }
+        
+        .sidebar-standardized img[alt="Photo de profil"] {
+            width: 96px !important;
+            height: 96px !important;
+        }
+        
+        /* Force la structure col-lg-3 / col-lg-9 */
+        .standard-sidebar-layout .sidebar-column {
+            flex: 0 0 auto;
+            width: 25%; /* équivalent à col-lg-3 */
+        }
+        
+        .standard-sidebar-layout .content-column {
+            flex: 0 0 auto;
+            width: 75%; /* équivalent à col-lg-9 */
+        }
+        
+        @media (max-width: 991.98px) {
+            .standard-sidebar-layout .sidebar-column {
+                width: 100%;
+                margin-bottom: 2rem;
+            }
+            
+            .standard-sidebar-layout .content-column {
+                width: 100%;
+            }
+            
+            .sidebar-standardized {
+                position: static;
+            }
+        }
+        
+        /* Override pour pages avec anciennes structures */
+        .col-xxl-3, .col-xl-4, .col-lg-4 {
+            flex: 0 0 auto;
+            width: 25% !important; /* Force col-lg-3 */
+        }
+        
+        .col-xxl-9, .col-xl-8, .col-lg-8 {
+            flex: 0 0 auto;
+            width: 75% !important; /* Force col-lg-9 */
+        }
+        
+        @media (max-width: 991.98px) {
+            .col-xxl-3, .col-xl-4, .col-lg-4,
+            .col-xxl-9, .col-xl-8, .col-lg-8 {
+                width: 100% !important;
+            }
+        }
+    </style>
 
     <style>
         /* Police principale */
@@ -571,7 +634,7 @@
 
     {{-- Contenu de la page --}}
     @auth
-@if(!request()->routeIs('login','register','password.request','password.reset','admin.dashboard','admin.audit.*','secretaire.dashboard','medecin.dashboard','infirmier.dashboard','patient.dashboard','patient.payments.*','patient.settings.*','profile.*','chat.*'))
+@if(!request()->routeIs('login','register','password.request','password.reset','admin.dashboard','admin.audit.*','admin.settings','admin.settings.*','secretaire.dashboard','secretaire.settings','secretaire.settings.*','medecin.dashboard','medecin.settings','medecin.settings.*','infirmier.dashboard','infirmier.settings','infirmier.settings.*','patient.dashboard','patient.payments.*','patient.settings','patient.settings.*','profile.*','chat.*'))
     <div class="container mt-4">
       <div class="row">
         <div class="col-lg-3 mb-4">

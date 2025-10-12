@@ -41,6 +41,18 @@ class Consultations extends Model
         return $this->hasMany(Analyses::class, 'patient_id', 'patient_id');
     }
 
+    public function evaluation()
+    {
+        return $this->hasOne(EvaluationMedecin::class, 'consultation_id');
+    }
+
+    // Vérifier si cette consultation peut être évaluée
+    public function peutEtreEvaluee(): bool
+    {
+        return $this->statut === 'terminee' 
+               && !$this->evaluation 
+               && $this->date_consultation >= now()->subMonths(3);
+    }
 
 }
 

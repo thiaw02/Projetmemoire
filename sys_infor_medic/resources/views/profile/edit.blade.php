@@ -3,13 +3,13 @@
 @section('content')
 <div class="container-lg">
   <div class="row g-4">
-    <div class="col-xxl-3 col-xl-4 col-lg-4 mb-4">
-      <div class="sidebar-compact">
+    <div class="col-lg-3 mb-4">
+      <div class="sidebar-standardized">
         @include('layouts.partials.profile_sidebar')
       </div>
     </div>
     
-    <div class="col-xxl-9 col-xl-8 col-lg-8">
+    <div class="col-lg-9">
       {{-- Header paramètres adaptatif selon le rôle --}}
       <div class="settings-header role-{{ $user->role ?? 'user' }}">
         <div class="d-flex justify-content-between align-items-center">

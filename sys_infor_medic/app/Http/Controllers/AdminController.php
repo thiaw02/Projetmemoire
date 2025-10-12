@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\{User, Patient, Rendez_vous, Consultations, RolePermission};
 use App\Services\DataService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\{DB, Log};
 
 class AdminController extends BaseController
 {
@@ -15,13 +15,25 @@ class AdminController extends BaseController
             // Obtenir toutes les données via le service optimisé
             $dashboardData = DataService::getAdminDashboardStats();
             
-            // Utilisateurs récents pour affichage
-            $users = $this->cacheRemember('admin_recent_users', function() {
-                return User::select('id', 'name', 'role', 'active', 'created_at')
-                    ->latest()
-                    ->limit(50)
-                    ->get();
-            }, 300);
+            // Utilisateurs pour affichage - prioriser les rôles administratifs
+            $users = User::with(['nurses:id,name', 'doctors:id,name'])
+                ->select('id', 'name', 'email', 'role', 'active', 'created_at', 'specialite')
+                ->orderByRaw("CASE 
+                    WHEN role = 'admin' THEN 1 
+                    WHEN role = 'medecin' THEN 2 
+                    WHEN role = 'secretaire' THEN 3 
+                    WHEN role = 'infirmier' THEN 4 
+                    ELSE 5 END")
+                ->orderBy('created_at', 'desc')
+                ->limit(100)
+                ->get();
+            
+            // Debug : vérifier si les utilisateurs sont récupérés
+            if ($users->isEmpty()) {
+                \Log::warning('Aucun utilisateur trouvé pour le dashboard admin');
+            } else {
+                \Log::info('Utilisateurs récupérés pour dashboard : ' . $users->count());
+            }
 
             // Extraction des données
             $userStats = $dashboardData['user_stats'];

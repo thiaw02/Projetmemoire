@@ -1,6 +1,11 @@
 @extends('layouts.app')
 
 @section('content')
+<div class="row">
+  <div class="col-lg-4 mb-4">
+    @include('layouts.partials.profile_sidebar')
+  </div>
+  <div class="col-lg-8">
 <div class="settings-modern-container">
   {{-- Header principal modernisé --}}
   <div class="settings-hero">
@@ -143,9 +148,9 @@
             </div>
             
             <div class="form-actions-modern">
-              <button type="submit" class="btn-modern primary">
-                <i class="bi bi-check2"></i>
-                <span>Sauvegarder</span>
+              <button type="submit" class="btn-modern btn-personal">
+                <i class="bi bi-check2-circle"></i>
+                <span>Sauvegarder les informations</span>
               </button>
             </div>
           </form>
@@ -258,8 +263,8 @@
             </div>
             
             <div class="form-actions-modern">
-              <button type="submit" class="btn-modern primary">
-                <i class="bi bi-heart"></i>
+              <button type="submit" class="btn-modern btn-medical">
+                <i class="bi bi-heart-pulse-fill"></i>
                 <span>Sauvegarder le profil médical</span>
               </button>
             </div>
@@ -325,8 +330,8 @@
             </div>
             
             <div class="form-actions-modern">
-              <button type="submit" class="btn-modern warning">
-                <i class="bi bi-shield-fill-check"></i>
+              <button type="submit" class="btn-modern btn-security">
+                <i class="bi bi-shield-lock-fill"></i>
                 <span>Changer le mot de passe</span>
               </button>
             </div>
@@ -486,12 +491,12 @@
             </div>
             
             <div class="form-actions-modern">
-              <button type="submit" class="btn-modern primary">
-                <i class="bi bi-palette"></i>
+              <button type="submit" class="btn-modern btn-preferences">
+                <i class="bi bi-palette-fill"></i>
                 <span>Sauvegarder les préférences</span>
               </button>
               
-              <a href="{{ route('patient.settings.reset') }}" class="btn-modern secondary" 
+              <a href="{{ route('patient.settings.reset') }}" class="btn-modern btn-reset" 
                  onclick="return confirm('Voulez-vous vraiment réinitialiser toutes vos préférences ?')">
                 <i class="bi bi-arrow-clockwise"></i>
                 <span>Réinitialiser</span>
@@ -592,9 +597,9 @@
                       <i class="bi bi-x"></i>
                       <span>Annuler</span>
                     </button>
-                    <button type="submit" class="btn-modern primary">
-                      <i class="bi bi-check"></i>
-                      <span>Confirmer</span>
+                    <button type="submit" class="btn-modern btn-avatar">
+                      <i class="bi bi-check-circle-fill"></i>
+                      <span>Confirmer la photo</span>
                     </button>
                   </div>
                 </div>
@@ -631,6 +636,8 @@
   </div> {{-- Fin settings-content --}}
   
 </div> {{-- Fin settings-modern-container --}}
+  </div> {{-- Fin col-lg-9 --}}
+</div> {{-- Fin row --}}
 
 <style>
   @php
@@ -1313,6 +1320,117 @@
   .btn-modern.danger-outline:hover {
     background: var(--danger-color);
     color: white;
+  }
+  
+  /* ============= BOUTONS SPÉCIALISÉS COLORÉS ============= */
+  
+  .btn-modern.btn-personal {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+    border: 2px solid transparent;
+  }
+  
+  .btn-modern.btn-personal:hover {
+    background: linear-gradient(135deg, #1d4ed8, #1e40af);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+    color: white;
+  }
+  
+  .btn-modern.btn-medical {
+    background: linear-gradient(135deg, #dc2626, #991b1b);
+    color: white;
+    box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3);
+    border: 2px solid transparent;
+  }
+  
+  .btn-modern.btn-medical:hover {
+    background: linear-gradient(135deg, #991b1b, #7f1d1d);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(220, 38, 38, 0.4);
+    color: white;
+  }
+  
+  .btn-modern.btn-security {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+    box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+    border: 2px solid transparent;
+  }
+  
+  .btn-modern.btn-security:hover {
+    background: linear-gradient(135deg, #d97706, #b45309);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(245, 158, 11, 0.4);
+    color: white;
+  }
+  
+  .btn-modern.btn-preferences {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    color: white;
+    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+    border: 2px solid transparent;
+  }
+  
+  .btn-modern.btn-preferences:hover {
+    background: linear-gradient(135deg, #7c3aed, #6d28d9);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4);
+    color: white;
+  }
+  
+  .btn-modern.btn-avatar {
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    color: white;
+    box-shadow: 0 4px 15px rgba(6, 182, 212, 0.3);
+    border: 2px solid transparent;
+  }
+  
+  .btn-modern.btn-avatar:hover {
+    background: linear-gradient(135deg, #0891b2, #0e7490);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(6, 182, 212, 0.4);
+    color: white;
+  }
+  
+  .btn-modern.btn-reset {
+    background: linear-gradient(135deg, #6b7280, #4b5563);
+    color: white;
+    box-shadow: 0 4px 15px rgba(107, 114, 128, 0.3);
+    border: 2px solid transparent;
+  }
+  
+  .btn-modern.btn-reset:hover {
+    background: linear-gradient(135deg, #4b5563, #374151);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(107, 114, 128, 0.4);
+    color: white;
+  }
+  
+  /* Effets spéciaux pour les boutons */
+  .btn-modern.btn-personal::before {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(29, 78, 216, 0.2));
+  }
+  
+  .btn-modern.btn-medical::before {
+    background: linear-gradient(135deg, rgba(220, 38, 38, 0.2), rgba(153, 27, 27, 0.2));
+  }
+  
+  .btn-modern.btn-security::before {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.2));
+  }
+  
+  .btn-modern.btn-preferences::before {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(124, 58, 237, 0.2));
+  }
+  
+  .btn-modern.btn-avatar::before {
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(8, 145, 178, 0.2));
+  }
+  
+  .btn-modern.btn-reset::before {
+    background: linear-gradient(135deg, rgba(107, 114, 128, 0.2), rgba(75, 85, 99, 0.2));
   }
   
   /* ============= STYLES SPECIFIQUES PAR ONGLET ============= */

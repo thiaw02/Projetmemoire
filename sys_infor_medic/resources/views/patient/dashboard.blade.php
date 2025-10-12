@@ -3,7 +3,7 @@
 @section('content')
 <div class="row">
   <div class="col-lg-3 mb-4">
-    <div class="sidebar-sticky" style="position: sticky; top: 1rem;">
+    <div class="sidebar-standardized">
       @include('layouts.partials.profile_sidebar')
     </div>
   </div>
@@ -87,22 +87,6 @@
       </button>
     </div>
   </div>
-  
-  @if($preferences['show_health_score'])
-  <div class="stat-card health-score">
-    <div class="stat-icon">
-      <i class="bi bi-heart"></i>
-    </div>
-    <div class="stat-content">
-      <div class="stat-value">92%</div>
-      <div class="stat-label">Score santé</div>
-      <div class="stat-detail">Basé sur vos consultations</div>
-    </div>
-    <div class="stat-trend positive">
-      <i class="bi bi-arrow-up"></i>
-    </div>
-  </div>
-  @endif
 </div>
 @endif
 {{-- Navigation par onglets moderne --}}
@@ -123,6 +107,13 @@
     <button class="tab-btn {{ $preferences['default_tab'] === 'historique' ? 'active' : '' }}" data-tab="historique" onclick="switchToTab('historique')">
       <i class="bi bi-clock-history"></i>
       <span>Historique</span>
+    </button>
+    <button class="tab-btn {{ $preferences['default_tab'] === 'evaluations' ? 'active' : '' }}" data-tab="evaluations" onclick="switchToTab('evaluations')">
+      <i class="bi bi-star"></i>
+      <span>Évaluations</span>
+      @if(isset($evaluationsCount) && $evaluationsCount > 0)
+        <span class="notification-badge">{{ $evaluationsCount }}</span>
+      @endif
     </button>
   </div>
 </div>

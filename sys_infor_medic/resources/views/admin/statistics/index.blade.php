@@ -21,10 +21,6 @@
           <option value="year">Cette année</option>
         </select>
       </div>
-      <button class="btn-export" onclick="exportReport()">
-        <i class="bi bi-download"></i>
-        Exporter
-      </button>
       <a href="{{ route('admin.dashboard') }}" class="action-btn">
         <i class="bi bi-arrow-left"></i>
         Retour
@@ -338,26 +334,6 @@
     border-radius: 10px;
     padding: 0.6rem 1rem;
     font-weight: 500;
-  }
-  
-  .btn-export, .action-btn {
-    background: rgba(255, 255, 255, 0.15);
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    color: white;
-    padding: 0.6rem 1.2rem;
-    border-radius: 10px;
-    font-weight: 500;
-    transition: all 0.3s ease;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-  
-  .btn-export:hover, .action-btn:hover {
-    background: white;
-    color: var(--primary-color);
-    transform: translateY(-2px);
   }
   
   /* Grille KPI */

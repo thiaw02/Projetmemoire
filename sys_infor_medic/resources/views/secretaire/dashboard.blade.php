@@ -3,7 +3,7 @@
 @section('content')
 <div class="row">
   <div class="col-lg-3 mb-4">
-    <div class="sidebar-sticky">
+    <div class="sidebar-standardized">
       @include('layouts.partials.profile_sidebar')
     </div>
   </div>
@@ -337,8 +337,6 @@
 <style>
   /* Conteneur principal */
   body > .container { max-width: 1500px !important; }
-  .sidebar-sticky { position: sticky; top: 1rem; }
-  .sidebar-sticky img[alt="Photo de profil"] { width: 96px !important; height: 96px !important; }
   
   /* Header moderne secrétaire */
   .secretary-modern-header {

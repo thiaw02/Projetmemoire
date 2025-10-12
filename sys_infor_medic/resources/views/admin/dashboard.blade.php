@@ -3,7 +3,7 @@
 @section('content')
 <div class="row">
   <div class="col-lg-3 mb-4">
-    <div class="sidebar-sticky">
+    <div class="sidebar-standardized">
       @include('layouts.partials.profile_sidebar')
     </div>
   </div>
@@ -1235,6 +1235,7 @@
           </div>
         </div>
 
+        
         <div class="table-container">
           <table class="table admin-table" id="usersTable">
               <thead>
@@ -1802,7 +1803,7 @@
                         <i class="bi bi-graph-up me-1"></i>Rapports
                     </button>
                     <a href="{{ route('secretaire.payments') }}" class="btn btn-primary btn-sm">
-                        <i class="bi bi-gear me-1"></i>Gérer (Secrétaire)
+                        <i class="bi bi-gear me-1"></i>Gérer paiement
                     </a>
                 </div>
             </div>

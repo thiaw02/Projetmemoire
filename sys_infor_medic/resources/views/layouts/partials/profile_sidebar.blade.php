@@ -6,179 +6,11 @@
             : asset(ltrim($rawAvatar, '/'));
 @endphp
 
-<style>
-  .modern-sidebar {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 24px;
-    color: white;
-    border: none;
-    box-shadow: 0 10px 40px rgba(102, 126, 234, 0.2);
-    overflow: hidden;
-    position: relative;
-  }
-  
-  .modern-sidebar::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: repeating-linear-gradient(
-      45deg,
-      rgba(255, 255, 255, 0.05),
-      rgba(255, 255, 255, 0.05) 1px,
-      transparent 1px,
-      transparent 10px
-    );
-    opacity: 0.3;
-  }
-  
-  .sidebar-body {
-    padding: 2rem 1.5rem;
-    position: relative;
-    z-index: 1;
-  }
-  
-  .profile-avatar {
-    position: relative;
-    margin-bottom: 1.5rem;
-  }
-  
-  .profile-avatar img {
-    width: 90px;
-    height: 90px;
-    border: 4px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-    transition: all 0.3s ease;
-  }
-  
-  .profile-avatar:hover img {
-    transform: scale(1.05);
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
-  }
-  
-  .profile-name {
-    font-size: 1.25rem;
-    font-weight: 700;
-    margin-bottom: 0.5rem;
-    color: white;
-  }
-  
-  .profile-role {
-    background: rgba(255, 255, 255, 0.2);
-    padding: 0.4rem 1rem;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    display: inline-block;
-    margin-bottom: 1.5rem;
-  }
-  
-  .profile-settings-btn {
-    background: rgba(255, 255, 255, 0.15);
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    color: white;
-    padding: 0.6rem 1.5rem;
-    border-radius: 12px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 1.5rem;
-  }
-  
-  .profile-settings-btn:hover {
-    background: white;
-    color: #667eea;
-    border-color: white;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-  }
-  
-  .profile-divider {
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-    margin: 1.5rem 0;
-    border: none;
-  }
-  
-  .profile-info {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-  }
-  
-  .profile-info-item {
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
-    padding: 0.8rem 1rem;
-    margin-bottom: 0.75rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    transition: all 0.3s ease;
-    backdrop-filter: blur(10px);
-  }
-  
-  .profile-info-item:hover {
-    background: rgba(255, 255, 255, 0.12);
-    border-color: rgba(255, 255, 255, 0.2);
-    transform: translateX(5px);
-  }
-  
-  .profile-info-item:last-child {
-    margin-bottom: 0;
-  }
-  
-  .info-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  
-  .info-label {
-    font-size: 0.8rem;
-    font-weight: 500;
-    opacity: 0.9;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-  
-  .info-value {
-    font-size: 0.8rem;
-    font-weight: 600;
-    opacity: 0.95;
-  }
-  
-  .info-block {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
-  }
-  
-  .info-block .info-label {
-    opacity: 0.7;
-    font-size: 0.75rem;
-  }
-  
-  .info-block .info-value {
-    font-size: 0.85rem;
-    line-height: 1.4;
-  }
-  
-  .sidebar-icon {
-    width: 16px;
-    height: 16px;
-    opacity: 0.8;
-  }
-</style>
+@once
+  <link rel="stylesheet" href="{{ asset('css/profile-sidebar.css') }}">
+@endonce
 
-<div class="modern-sidebar">
+<div class="modern-sidebar role-{{ $user->role ?? 'user' }}">
   <div class="sidebar-body text-center">
     <div class="profile-avatar">
       <img src="{{ $avatar }}" alt="Photo de profil" class="rounded-circle" style="object-fit:cover;">
@@ -251,8 +83,14 @@
       @elseif(($user->role ?? '') === 'medecin')
       <li class="profile-info-item">
         <div class="info-row">
-          <span class="info-label"><i class="bi bi-briefcase sidebar-icon"></i>Spécialité</span>
+          <span class="info-label"><i class="bi bi-stethoscope sidebar-icon"></i>Spécialité</span>
           <span class="info-value">{{ Str::limit($user->specialite ?? '—', 20) }}</span>
+        </div>
+      </li>
+      <li class="profile-info-item">
+        <div class="info-row">
+          <span class="info-label"><i class="bi bi-telephone sidebar-icon"></i>Tél. Pro</span>
+          <span class="info-value">{{ $user->pro_phone ?? '—' }}</span>
         </div>
       </li>
       <li class="profile-info-item">
@@ -269,16 +107,209 @@
       </li>
       <li class="profile-info-item">
         <div class="info-block">
-          <span class="info-label"><i class="bi bi-clock sidebar-icon"></i>Horaires</span>
-          <div class="info-value">{{ Str::limit($user->horaires ?? '—', 50) }}</div>
+          <span class="info-label"><i class="bi bi-clock sidebar-icon"></i>Horaires consul.</span>
+          <div class="info-value">{{ Str::limit($user->horaires ?? '—', 40) }}</div>
+        </div>
+      </li>
+      @php
+        $nursesCount = $user->nurses()->count();
+        $nursesNames = $user->nurses()->limit(2)->pluck('name')->join(', ');
+        $consultationsToday = $user->consultations()->whereDate('created_at', today())->count();
+      @endphp
+      <li class="profile-info-item">
+        <div class="info-block">
+          <span class="info-label">
+            <i class="bi bi-people sidebar-icon"></i>Infirmiers
+            <span class="info-value-count {{ $nursesCount == 0 ? 'info-value-zero' : '' }}">{{ $nursesCount }}</span>
+          </span>
+          <div class="info-value team-members {{ !$nursesNames ? 'no-assignment' : '' }}">
+            {{ $nursesNames ?: 'Aucun assigné' }}{{ $nursesCount > 2 ? '...' : '' }}
+          </div>
+        </div>
+      </li>
+      <li class="profile-info-item">
+        <div class="info-row">
+          <span class="info-label"><i class="bi bi-calendar-check sidebar-icon"></i>Consultations</span>
+          <span class="info-value consultation-today">
+            <span class="consultation-count {{ $consultationsToday == 0 ? 'zero' : '' }}">
+              {{ $consultationsToday }}
+            </span>
+            aujourd'hui
+          </span>
+        </div>
+      </li>
+      <li class="profile-info-item">
+        <div class="info-row">
+          <span class="info-label"><i class="bi bi-shield-check sidebar-icon"></i>Statut</span>
+          <span class="info-value">
+            <span class="status-badge {{ $user->active ? 'status-available' : 'status-unavailable' }}">
+              {{ $user->active ? 'Disponible' : 'Indisponible' }}
+            </span>
+          </span>
         </div>
       </li>
       
-      @elseif(in_array(($user->role ?? ''), ['secretaire','infirmier']))
+      @elseif(($user->role ?? '') === 'secretaire')
       <li class="profile-info-item">
         <div class="info-row">
           <span class="info-label"><i class="bi bi-telephone sidebar-icon"></i>Tél. Pro</span>
           <span class="info-value">{{ $user->pro_phone ?? '—' }}</span>
+        </div>
+      </li>
+      <li class="profile-info-item">
+        <div class="info-row">
+          <span class="info-label"><i class="bi bi-upc sidebar-icon"></i>Matricule</span>
+          <span class="info-value">{{ $user->matricule ?? '—' }}</span>
+        </div>
+      </li>
+      <li class="profile-info-item">
+        <div class="info-row">
+          <span class="info-label"><i class="bi bi-briefcase sidebar-icon"></i>Service</span>
+          <span class="info-value">{{ $user->specialite ?? 'Administration' }}</span>
+        </div>
+      </li>
+      <li class="profile-info-item">
+        <div class="info-block">
+          <span class="info-label"><i class="bi bi-clock sidebar-icon"></i>Horaires travail</span>
+          <div class="info-value">{{ Str::limit($user->horaires ?? 'Lun-Ven 8h-17h', 40) }}</div>
+        </div>
+      </li>
+      <li class="profile-info-item">
+        <div class="info-row">
+          <span class="info-label"><i class="bi bi-building sidebar-icon"></i>Bureau</span>
+          <span class="info-value">{{ Str::limit($user->cabinet ?? 'Accueil', 15) }}</span>
+        </div>
+      </li>
+      <li class="profile-info-item">
+        <div class="info-row">
+          <span class="info-label"><i class="bi bi-shield-check sidebar-icon"></i>Statut</span>
+          <span class="info-value">
+            <span class="status-badge {{ $user->active ? 'status-active' : 'status-inactive' }}">
+              {{ $user->active ? 'Actif' : 'Inactif' }}
+            </span>
+          </span>
+        </div>
+      </li>
+      
+      @elseif(($user->role ?? '') === 'infirmier')
+      <li class="profile-info-item">
+        <div class="info-row">
+          <span class="info-label"><i class="bi bi-telephone sidebar-icon"></i>Tél. Pro</span>
+          <span class="info-value">{{ $user->pro_phone ?? '—' }}</span>
+        </div>
+      </li>
+      <li class="profile-info-item">
+        <div class="info-row">
+          <span class="info-label"><i class="bi bi-upc sidebar-icon"></i>Matricule</span>
+          <span class="info-value">{{ $user->matricule ?? '—' }}</span>
+        </div>
+      </li>
+      <li class="profile-info-item">
+        <div class="info-row">
+          <span class="info-label"><i class="bi bi-heart-pulse sidebar-icon"></i>Spécialité</span>
+          <span class="info-value">{{ Str::limit($user->specialite ?? 'Soins généraux', 20) }}</span>
+        </div>
+      </li>
+      <li class="profile-info-item">
+        <div class="info-row">
+          <span class="info-label"><i class="bi bi-hospital sidebar-icon"></i>Service</span>
+          <span class="info-value">{{ Str::limit($user->cabinet ?? 'Urgences', 15) }}</span>
+        </div>
+      </li>
+      <li class="profile-info-item">
+        <div class="info-block">
+          <span class="info-label"><i class="bi bi-clock sidebar-icon"></i>Horaires garde</span>
+          <div class="info-value">{{ Str::limit($user->horaires ?? 'Planning variable', 40) }}</div>
+        </div>
+      </li>
+      @php
+        $doctorsCount = $user->doctors()->count();
+        $doctorsNames = $user->doctors()->limit(2)->pluck('name')->join(', ');
+      @endphp
+      <li class="profile-info-item">
+        <div class="info-block">
+          <span class="info-label">
+            <i class="bi bi-people sidebar-icon"></i>Médecins
+            <span class="info-value-count {{ $doctorsCount == 0 ? 'info-value-zero' : '' }}">{{ $doctorsCount }}</span>
+          </span>
+          <div class="info-value team-members {{ !$doctorsNames ? 'no-assignment' : '' }}">
+            {{ $doctorsNames ?: 'Aucun assigné' }}{{ $doctorsCount > 2 ? '...' : '' }}
+          </div>
+        </div>
+      </li>
+      <li class="profile-info-item">
+        <div class="info-row">
+          <span class="info-label"><i class="bi bi-shield-check sidebar-icon"></i>Statut</span>
+          <span class="info-value">
+            <span class="status-badge {{ $user->active ? 'status-active' : 'status-inactive' }}">
+              {{ $user->active ? 'Actif' : 'Inactif' }}
+            </span>
+          </span>
+        </div>
+      </li>
+      
+      @elseif(($user->role ?? '') === 'admin')
+      <li class="profile-info-item">
+        <div class="info-row">
+          <span class="info-label"><i class="bi bi-telephone sidebar-icon"></i>Tél. Pro</span>
+          <span class="info-value">{{ $user->pro_phone ?? '—' }}</span>
+        </div>
+      </li>
+      <li class="profile-info-item">
+        <div class="info-row">
+          <span class="info-label"><i class="bi bi-upc sidebar-icon"></i>Matricule</span>
+          <span class="info-value">{{ $user->matricule ?? '—' }}</span>
+        </div>
+      </li>
+      <li class="profile-info-item">
+        <div class="info-row">
+          <span class="info-label"><i class="bi bi-shield-fill-exclamation sidebar-icon"></i>Niveau accès</span>
+          <span class="info-value">
+            <span class="status-badge status-admin">Administrateur</span>
+          </span>
+        </div>
+      </li>
+      <li class="profile-info-item">
+        <div class="info-row">
+          <span class="info-label"><i class="bi bi-building sidebar-icon"></i>Département</span>
+          <span class="info-value">{{ Str::limit($user->specialite ?? 'IT/Système', 20) }}</span>
+        </div>
+      </li>
+      <li class="profile-info-item">
+        <div class="info-row">
+          <span class="info-label"><i class="bi bi-geo-alt sidebar-icon"></i>Bureau</span>
+          <span class="info-value">{{ Str::limit($user->cabinet ?? 'Administration', 15) }}</span>
+        </div>
+      </li>
+      <li class="profile-info-item">
+        <div class="info-block">
+          <span class="info-label"><i class="bi bi-clock sidebar-icon"></i>Disponibilité</span>
+          <div class="info-value">{{ Str::limit($user->horaires ?? '24/7 Support', 40) }}</div>
+        </div>
+      </li>
+      @php
+        $totalUsers = \App\Models\User::where('role', '!=', 'admin')->count();
+        $activeUsers = \App\Models\User::where('role', '!=', 'admin')->where('active', true)->count();
+      @endphp
+      <li class="profile-info-item">
+        <div class="info-block">
+          <span class="info-label">
+            <i class="bi bi-people sidebar-icon"></i>Utilisateurs
+            <span class="info-value-count">{{ $totalUsers }}</span>
+          </span>
+          <div class="info-value">
+            <span class="info-value-highlight">{{ $activeUsers }} actifs</span> / {{ $totalUsers }} total
+          </div>
+        </div>
+      </li>
+      <li class="profile-info-item">
+        <div class="info-row">
+          <span class="info-label"><i class="bi bi-shield-check sidebar-icon"></i>Statut</span>
+          <span class="info-value">
+            <span class="status-badge {{ $user->active ? 'status-active' : 'status-inactive' }}">
+              {{ $user->active ? 'Actif' : 'Inactif' }}
+            </span>
+          </span>
         </div>
       </li>
       @endif

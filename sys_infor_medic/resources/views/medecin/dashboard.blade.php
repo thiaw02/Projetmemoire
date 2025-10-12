@@ -437,7 +437,7 @@
 </style>
 <div class="row">
   <div class="col-lg-3 mb-4">
-    <div class="sidebar-sticky">
+    <div class="sidebar-standardized">
       @include('layouts.partials.profile_sidebar')
     </div>
   </div>

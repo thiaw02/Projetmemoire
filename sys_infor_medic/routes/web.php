@@ -198,6 +198,10 @@ Route::prefix('patient')->middleware('auth')->group(function () {
     Route::post('/settings', [\App\Http\Controllers\PatientSettingsController::class, 'updatePreferences'])->name('patient.settings.update');
     Route::get('/settings/reset', [\App\Http\Controllers\PatientSettingsController::class, 'resetPreferences'])->name('patient.settings.reset');
     Route::get('/settings/api/preferences', [\App\Http\Controllers\PatientSettingsController::class, 'getPreferences'])->name('patient.settings.api.preferences');
+    
+    // Consultations et historique
+    Route::get('/consultations', [PatientController::class, 'consultations'])->name('patient.consultations');
+    Route::get('/consultations/{id}', [PatientController::class, 'consultationDetail'])->name('patient.consultations.show');
 });
 
 // Paiements: callbacks & sandbox
@@ -229,3 +233,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin/performance')->group(fu
     Route::get('/stats', [App\Http\Controllers\PerformanceController::class, 'stats'])->name('admin.performance.stats');
     Route::post('/clear-cache', [App\Http\Controllers\PerformanceController::class, 'clearCache'])->name('admin.performance.clear-cache');
 });
+
+// ===================== EVALUATIONS DES MÉDECINS =====================
+// Inclure les routes d'évaluation
+require __DIR__.'/evaluations.php';

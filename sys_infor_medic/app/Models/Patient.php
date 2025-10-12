@@ -72,4 +72,9 @@ class Patient extends Model
     {
         return $this->belongsTo(User::class, 'secretary_user_id');
     }
+
+    public function evaluations()
+    {
+        return $this->hasMany(EvaluationMedecin::class, 'patient_id');
+    }
 }
