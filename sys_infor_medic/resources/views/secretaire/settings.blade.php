@@ -317,7 +317,7 @@
                 $user = auth()->user();
                 $rawAvatar = $user->avatar_url ?: ('https://ui-avatars.com/api/?size=120&name=' . urlencode($user->name));
                 $avatar = (str_starts_with($rawAvatar, 'http://') || str_starts_with($rawAvatar, 'https://') || str_starts_with($rawAvatar, '//')
-                          ? $rawAvatar : asset(ltrim($rawAvatar, '/'));
+                          ? $rawAvatar : asset(ltrim($rawAvatar, '/')));
               @endphp
               
               <div class="avatar-section">

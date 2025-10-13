@@ -108,13 +108,6 @@
       <i class="bi bi-clock-history"></i>
       <span>Historique</span>
     </button>
-    <button class="tab-btn {{ $preferences['default_tab'] === 'evaluations' ? 'active' : '' }}" data-tab="evaluations" onclick="switchToTab('evaluations')">
-      <i class="bi bi-star"></i>
-      <span>Évaluations</span>
-      @if(isset($evaluationsCount) && $evaluationsCount > 0)
-        <span class="notification-badge">{{ $evaluationsCount }}</span>
-      @endif
-    </button>
   </div>
 </div>
 
@@ -333,7 +326,7 @@
                   <div class="consultation-diagnosis">{{ $consultation->diagnostic }}</div>
                 </div>
                 <div class="item-actions">
-                  <button class="action-link" onclick="viewConsultationDetails({{ $consultation->id }})">
+                  <button class="action-link" onclick="viewConsultationDetails('{{ e($consultation->id) }}')">
                     <i class="bi bi-eye"></i>
                   </button>
                 </div>
@@ -420,14 +413,14 @@
             
             <div class="appointment-actions">
               @if(strtolower($rdv->statut) === 'en_attente')
-                <button class="action-btn cancel" onclick="cancelAppointment({{ $rdv->id }})">
+                <button class="action-btn cancel" onclick="cancelAppointment('{{ $rdv->id }}')">
                   <i class="bi bi-x"></i>
                 </button>
-                <button class="action-btn modify" onclick="modifyAppointment({{ $rdv->id }})">
+                <button class="action-btn modify" onclick="modifyAppointment('{{ $rdv->id }}')">
                   <i class="bi bi-pencil"></i>
                 </button>
               @endif
-              <button class="action-btn details" onclick="viewAppointmentDetails({{ $rdv->id }})">
+              <button class="action-btn details" onclick="viewAppointmentDetails('{{ $rdv->id }}')">
                 <i class="bi bi-eye"></i>
               </button>
             </div>
@@ -491,21 +484,21 @@
 </div>
 </div>
 
+@php
+  $themeColors = [
+    'blue' => ['primary' => '#3b82f6', 'secondary' => '#1e40af'],
+    'purple' => ['primary' => '#8b5cf6', 'secondary' => '#7c3aed'],
+    'green' => ['primary' => '#10b981', 'secondary' => '#059669'],
+    'orange' => ['primary' => '#f59e0b', 'secondary' => '#d97706'],
+    'red' => ['primary' => '#ef4444', 'secondary' => '#dc2626'],
+    'pink' => ['primary' => '#ec4899', 'secondary' => '#db2777']
+  ];
+  $currentTheme = $themeColors[$preferences['theme_color']] ?? $themeColors['blue'];
+  $animationSpeed = $preferences['animation_speed'] === 'slow' ? '0.5s' : ($preferences['animation_speed'] === 'fast' ? '0.15s' : '0.3s');
+@endphp
 <style>
   /* Variables CSS dynamiques basées sur les préférences */
   :root {
-    @php
-      $themeColors = [
-        'blue' => ['primary' => '#3b82f6', 'secondary' => '#1e40af'],
-        'purple' => ['primary' => '#8b5cf6', 'secondary' => '#7c3aed'],
-        'green' => ['primary' => '#10b981', 'secondary' => '#059669'],
-        'orange' => ['primary' => '#f59e0b', 'secondary' => '#d97706'],
-        'red' => ['primary' => '#ef4444', 'secondary' => '#dc2626'],
-        'pink' => ['primary' => '#ec4899', 'secondary' => '#db2777']
-      ];
-      $currentTheme = $themeColors[$preferences['theme_color']] ?? $themeColors['blue'];
-    @endphp
-    
     --patient-primary: {{ $currentTheme['primary'] }};
     --patient-secondary: {{ $currentTheme['secondary'] }};
     --patient-success: #059669;
@@ -515,9 +508,8 @@
     --patient-card: #ffffff;
     --patient-text: #1f2937;
     --patient-text-light: #6b7280;
-    
     /* Vitesses d'animation */
-    --animation-speed: {{ $preferences['animation_speed'] === 'slow' ? '0.5s' : ($preferences['animation_speed'] === 'fast' ? '0.15s' : '0.3s') }};
+    --animation-speed: {{ $animationSpeed }};
   }
   
   body { background: var(--patient-bg); }
@@ -1741,7 +1733,7 @@
     loadDraft();
     
     // Initialiser l'onglet par défaut selon les préférences
-    const defaultTab = '{{ $preferences['default_tab'] }}';
+    const defaultTab = "{{ $preferences['default_tab'] }}";
     if (defaultTab && defaultTab !== 'rdv') {
       // Désactiver tous les onglets
       document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
