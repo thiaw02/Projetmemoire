@@ -608,10 +608,10 @@
                   <a href="#" class="view-all-link">Voir toutes les notifications</a>
                 </div>
               </div>
-              <form action="{{ route('logout') }}" method="POST" class="mb-0 ms-2">
-                @csrf
-                <button class="btn btn-outline-danger btn-sm"><i class="bi bi-box-arrow-right me-1"></i> Déconnexion</button>
-              </form>
+              <button type="button" class="btn btn-outline-danger btn-sm ms-2" id="navbarLogoutBtn" 
+                      onclick="handleNavbarLogout()">
+                <i class="bi bi-box-arrow-right me-1"></i> Déconnexion
+              </button>
             </div>
             @endauth
         </div>
@@ -658,6 +658,11 @@
 
     {{-- Bootstrap JS --}}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    {{-- Script de notifications temps réel pour les rendez-vous --}}
+    @auth
+    <script src="{{ asset('js/rendezvous-notifications.js') }}"></script>
+    @endauth
 
     <script>
       // Expose CSRF token for JS fetch usage
@@ -665,6 +670,105 @@
       // Current user id for per-user local storage keys
       window.userId = "{{ auth()->id() }}";
       window.userRole = "{{ auth()->user()->role ?? '' }}";
+      
+      // Fonction de rafraîchissement du token CSRF globale
+      async function refreshCSRFTokenGlobal() {
+        try {
+          const response = await fetch('{{ route('csrf.token') }}', {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: {
+              'Accept': 'application/json'
+            }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            const newToken = data.token;
+            
+            if (newToken) {
+              // Mettre à jour le token dans toutes les meta tags
+              document.querySelectorAll('meta[name="csrf-token"]').forEach(meta => {
+                meta.setAttribute('content', newToken);
+              });
+              
+              // Mettre à jour le token dans tous les formulaires
+              document.querySelectorAll('input[name="_token"]').forEach(input => {
+                input.value = newToken;
+              });
+              
+              // Mettre à jour la variable globale
+              window.csrfToken = newToken;
+              
+              console.log('CSRF token rafraîchi globalement:', newToken.substring(0, 10) + '...');
+              return newToken;
+            }
+          } else if (response.status === 419) {
+            console.error('Session expirée détectée!');
+            alert('Votre session a expiré. Vous allez être redirigé vers la page de connexion.');
+            window.location.href = '{{ route('login') }}';
+          } else if (response.status === 401) {
+            console.error('Non authentifié!');
+            window.location.href = '{{ route('login') }}';
+          }
+        } catch (error) {
+          console.error('Erreur de rafraîchissement CSRF:', error);
+        }
+        return null;
+      }
+      
+      // Fonction de déconnexion robuste pour la navbar
+      async function handleNavbarLogout() {
+        if (!confirm('Voulez-vous vous déconnecter ?')) {
+          return;
+        }
+        
+        try {
+          // Rafraîchir le token avant la déconnexion
+          await refreshCSRFTokenGlobal();
+          
+          const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+          
+          if (!token) {
+            console.error('Impossible de récupérer le token CSRF');
+            // Fallback: rediriger directement vers login
+            window.location.href = '{{ route('login') }}';
+            return;
+          }
+          
+          // Créer un formulaire de déconnexion dynamique
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = '{{ route('logout') }}';
+          form.style.display = 'none';
+          
+          const tokenInput = document.createElement('input');
+          tokenInput.type = 'hidden';
+          tokenInput.name = '_token';
+          tokenInput.value = token;
+          
+          form.appendChild(tokenInput);
+          document.body.appendChild(form);
+          
+          console.log('Soumission du formulaire de déconnexion avec token:', token.substring(0, 10) + '...');
+          form.submit();
+          
+        } catch (error) {
+          console.error('Erreur lors de la déconnexion:', error);
+          // Fallback en cas d'erreur
+          window.location.href = '{{ route('login') }}';
+        }
+      }
+      
+      // Rafraîchissement périodique du token CSRF pour les patients sur le dashboard
+      document.addEventListener('DOMContentLoaded', function() {
+        if (window.userRole === 'patient' && window.location.pathname.includes('/patient/dashboard')) {
+          console.log('Activation du rafraîchissement automatique du token CSRF pour le patient');
+          // Rafraîchir le token CSRF toutes les 10 minutes pour éviter l'expiration
+          setInterval(refreshCSRFTokenGlobal, 10 * 60 * 1000);
+        }
+      });
+      
     </script>
 
     {{-- Zone pour scripts spécifiques aux vues --}}

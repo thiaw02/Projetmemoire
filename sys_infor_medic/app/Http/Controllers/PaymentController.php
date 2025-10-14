@@ -37,54 +37,86 @@ class PaymentController extends Controller
         $priceActe = (int) (Setting::getValue('price.acte', 7000));
         $consultationsList = \App\Models\Consultations::where('patient_id', optional($user->patient)->id)->orderByDesc('date_consultation')->take(20)->get(['id','date_consultation']);
         $analysesList = \App\Models\Analyses::where('patient_id', optional($user->patient)->id)->orderByDesc('date_analyse')->take(20)->get(['id','type_analyse','date_analyse']);
-        return view('patient.paiements', compact('orders','priceConsult','priceAnalyse','priceActe','consultationsList','analysesList'));
+        
+        // Récupérer les rendez-vous confirmés (patients peuvent payer pour ces rdv)
+        $confirmedAppointments = \App\Models\Rendez_vous::with(['medecin:id,name'])
+            ->where('user_id', $user->id)
+            ->where('statut', 'confirmé')
+            ->whereDate('date', '>=', now()->toDateString())
+            ->orderBy('date')
+            ->orderBy('heure')
+            ->get(['id', 'medecin_id', 'date', 'heure', 'motif', 'statut']);
+        
+        return view('patient.paiements', compact('orders','priceConsult','priceAnalyse','priceActe','consultationsList','analysesList','confirmedAppointments'));
     }
 
     public function checkout(Request $request, PaymentService $svc)
     {
         $user = Auth::user();
-        $data = $request->validate([
-            'provider' => 'required|in:wave,orangemoney',
-            'kind' => 'required|in:consultation,analyse,acte',
-            'amount' => 'required|integer|min:100',
-            'label' => 'nullable|string|max:255',
-            'ref_id' => 'nullable|string', // format: "type:id"
-        ]);
+        
+        try {
+            $data = $request->validate([
+                'provider' => 'required|in:wave,orangemoney',
+                'kind' => 'required|in:consultation,analyse,acte,rendezvous',
+                'amount' => 'required|integer|min:100',
+                'label' => 'nullable|string|max:255',
+                'ref_id' => 'nullable|string', // format: "type:id"
+            ], [
+                'provider.required' => 'Veuillez sélectionner une méthode de paiement.',
+                'provider.in' => 'Méthode de paiement non valide.',
+                'kind.required' => 'Veuillez sélectionner un type de service.',
+                'kind.in' => 'Type de service non valide.',
+                'amount.required' => 'Le montant est requis.',
+                'amount.integer' => 'Le montant doit être un nombre entier.',
+                'amount.min' => 'Le montant minimum est de 100 XOF.',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return back()->withErrors($e->errors())->withInput();
+        }
 
         $amount = (int)$data['amount'];
         $label = $data['label'] ?: ($data['kind'] === 'consultation' ? 'Ticket de consultation' : ucfirst($data['kind']));
 
-        return DB::transaction(function () use ($user, $data, $amount, $label, $svc) {
-            $order = Order::create([
+        try {
+            return DB::transaction(function () use ($user, $data, $amount, $label, $svc) {
+                $order = Order::create([
+                    'user_id' => $user->id,
+                    'patient_id' => optional($user->patient)->id,
+                    'currency' => 'XOF',
+                    'total_amount' => $amount,
+                    'status' => 'pending',
+                    'provider' => $data['provider'],
+                ]);
+                // Parse ref
+                $itemId = null;
+                if (!empty($data['ref_id']) && str_contains($data['ref_id'], ':')) {
+                    [$rt, $rid] = explode(':', $data['ref_id'], 2);
+                    if ($rt === $data['kind']) { $itemId = (int)$rid; }
+                }
+                \App\Models\OrderItem::create([
+                    'order_id' => $order->id,
+                    'item_type' => $data['kind'],
+                    'item_id' => $itemId,
+                    'label' => $label,
+                    'amount' => $amount,
+                    'ticket_number' => self::generateTicketNumber($data['kind']),
+                ]);
+
+                $order = $svc->createCheckout($order, $data['provider']);
+
+                if (!$order->payment_url) {
+                    return back()->withErrors(['payment' => 'Impossible de créer la session de paiement. Veuillez réessayer.']);
+                }
+                return redirect()->away($order->payment_url);
+            });
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors du checkout de paiement', [
                 'user_id' => $user->id,
-                'patient_id' => optional($user->patient)->id,
-                'currency' => 'XOF',
-                'total_amount' => $amount,
-                'status' => 'pending',
-                'provider' => $data['provider'],
+                'error' => $e->getMessage(),
+                'data' => $data ?? []
             ]);
-            // Parse ref
-            $itemId = null;
-            if (!empty($data['ref_id']) && str_contains($data['ref_id'], ':')) {
-                [$rt, $rid] = explode(':', $data['ref_id'], 2);
-                if ($rt === $data['kind']) { $itemId = (int)$rid; }
-            }
-            \App\Models\OrderItem::create([
-                'order_id' => $order->id,
-                'item_type' => $data['kind'],
-                'item_id' => $itemId,
-                'label' => $label,
-                'amount' => $amount,
-                'ticket_number' => self::generateTicketNumber($data['kind']),
-            ]);
-
-            $order = $svc->createCheckout($order, $data['provider']);
-
-            if (!$order->payment_url) {
-                return back()->withErrors(['payment' => 'Impossible de créer la session de paiement.']);
-            }
-            return redirect()->away($order->payment_url);
-        });
+            return back()->withErrors(['payment' => 'Une erreur s\'est produite lors du traitement de votre paiement. Veuillez réessayer.'])->withInput();
+        }
     }
 
     public function sandbox(int $order)
@@ -93,7 +125,7 @@ class PaymentController extends Controller
         if ($order->status !== 'pending') {
             return redirect()->route('patient.payments.index')->with('success', 'Commande déjà traitée.');
         }
-        return view('payments.sandbox', compact('order'));
+        return view('payments.sandbox_standalone', compact('order'));
     }
 
     private function sendReceiptIfNotSent(Order $order): void

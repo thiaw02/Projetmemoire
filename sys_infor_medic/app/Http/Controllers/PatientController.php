@@ -6,8 +6,11 @@ use App\Models\Rendez_vous;
 use App\Models\Consultations;
 use App\Models\User;
 use App\Models\Ordonnances;
+use App\Notifications\NewRendezvousRequest;
+use App\Events\RendezVousCreated;
 
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Notification;
 
 use Illuminate\Http\Request;
 
@@ -117,7 +120,7 @@ class PatientController extends Controller
             'medecin_id' => 'required|integer', // ⚡ Choix du médecin
         ]);
 
-        Rendez_vous::create([
+        $rendezVous = Rendez_vous::create([
             'user_id' => Auth::id(),   // Patient connecté
             'medecin_id' => $request->medecin_id,
             'date' => $request->date,
@@ -126,7 +129,22 @@ class PatientController extends Controller
             'statut' => 'en_attente',  // statut par défaut (ENUM)
         ]);
 
-        return redirect()->route('patient.dashboard')->with('success', 'Rendez-vous enregistré avec succès ✅');
+        // Notifier toutes les secrétaires par email
+        try {
+            $secretaires = User::where('role', 'secretaire')->where('active', true)->get();
+            Notification::send($secretaires, new NewRendezvousRequest($rendezVous));
+        } catch (\Throwable $e) {
+            \Log::error('Erreur lors de l\'envoi des notifications secrétaires: ' . $e->getMessage());
+        }
+
+        // Déclencher l'event pour les notifications temps réel
+        try {
+            event(new RendezVousCreated($rendezVous));
+        } catch (\Throwable $e) {
+            \Log::error('Erreur lors de l\'événement temps réel: ' . $e->getMessage());
+        }
+
+        return redirect()->route('patient.dashboard')->with('success', 'Rendez-vous enregistré avec succès ✅ Les secrétaires ont été notifiées.');
     }
 
     public function createRendez()
@@ -140,6 +158,133 @@ class PatientController extends Controller
     $patient = Patient::findOrFail($id);
     return view('patients.show', compact('patient'));
 }
+
+    public function cancelRendezVous($id)
+    {
+        $user = Auth::user();
+        $rdv = Rendez_vous::where('user_id', $user->id)->where('id', $id)->firstOrFail();
+        
+        // Vérifier que le rendez-vous peut être annulé
+        if (!in_array(strtolower($rdv->statut), ['en_attente', 'en attente', 'pending'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ce rendez-vous ne peut pas être annulé.'
+            ], 400);
+        }
+        
+        $rdv->statut = 'annulé';
+        $rdv->save();
+        
+        // Notifier les secrétaires de l'annulation
+        try {
+            $secretaires = User::where('role', 'secretaire')->where('active', true)->get();
+            foreach ($secretaires as $secretaire) {
+                $secretaire->notify(new \App\Notifications\RendezvousStatusChanged($rdv));
+            }
+        } catch (\Throwable $e) {
+            \Log::error('Erreur notification annulation RDV: ' . $e->getMessage());
+        }
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Rendez-vous annulé avec succès.'
+        ]);
+    }
+    
+    public function getRendezVousDetails($id)
+    {
+        $user = Auth::user();
+        $rdv = Rendez_vous::with(['medecin', 'patient'])
+                          ->where('user_id', $user->id)
+                          ->where('id', $id)
+                          ->firstOrFail();
+        
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => $rdv->id,
+                'date' => \Carbon\Carbon::parse($rdv->date)->format('d/m/Y'),
+                'heure' => $rdv->heure,
+                'motif' => $rdv->motif,
+                'statut' => $rdv->statut,
+                'medecin' => $rdv->medecin->name ?? 'Non assigné',
+                'created_at' => $rdv->created_at->format('d/m/Y à H:i')
+            ]
+        ]);
+    }
+    
+    public function editRendezVous($id)
+    {
+        $user = Auth::user();
+        $rdv = Rendez_vous::where('user_id', $user->id)->where('id', $id)->firstOrFail();
+        
+        // Vérifier que le rendez-vous peut être modifié
+        if (!in_array(strtolower($rdv->statut), ['en_attente', 'en attente', 'pending'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ce rendez-vous ne peut pas être modifié.'
+            ], 400);
+        }
+        
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => $rdv->id,
+                'date' => $rdv->date,
+                'heure' => $rdv->heure,
+                'motif' => $rdv->motif,
+                'medecin_id' => $rdv->medecin_id
+            ]
+        ]);
+    }
+    
+    public function updateRendezVous(Request $request, $id)
+    {
+        $user = Auth::user();
+        $rdv = Rendez_vous::where('user_id', $user->id)->where('id', $id)->firstOrFail();
+        
+        // Vérifier que le rendez-vous peut être modifié
+        if (!in_array(strtolower($rdv->statut), ['en_attente', 'en attente', 'pending'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ce rendez-vous ne peut pas être modifié.'
+            ], 400);
+        }
+        
+        $request->validate([
+            'date' => 'required|date|after:today',
+            'heure' => 'required',
+            'motif' => 'required|string|max:255',
+            'medecin_id' => 'required|exists:users,id'
+        ]);
+        
+        $rdv->date = $request->date;
+        $rdv->heure = $request->heure;
+        $rdv->motif = $request->motif;
+        $rdv->medecin_id = $request->medecin_id;
+        $rdv->save();
+        
+        // Notifier les secrétaires de la modification
+        try {
+            $secretaires = User::where('role', 'secretaire')->where('active', true)->get();
+            foreach ($secretaires as $secretaire) {
+                $secretaire->notify(new \App\Notifications\RendezvousStatusChanged($rdv));
+            }
+        } catch (\Throwable $e) {
+            \Log::error('Erreur notification modification RDV: ' . $e->getMessage());
+        }
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Rendez-vous modifié avec succès.',
+            'data' => [
+                'date' => \Carbon\Carbon::parse($rdv->date)->format('d/m/Y'),
+                'heure' => $rdv->heure,
+                'motif' => $rdv->motif,
+                'medecin' => $rdv->medecin->name ?? 'Non assigné'
+            ]
+        ]);
+    }
 
     public function downloadOrdonnance(int $id)
     {

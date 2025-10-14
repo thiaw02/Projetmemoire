@@ -136,9 +136,13 @@ $consult = \App\Models\Consultations::where('id',$id)->where('medecin_id',$medId
         AuditLog::create([
             'user_id' => $medId,
             'action' => 'consultation_updated',
-'auditable_type' => \App\Models\Consultations::class,
+            'event_type' => 'update',
+            'severity' => 'medium',
+            'auditable_type' => \App\Models\Consultations::class,
             'auditable_id' => $consult->id,
             'changes' => ['before' => $before, 'after' => $after],
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
         ]);
         return redirect()->route('medecin.consultations')->with('success','Consultation mise à jour');
     }
@@ -234,9 +238,13 @@ $consult = \App\Models\Consultations::where('id',$id)->where('medecin_id',$medId
         AuditLog::create([
             'user_id' => Auth::id(),
             'action' => 'ordonnance_created',
+            'event_type' => 'create',
+            'severity' => 'medium',
             'auditable_type' => Ordonnances::class,
             'auditable_id' => $ord->id,
             'changes' => ['after' => $ord->only(['patient_id','medecin_id','medicaments','dosage'])],
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
         ]);
 
         // Envoyer le PDF par email au patient
@@ -270,9 +278,13 @@ $consult = \App\Models\Consultations::where('id',$id)->where('medecin_id',$medId
         AuditLog::create([
             'user_id' => $medId,
             'action' => 'ordonnance_updated',
+            'event_type' => 'update',
+            'severity' => 'medium',
             'auditable_type' => OrdonnanceModel::class,
             'auditable_id' => $ord->id,
             'changes' => ['before' => $before, 'after' => $after],
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
         ]);
         return redirect()->route('medecin.ordonnances')->with('success','Ordonnance mise à jour');
     }

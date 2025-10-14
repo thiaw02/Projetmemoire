@@ -107,8 +107,8 @@
                 <h4>Choisissez votre service</h4>
               </div>
               
-              <div class="services-grid">
-                <input type="radio" name="kind" value="consultation" id="consultation" checked>
+            <div class="services-grid">
+                <input type="radio" name="kind" value="consultation" id="consultation" checked required>
                 <label for="consultation" class="service-option">
                   <div class="service-icon consultation">
                     <i class="bi bi-person-heart"></i>
@@ -127,7 +127,7 @@
                   </div>
                 </label>
                 
-                <input type="radio" name="kind" value="analyse" id="analyse">
+                <input type="radio" name="kind" value="analyse" id="analyse" required>
                 <label for="analyse" class="service-option">
                   <div class="service-icon analyse">
                     <i class="bi bi-graph-up-arrow"></i>
@@ -146,7 +146,7 @@
                   </div>
                 </label>
                 
-                <input type="radio" name="kind" value="acte" id="acte">
+                <input type="radio" name="kind" value="acte" id="acte" required>
                 <label for="acte" class="service-option">
                   <div class="service-icon acte">
                     <i class="bi bi-bandaid"></i>
@@ -164,8 +164,73 @@
                     <span class="currency">XOF</span>
                   </div>
                 </label>
+                
+                <input type="radio" name="kind" value="rendezvous" id="rendezvous" required>
+                <label for="rendezvous" class="service-option">
+                  <div class="service-icon rendezvous">
+                    <i class="bi bi-calendar-check"></i>
+                  </div>
+                  <div class="service-info">
+                    <h5>Rendez-vous confirmé</h5>
+                    <p>Paiement pour consultation confirmée</p>
+                    <div class="service-features">
+                      <span><i class="bi bi-check2"></i>RDV confirmé</span>
+                      <span><i class="bi bi-check2"></i>Paiement avancé</span>
+                    </div>
+                  </div>
+                  <div class="service-price">
+                    <span class="price">{{ number_format($priceConsult ?? 5000, 0, ',', ' ') }}</span>
+                    <span class="currency">XOF</span>
+                  </div>
+                </label>
               </div>
             </div>
+            
+            <!-- Section Rendez-vous confirmés -->
+            @if(isset($confirmedAppointments) && $confirmedAppointments->count() > 0)
+            <div class="form-section" id="rdv-section" style="display: none;">
+              <div class="section-title">
+                <i class="bi bi-calendar-week"></i>
+                <h4>Vos rendez-vous confirmés</h4>
+              </div>
+              
+              <div class="appointments-grid">
+                @foreach($confirmedAppointments as $appointment)
+                <div class="appointment-option" data-rdv-id="{{ $appointment->id }}" data-price="{{ $priceConsult }}">
+                  <input type="radio" name="appointment_id" value="{{ $appointment->id }}" id="rdv-{{ $appointment->id }}">
+                  <label for="rdv-{{ $appointment->id }}" class="appointment-card">
+                    <div class="appointment-info">
+                      <div class="appointment-date">
+                        <i class="bi bi-calendar3"></i>
+                        <span>{{ \Carbon\Carbon::parse($appointment->date)->translatedFormat('d M Y') }}</span>
+                      </div>
+                      <div class="appointment-time">
+                        <i class="bi bi-clock"></i>
+                        <span>{{ $appointment->heure }}</span>
+                      </div>
+                      <div class="appointment-doctor">
+                        <i class="bi bi-person-badge"></i>
+                        <span>{{ $appointment->medecin->name ?? 'Médecin non assigné' }}</span>
+                      </div>
+                      @if($appointment->motif)
+                      <div class="appointment-reason">
+                        <i class="bi bi-chat-text"></i>
+                        <span>{{ $appointment->motif }}</span>
+                      </div>
+                      @endif
+                    </div>
+                    <div class="appointment-status">
+                      <span class="badge bg-success">
+                        <i class="bi bi-check-circle"></i>
+                        Confirmé
+                      </span>
+                    </div>
+                  </label>
+                </div>
+                @endforeach
+              </div>
+            </div>
+            @endif
 
             <!-- Détails -->
             <div class="form-section">
@@ -196,6 +261,13 @@
                         </option>
                       @endforeach
                     @endif
+                    @if(isset($confirmedAppointments) && $confirmedAppointments->count() > 0)
+                      @foreach($confirmedAppointments as $rdv)
+                        <option value="rendezvous:{{ $rdv->id }}">
+                          RDV #{{ $rdv->id }} — {{ \Carbon\Carbon::parse($rdv->date)->format('d/m/Y') }} à {{ $rdv->heure }} ({{ $rdv->medecin->name ?? 'Médecin' }})
+                        </option>
+                      @endforeach
+                    @endif
                   </select>
                 </div>
                 
@@ -217,7 +289,7 @@
               </div>
               
               <div class="payment-methods">
-                <input type="radio" name="provider" value="wave" id="wave" checked>
+                <input type="radio" name="provider" value="wave" id="wave" checked required>
                 <label for="wave" class="payment-method">
                   <div class="method-icon wave">
                     <i class="bi bi-wallet2"></i>
@@ -229,7 +301,7 @@
                   <span class="method-badge">Recommandé</span>
                 </label>
                 
-                <input type="radio" name="provider" value="orangemoney" id="orange">
+                <input type="radio" name="provider" value="orangemoney" id="orange" required>
                 <label for="orange" class="payment-method">
                   <div class="method-icon orange">
                     <i class="bi bi-phone"></i>
@@ -1241,6 +1313,21 @@ document.addEventListener('DOMContentLoaded', function() {
     acte: {{ (int)($priceActe ?? 7000) }}
   };
   
+  // Réactiver le bouton si on revient sur la page (par exemple après une erreur)
+  const payButton = document.getElementById('payButton');
+  if (payButton && payButton.disabled) {
+    payButton.disabled = false;
+    const originalText = 'Procéder au paiement';
+    const amount = document.getElementById('button-amount')?.textContent || '';
+    payButton.innerHTML = `
+      <div class="btn-content">
+        <i class="bi bi-shield-check"></i>
+        <span>${originalText}</span>
+      </div>
+      <div class="btn-amount" id="button-amount">${amount}</div>
+    `;
+  }
+  
   // Libellés des services
   const labels = {
     consultation: 'Ticket de consultation',
@@ -1318,14 +1405,39 @@ document.addEventListener('DOMContentLoaded', function() {
   // Animation du bouton de paiement lors de la soumission
   const payButton = document.getElementById('payButton');
   if (payButton) {
-    payButton.addEventListener('click', function() {
+    const form = payButton.closest('form');
+    let originalContent = payButton.innerHTML;
+    
+    payButton.addEventListener('click', function(e) {
+      // Vérifier d'abord si le formulaire est valide
+      if (form && !form.checkValidity()) {
+        return; // Laisser la validation HTML5 se faire
+      }
+      
+      // Désactiver le bouton seulement si la validation passe
       this.innerHTML = `
         <div class="btn-content">
           <i class="bi bi-hourglass-split"></i>
           <span>Traitement en cours...</span>
         </div>
+        <div class="btn-amount" id="button-amount"></div>
       `;
       this.disabled = true;
+      
+      // Réactiver le bouton après un délai si la page ne se recharge pas
+      setTimeout(() => {
+        if (!this.disabled) return;
+        this.innerHTML = originalContent;
+        this.disabled = false;
+      }, 10000); // 10 secondes max
+    });
+    
+    // Réactiver le bouton si le formulaire retourne une erreur
+    form.addEventListener('invalid', function() {
+      if (payButton.disabled) {
+        payButton.innerHTML = originalContent;
+        payButton.disabled = false;
+      }
     });
   }
 

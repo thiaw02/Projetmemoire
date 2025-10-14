@@ -38,7 +38,7 @@ class AnalyseController extends Controller
             $query->whereDate('date_analyse', '<=', $request->date_fin);
         }
         
-        $analyses = $query->paginate(20);
+        $analyses = $query->paginate(20)->withQueryString();
         
         // Patients pour le filtre
         $patients = Patient::whereHas('consultations', function($q) use ($medecinId) {

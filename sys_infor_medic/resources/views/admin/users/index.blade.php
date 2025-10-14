@@ -78,91 +78,64 @@
   </div>
 </div>
 
-{{-- Actions et filtres modernes --}}
-<div class="actions-container mb-4">
-  <div class="actions-header">
-    <h5 class="mb-0"><i class="bi bi-funnel me-2"></i>Filtres et Actions</h5>
-  </div>
-  <div class="actions-body">
-    <div class="filters-row">
-      <form method="GET" class="filters-form">
-        <div class="form-group">
-          <label for="q" class="form-label">Recherche</label>
-          <input type="text" name="q" id="q" class="form-control" placeholder="Nom, email..." value="{{ $filters['q'] ?? '' }}">
+{{-- Nouveau système de filtres et pagination moderne --}}
+<x-pagination-filters 
+    search-placeholder="Rechercher par nom, email..."
+    :search-value="$filters['q'] ?? ''"
+    :current-per-page="request('per_page', 20)"
+    :show-export="true"
+    :export-url="route('admin.users.export', request()->query())"
+    :stats="[
+        ['value' => $users->total(), 'label' => 'Total'],
+        ['value' => $users->where('active', 1)->count(), 'label' => 'Actifs'],
+        ['value' => $users->where('role', 'medecin')->count(), 'label' => 'Médecins'],
+        ['value' => $users->where('role', 'patient')->count(), 'label' => 'Patients']
+    ]">
+    {{-- Filtres avancés --}}
+    <div class="advanced-filters-grid">
+        <div class="filter-group">
+            <label for="role" class="filter-label">Rôle</label>
+            <select name="role" id="role" class="filter-select" data-auto-submit="true">
+                @php $r = $filters['role'] ?? 'all'; @endphp
+                <option value="all" {{ $r==='all'?'selected':'' }}>Tous les rôles</option>
+                <option value="admin" {{ $r==='admin'?'selected':'' }}>Administrateur</option>
+                <option value="secretaire" {{ $r==='secretaire'?'selected':'' }}>Secrétaire</option>
+                <option value="medecin" {{ $r==='medecin'?'selected':'' }}>Médecin</option>
+                <option value="infirmier" {{ $r==='infirmier'?'selected':'' }}>Infirmier</option>
+                <option value="patient" {{ $r==='patient'?'selected':'' }}>Patient</option>
+            </select>
         </div>
         
-        <div class="form-group">
-          <label for="role" class="form-label">Rôle</label>
-          <select name="role" id="role" class="form-control">
-            @php $r = $filters['role'] ?? 'all'; @endphp
-            <option value="all" {{ $r==='all'?'selected':'' }}>Tous les rôles</option>
-            <option value="admin" {{ $r==='admin'?'selected':'' }}>Administrateur</option>
-            <option value="secretaire" {{ $r==='secretaire'?'selected':'' }}>Secrétaire</option>
-            <option value="medecin" {{ $r==='medecin'?'selected':'' }}>Médecin</option>
-            <option value="infirmier" {{ $r==='infirmier'?'selected':'' }}>Infirmier</option>
-            <option value="patient" {{ $r==='patient'?'selected':'' }}>Patient</option>
-          </select>
+        <div class="filter-group">
+            <label for="active" class="filter-label">Statut</label>
+            <select name="active" id="active" class="filter-select" data-auto-submit="true">
+                @php $a = $filters['active'] ?? 'all'; @endphp
+                <option value="all" {{ $a==='all'?'selected':'' }}>Tous les statuts</option>
+                <option value="1" {{ $a==='1'?'selected':'' }}>Actifs uniquement</option>
+                <option value="0" {{ $a==='0'?'selected':'' }}>Inactifs uniquement</option>
+            </select>
         </div>
         
-        <div class="form-group">
-          <label for="active" class="form-label">Statut</label>
-          <select name="active" id="active" class="form-control">
-            @php $a = $filters['active'] ?? 'all'; @endphp
-            <option value="all" {{ $a==='all'?'selected':'' }}>Tous les statuts</option>
-            <option value="1" {{ $a==='1'?'selected':'' }}>Actifs uniquement</option>
-            <option value="0" {{ $a==='0'?'selected':'' }}>Inactifs uniquement</option>
-          </select>
+        <div class="filter-group">
+            <label for="specialite" class="filter-label">Spécialité</label>
+            <input type="text" name="specialite" id="specialite" class="filter-input" 
+                   placeholder="Cardiologie, Pédiatrie..." value="{{ request('specialite') }}">
         </div>
-        
-        <div class="form-actions">
-          <button type="submit" class="btn-filter">
-            <i class="bi bi-search"></i>
-            Filtrer
-          </button>
-          <a href="{{ route('admin.users.index') }}" class="btn-reset">
-            <i class="bi bi-arrow-clockwise"></i>
-            Réinitialiser
-          </a>
-        </div>
-      </form>
     </div>
     
-    <div class="quick-actions">
-      <a href="{{ route('admin.users.create') }}" class="btn-add-user">
-        <i class="bi bi-person-plus"></i>
-        Ajouter un utilisateur
-      </a>
-      
-      <div class="dropdown">
-        <button class="btn-dropdown" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-          <i class="bi bi-three-dots-vertical"></i>
-          Plus d'actions
-        </button>
-        <ul class="dropdown-menu dropdown-menu-end modern-dropdown">
-          <li>
-            <a class="dropdown-item" href="{{ route('admin.users.export', request()->query()) }}">
-              <i class="bi bi-download me-2"></i>
-              Exporter en CSV
-            </a>
-          </li>
-          <li>
-            <a class="dropdown-item" href="{{ route('admin.audit.index') }}">
-              <i class="bi bi-clipboard-data me-2"></i>
-              Logs d'audit
-            </a>
-          </li>
-          <li><hr class="dropdown-divider"></li>
-          <li>
-            <a class="dropdown-item text-warning" href="{{ route('admin.users.index', ['active' => '0']) }}">
-              <i class="bi bi-person-x me-2"></i>
-              Voir les inactifs
-            </a>
-          </li>
-        </ul>
-      </div>
+    {{-- Actions rapides --}}
+    <div class="quick-actions-row">
+        <a href="{{ route('admin.users.create') }}" class="btn-quick-action btn-primary">
+            <i class="bi bi-person-plus"></i>
+            Ajouter un utilisateur
+        </a>
+        
+        <a href="{{ route('admin.audit.index') }}" class="btn-quick-action btn-secondary">
+            <i class="bi bi-clipboard-data"></i>
+            Logs d'audit
+        </a>
     </div>
-  </div>
-</div>
+</x-pagination-filters>
 
 {{-- Liste des utilisateurs moderne --}}
 <div class="users-container">
@@ -343,9 +316,9 @@
         </table>
       </div>
       
-      {{-- Pagination moderne --}}
+      {{-- Nouvelle pagination moderne --}}
       <div class="pagination-container">
-        {{ $users->appends(request()->query())->links() }}
+        {{ $users->links('pagination.custom') }}
       </div>
     </div>
   @endif
@@ -383,6 +356,83 @@
 
 {{-- Styles modernes complets pour la gestion des utilisateurs --}}
 <style>
+  /* Styles pour les nouveaux filtres */
+  .advanced-filters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .filter-group {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .filter-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.5rem;
+  }
+  
+  .filter-select, .filter-input {
+    padding: 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    background: #ffffff;
+    transition: all 0.2s ease;
+  }
+  
+  .filter-select:focus, .filter-input:focus {
+    outline: none;
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+  }
+  
+  .quick-actions-row {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e5e7eb;
+  }
+  
+  .btn-quick-action {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+  }
+  
+  .btn-quick-action.btn-primary {
+    background: #10b981;
+    color: white;
+  }
+  
+  .btn-quick-action.btn-primary:hover {
+    background: #047857;
+    color: white;
+    transform: translateY(-2px);
+  }
+  
+  .btn-quick-action.btn-secondary {
+    background: #6b7280;
+    color: white;
+  }
+  
+  .btn-quick-action.btn-secondary:hover {
+    background: #4b5563;
+    color: white;
+    transform: translateY(-2px);
+  }
   /* Conteneur principal */
   body > .container { max-width: 1500px !important; }
   

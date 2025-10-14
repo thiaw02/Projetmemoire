@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\AuditLog;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Traits\HasPagination;
 
 class UserController extends Controller
 {
+    use HasPagination;
     // Liste utilisateurs (tous) avec filtres
     public function index(Request $request)
     {
@@ -189,8 +191,14 @@ public function patientsList(\Illuminate\Http\Request $request)
         if ($request->filled('active') && in_array($request->active, ['0','1'], true)) {
             $query->where('active', (bool)$request->active);
         }
-        $patients = $query->orderBy('name')->get();
-        return view('admin.patients.index', compact('patients'));
+        $patients = $query->orderBy('name')->paginate(15)->withQueryString();
+        return view('admin.patients.index', [
+            'patients' => $patients,
+            'filters' => [
+                'q' => $request->q ?? '',
+                'active' => $request->active ?? 'all',
+            ],
+        ]);
     }
 
     public function createPatient()
@@ -337,9 +345,13 @@ public function patientsList(\Illuminate\Http\Request $request)
         AuditLog::create([
             'user_id' => auth()->id(),
             'action' => 'user_active_updated',
+            'event_type' => 'update',
+            'severity' => 'medium',
             'auditable_type' => User::class,
             'auditable_id' => $user->id,
             'changes' => ['before' => $before, 'after' => $after],
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
         ]);
         return redirect()->route('admin.dashboard')->with('success', 'Statut du compte mis à jour');
     }

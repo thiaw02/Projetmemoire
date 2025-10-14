@@ -62,7 +62,7 @@
         <i class="bi bi-calendar-check"></i>
       </div>
       <div class="kpi-content">
-        <div class="kpi-value">{{ $kpis['rdvThisMonth'] ?? 0 }}</div>
+        <div class="kpi-value">{{ $kpis['rdv_this_month'] ?? 0 }}</div>
         <div class="kpi-label">RDV ce mois</div>
       </div>
     </div>
@@ -75,7 +75,7 @@
         <i class="bi bi-clipboard2-pulse"></i>
       </div>
       <div class="kpi-content">
-        <div class="kpi-value">{{ $kpis['consultsThisMonth'] ?? 0 }}</div>
+        <div class="kpi-value">{{ $kpis['consults_this_month'] ?? 0 }}</div>
         <div class="kpi-label">Consultations</div>
       </div>
     </div>
@@ -88,9 +88,9 @@
         <i class="bi bi-wallet2"></i>
       </div>
       <div class="kpi-content">
-        <div class="kpi-value">{{ number_format(($kpis['paymentsPaidThisMonth'] ?? 0) / 1000, 0) }}K</div>
+        <div class="kpi-value">{{ number_format(($kpis['payments_paid_this_month'] ?? 0) / 1000, 0) }}K</div>
         <div class="kpi-label">Paiements (XOF)</div>
-        <div class="kpi-sub">{{ $kpis['paymentsPending'] ?? 0 }} en attente</div>
+        <div class="kpi-sub">{{ $kpis['payments_pending'] ?? 0 }} en attente</div>
       </div>
     </div>
   </div>

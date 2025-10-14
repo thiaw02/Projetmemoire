@@ -3,10 +3,11 @@
 namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\RendezVousStatusTrait;
 
 class Rendez_vous extends Model
 {
-    use HasFactory;
+    use HasFactory, RendezVousStatusTrait;
 
     protected $table = 'rendez_vous';
 

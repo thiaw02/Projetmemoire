@@ -50,9 +50,9 @@
         {{-- Vue d'ensemble --}}
         <div class="tab-pane fade show active" id="overview" role="tabpanel">
 
-            {{-- KPIs modernes pour secrétaire --}}
+            {{-- KPIs modernes pour secrétaire avec plus de données --}}
             <div class="row g-3 mb-4">
-              <div class="col-md-4">
+              <div class="col-md-3">
                 <div class="kpi-card">
                   <div class="kpi-icon rdv-pending">
                     <i class="bi bi-clock-history"></i>
@@ -60,10 +60,11 @@
                   <div class="kpi-content">
                     <div class="kpi-value">{{ $pendingRdvCount }}</div>
                     <div class="kpi-label">RDV demandés</div>
+                    <div class="kpi-trend">{{ $rdvStatusStats['aujourd_hui'] }} aujourd'hui</div>
                   </div>
                 </div>
               </div>
-              <div class="col-md-4">
+              <div class="col-md-3">
                 <div class="kpi-card">
                   <div class="kpi-icon patients-waiting">
                     <i class="bi bi-person-plus"></i>
@@ -71,10 +72,11 @@
                   <div class="kpi-content">
                     <div class="kpi-value">{{ $patientsATraiterCount }}</div>
                     <div class="kpi-label">Patients à traiter</div>
+                    <div class="kpi-trend">{{ $patientStats['nouveaux_semaine'] }} cette semaine</div>
                   </div>
                 </div>
               </div>
-              <div class="col-md-4">
+              <div class="col-md-3">
                 <div class="kpi-card">
                   <div class="kpi-icon patients-total">
                     <i class="bi bi-people-fill"></i>
@@ -82,6 +84,19 @@
                   <div class="kpi-content">
                     <div class="kpi-value">{{ $totalPatients }}</div>
                     <div class="kpi-label">Patients (total)</div>
+                    <div class="kpi-trend">{{ $patientStats['nouveaux_mois'] }} ce mois</div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="kpi-card">
+                  <div class="kpi-icon rdv-confirmed">
+                    <i class="bi bi-check-circle"></i>
+                  </div>
+                  <div class="kpi-content">
+                    <div class="kpi-value">{{ $rdvStatusStats['confirme'] }}</div>
+                    <div class="kpi-label">RDV confirmés</div>
+                    <div class="kpi-trend">{{ $rdvStatusStats['termine'] }} terminés</div>
                   </div>
                 </div>
               </div>
@@ -109,9 +124,29 @@
 
         <div class="col-md-6">
             <div class="card shadow-sm">
-                <div class="card-header bg-warning text-white fw-semibold"><i class="bi bi-bar-chart-line me-1"></i> Admissions (<span id="secWindowLabelAdm">12 derniers mois</span>)</div>
+                <div class="card-header bg-info text-white fw-semibold"><i class="bi bi-bar-chart-line me-1"></i> Nouveaux patients (<span id="secWindowLabelPat">12 derniers mois</span>)</div>
+                <div class="card-body">
+                    <canvas id="patientsChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row g-4 mt-2">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-warning text-white fw-semibold"><i class="bi bi-building me-1"></i> Admissions (<span id="secWindowLabelAdm">12 derniers mois</span>)</div>
                 <div class="card-body">
                     <canvas id="admissionsChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white fw-semibold"><i class="bi bi-currency-exchange me-1"></i> Paiements (<span id="secWindowLabelPay">12 derniers mois</span>)</div>
+                <div class="card-body">
+                    <canvas id="paymentsChart" height="200"></canvas>
                 </div>
             </div>
         </div>
@@ -139,15 +174,42 @@
               <tbody>
                 @forelse($pendingRdvList as $rdv)
                   <tr>
-                    <td>{{ $rdv->patient->nom ?? ($rdv->patient->user->name ?? '—') }} {{ $rdv->patient->prenom ?? '' }}</td>
+                    <td>
+                      @if($rdv->patient)
+                        {{ $rdv->patient->nom }} {{ $rdv->patient->prenom }}
+                        @if($rdv->patient->user)
+                          <small class="text-muted d-block">{{ $rdv->patient->user->email }}</small>
+                        @endif
+                      @elseif($rdv->user)
+                        {{ $rdv->user->name }}
+                        <small class="text-muted d-block">{{ $rdv->user->email }}</small>
+                      @else
+                        <span class="text-muted">Patient non défini</span>
+                      @endif
+                    </td>
                     <td>{{ $rdv->medecin->name ?? '—' }}</td>
-                    <td>{{ \Carbon\Carbon::parse($rdv->date)->format('d/m/Y') }}</td>
-                    <td>{{ $rdv->heure }}</td>
-                    <td>{{ $rdv->motif ?? '—' }}</td>
+                    <td>
+                      <span class="fw-semibold">{{ \Carbon\Carbon::parse($rdv->date)->format('d/m/Y') }}</span>
+                      <small class="text-muted d-block">{{ \Carbon\Carbon::parse($rdv->date)->translatedFormat('l') }}</small>
+                    </td>
+                    <td>
+                      <span class="badge bg-primary">{{ $rdv->heure }}</span>
+                    </td>
+                    <td>
+                      @if($rdv->motif)
+                        {{ Str::limit($rdv->motif, 40) }}
+                      @else
+                        <span class="text-muted fst-italic">Aucun motif</span>
+                      @endif
+                    </td>
                     <td>
                       <div class="d-flex gap-1">
-                        <a href="{{ route('secretaire.rendezvous.confirm', $rdv->id) }}" class="btn btn-sm btn-success">Confirmer</a>
-                        <a href="{{ route('secretaire.rendezvous.cancel', $rdv->id) }}" class="btn btn-sm btn-outline-secondary">Annuler</a>
+                        <a href="{{ route('secretaire.rendezvous.confirm', $rdv->id) }}" class="btn btn-sm btn-success" title="Confirmer le RDV">
+                          <i class="bi bi-check"></i>
+                        </a>
+                        <a href="{{ route('secretaire.rendezvous.cancel', $rdv->id) }}" class="btn btn-sm btn-outline-danger" title="Annuler le RDV">
+                          <i class="bi bi-x"></i>
+                        </a>
                       </div>
                     </td>
                   </tr>
@@ -167,7 +229,7 @@
         {{-- Onglet Paiements --}}
         <div class="tab-pane fade" id="payments" role="tabpanel">
             <div class="row g-3 mb-4">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="kpi-card">
                         <div class="kpi-icon payments-month">
                             <i class="bi bi-calendar-check"></i>
@@ -179,7 +241,19 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
+                    <div class="kpi-card">
+                        <div class="kpi-icon payments-today">
+                            <i class="bi bi-calendar-day"></i>
+                        </div>
+                        <div class="kpi-content">
+                            <div class="kpi-value">{{ number_format(($totalPaymentsToday ?? 0) / 1000, 1) }}K</div>
+                            <div class="kpi-label">Aujourd'hui</div>
+                            <div class="kpi-sub">XOF</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
                     <div class="kpi-card">
                         <div class="kpi-icon payments-pending">
                             <i class="bi bi-hourglass-split"></i>
@@ -187,10 +261,11 @@
                         <div class="kpi-content">
                             <div class="kpi-value">{{ $pendingPayments ?? 0 }}</div>
                             <div class="kpi-label">En attente</div>
+                            <div class="kpi-trend">{{ $failedPayments ?? 0 }} échecs</div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="kpi-card">
                         <div class="kpi-icon payments-total">
                             <i class="bi bi-receipt"></i>
@@ -198,6 +273,7 @@
                         <div class="kpi-content">
                             <div class="kpi-value">{{ ($recentOrders ?? collect())->count() }}</div>
                             <div class="kpi-label">Total transactions</div>
+                            <div class="kpi-trend">Récentes</div>
                         </div>
                     </div>
                 </div>
@@ -462,9 +538,14 @@
     flex-shrink: 0;
   }
   
-  .kpi-icon.rdv-pending { background: linear-gradient(135deg, #f39c12, #e67e22); }
-  .kpi-icon.patients-waiting { background: linear-gradient(135deg, #3498db, #2980b9); }
-  .kpi-icon.patients-total { background: linear-gradient(135deg, #27ae60, #16a085); }
+  .kpi-icon.patients-total { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+  .kpi-icon.rdv-pending { background: linear-gradient(135deg, #f59e0b, #d97706); }
+  .kpi-icon.patients-waiting { background: linear-gradient(135deg, #10b981, #047857); }
+  .kpi-icon.rdv-confirmed { background: linear-gradient(135deg, #059669, #047857); }
+  .kpi-icon.payments-month { background: linear-gradient(135deg, #0ea5e9, #0284c7); }
+  .kpi-icon.payments-today { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+  .kpi-icon.payments-pending { background: linear-gradient(135deg, #f59e0b, #d97706); }
+  .kpi-icon.payments-total { background: linear-gradient(135deg, #6366f1, #4f46e5); }
   .kpi-icon.payments-month { background: linear-gradient(135deg, #27ae60, #16a085); }
   .kpi-icon.payments-pending { background: linear-gradient(135deg, #f39c12, #e67e22); }
   .kpi-icon.payments-total { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
@@ -482,12 +563,25 @@
   }
   
   .kpi-label {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: #6b7280;
+    color: #374151;
+    font-size: 0.8rem;
+    font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: 2px;
+    margin: 0;
+  }
+  
+  .kpi-trend {
+    color: #6b7280;
+    font-size: 0.7rem;
+    font-weight: 400;
+    margin-top: 2px;
+  }
+  
+  .kpi-sub {
+    color: #9ca3af;
+    font-size: 0.7rem;
+    font-weight: 400;
   }
   
   .kpi-sub {
@@ -645,12 +739,16 @@ document.addEventListener("DOMContentLoaded", function() {
     const months = @json($months);
     const rendezvousDataFull = @json($rendezvousData);
     const admissionsDataFull = @json($admissionsData);
+    const patientsDataFull = @json($patientsData);
+    const paymentsDataFull = @json($paymentsData);
 
     function lastN(arr, n){ return (arr || []).slice(Math.max((arr || []).length - n, 0)); }
     function labelText(n){ if(n===2) return '2 derniers mois'; if(n===6) return '6 derniers mois'; return '12 derniers mois'; }
 
     const rdvCtx = document.getElementById('rendezvousChart').getContext('2d');
     const admCtx = document.getElementById('admissionsChart').getContext('2d');
+    const patCtx = document.getElementById('patientsChart').getContext('2d');
+    const payCtx = document.getElementById('paymentsChart').getContext('2d');
 
     let windowN = 12;
 
@@ -662,18 +760,39 @@ document.addEventListener("DOMContentLoaded", function() {
                 datasets: [{
                     label: 'Rendez-vous',
                     data: lastN(rendezvousDataFull, n),
-                    borderColor: '#0d6efd',
-                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                    borderColor: '#198754',
+                    backgroundColor: 'rgba(25, 135, 84, 0.1)',
                     tension: 0.4,
                     fill: true,
                     pointRadius: 4,
-                    pointBackgroundColor: '#0d6efd'
+                    pointBackgroundColor: '#198754'
                 }]
             },
             options: {
                 responsive: true,
-                plugins: { legend: { position: 'top' }, title: { display: false } },
-                scales: { y: { beginAtZero: true } }
+                plugins: { legend: { display: false }, title: { display: false } },
+                scales: { y: { beginAtZero: true, grid: { display: false } } }
+            }
+        };
+    }
+
+    function buildPatConfig(n){
+        return {
+            type: 'bar',
+            data: {
+                labels: lastN(months, n),
+                datasets: [{
+                    label: 'Nouveaux patients',
+                    data: lastN(patientsDataFull, n),
+                    backgroundColor: '#0dcaf0',
+                    borderRadius: 5,
+                    barPercentage: 0.6
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, grid: { display: false } } }
             }
         };
     }
@@ -694,22 +813,57 @@ document.addEventListener("DOMContentLoaded", function() {
             options: {
                 responsive: true,
                 plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true } }
+                scales: { y: { beginAtZero: true, grid: { display: false } } }
+            }
+        };
+    }
+    
+    function buildPayConfig(n){
+        return {
+            type: 'line',
+            data: {
+                labels: lastN(months, n),
+                datasets: [{
+                    label: 'Paiements (milliers XOF)',
+                    data: lastN(paymentsDataFull, n),
+                    borderColor: '#0d6efd',
+                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#0d6efd'
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, grid: { display: false } } }
             }
         };
     }
 
     let rdvChart = new Chart(rdvCtx, buildRdvConfig(windowN));
+    let patChart = new Chart(patCtx, buildPatConfig(windowN));
     let admChart = new Chart(admCtx, buildAdmConfig(windowN));
+    let payChart = new Chart(payCtx, buildPayConfig(windowN));
 
     function setWindow(n){
         windowN = n;
         document.getElementById('secWindowLabelRdv').textContent = labelText(n);
+        document.getElementById('secWindowLabelPat').textContent = labelText(n);
         document.getElementById('secWindowLabelAdm').textContent = labelText(n);
+        document.getElementById('secWindowLabelPay').textContent = labelText(n);
+        
         rdvChart.destroy();
+        patChart.destroy();
         admChart.destroy();
+        payChart.destroy();
+        
         rdvChart = new Chart(rdvCtx, buildRdvConfig(n));
+        patChart = new Chart(patCtx, buildPatConfig(n));
         admChart = new Chart(admCtx, buildAdmConfig(n));
+        payChart = new Chart(payCtx, buildPayConfig(n));
+        
         document.querySelectorAll('[data-sec-window]').forEach(b=>b.classList.toggle('active', parseInt(b.dataset.secWindow,10)===n));
     }
 

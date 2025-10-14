@@ -6,6 +6,7 @@ use App\Models\Patient;
 use App\Models\Rendez_vous;
 use App\Models\Admissions;
 use App\Models\User;
+use App\Events\RendezVousStatusUpdated;
 use Carbon\Carbon;
 
 class SecretaireController extends Controller
@@ -128,46 +129,107 @@ class SecretaireController extends Controller
 
     public function dashboard()
     {
+        // Statistiques des patients
         $totalPatients = Patient::count();
+        $newPatientsThisWeek = Patient::where('created_at', '>=', Carbon::now()->startOfWeek())->count();
+        $newPatientsThisMonth = Patient::where('created_at', '>=', Carbon::now()->startOfMonth())->count();
+        
+        // Patients à traiter (admissions actives + nouveaux patients sans rendez-vous)
+        $activeAdmissions = Admissions::whereNull('date_sortie')->count();
+        $newPatientsWithoutRdv = Patient::whereDoesntHave('rendez_vous')
+            ->where('created_at', '>=', Carbon::now()->subDays(7))
+            ->count();
+        $patientsATraiterCount = $activeAdmissions + $newPatientsWithoutRdv;
+        
+        // Statistiques des rendez-vous détaillées
+        $pendingRdvCount = Rendez_vous::whereIn('statut', ['en_attente', 'en attente', 'pending'])->count();
+        $confirmedRdvCount = Rendez_vous::whereIn('statut', ['confirmé', 'confirmed'])->count();
+        $completedRdvCount = Rendez_vous::whereIn('statut', ['terminé', 'completed', 'termine'])->count();
+        $todayRdvCount = Rendez_vous::whereDate('date', Carbon::today())
+            ->whereNotIn('statut', ['annulé', 'canceled'])
+            ->count();
+            
+        // Données pour les graphiques - 12 mois
         $months = [];
         $rendezvousData = [];
         $admissionsData = [];
+        $patientsData = [];
+        $paymentsData = [];
 
-        // Statistiques jusqu'à 12 mois (mois courant inclus) pour permettre un découpage dynamique 2/6/12
         for ($i = 11; $i >= 0; $i--) {
             $month = Carbon::now()->subMonths($i);
-            $months[] = $month->format('M');
+            $months[] = $month->translatedFormat('M Y'); // Format plus lisible
+            
+            // Rendez-vous par mois
             $rendezvousData[] = Rendez_vous::whereYear('date', $month->year)
                                            ->whereMonth('date', $month->month)
                                            ->count();
+            
+            // Admissions par mois
             $admissionsData[] = Admissions::whereYear('date_admission', $month->year)
                                          ->whereMonth('date_admission', $month->month)
                                          ->count();
+                                         
+            // Nouveaux patients par mois
+            $patientsData[] = Patient::whereYear('created_at', $month->year)
+                                    ->whereMonth('created_at', $month->month)
+                                    ->count();
+                                    
+            // Paiements par mois (en milliers XOF)
+            $monthlyPayments = \App\Models\Order::where('status', 'paid')
+                ->whereYear('paid_at', $month->year)
+                ->whereMonth('paid_at', $month->month)
+                ->sum('total_amount');
+            $paymentsData[] = round($monthlyPayments / 1000, 1); // En milliers
         }
 
-        // KPIs
-        $pendingRdvCount = Rendez_vous::whereIn('statut', ['en_attente', 'en attente', 'pending'])->count();
-        $patientsATraiterCount = Admissions::whereNull('date_sortie')->count();
-
-        // Liste des demandes de rendez-vous (en attente)
-        $pendingRdvList = Rendez_vous::with(['patient','medecin'])
+        // Liste des demandes de rendez-vous urgentes (en attente)
+        $pendingRdvList = Rendez_vous::with(['patient.user', 'medecin'])
             ->whereIn('statut', ['en_attente', 'en attente', 'pending'])
             ->orderBy('date')
-            ->orderBy('heure')
+            ->orderBy('heure') 
+            ->take(50) // Limiter pour la performance
             ->get();
 
-        // Données de paiement pour l'onglet paiements
-        $recentOrders = \App\Models\Order::with('items','user')->orderByDesc('created_at')->take(20)->get();
+        // Données de paiement détaillées
+        $recentOrders = \App\Models\Order::with(['items', 'user.patient'])
+            ->orderByDesc('created_at')
+            ->take(20)
+            ->get();
+            
         $totalPaymentsThisMonth = \App\Models\Order::where('status','paid')
             ->whereYear('paid_at', now()->year)
             ->whereMonth('paid_at', now()->month)
             ->sum('total_amount');
+            
+        $totalPaymentsToday = \App\Models\Order::where('status','paid')
+            ->whereDate('paid_at', Carbon::today())
+            ->sum('total_amount');
+            
         $pendingPayments = \App\Models\Order::where('status','pending')->count();
+        $failedPayments = \App\Models\Order::where('status','failed')
+            ->whereDate('created_at', '>=', Carbon::now()->subDays(7))
+            ->count();
+            
+        // Statistiques supplémentaires pour les graphiques avancés
+        $rdvStatusStats = [
+            'en_attente' => $pendingRdvCount,
+            'confirme' => $confirmedRdvCount,
+            'termine' => $completedRdvCount,
+            'aujourd_hui' => $todayRdvCount
+        ];
+        
+        $patientStats = [
+            'total' => $totalPatients,
+            'nouveaux_semaine' => $newPatientsThisWeek,
+            'nouveaux_mois' => $newPatientsThisMonth,
+            'a_traiter' => $patientsATraiterCount
+        ];
         
         return view('secretaire.dashboard', compact(
-            'totalPatients','months','rendezvousData','admissionsData',
-            'pendingRdvCount','patientsATraiterCount','pendingRdvList',
-            'recentOrders','totalPaymentsThisMonth','pendingPayments'
+            'totalPatients', 'patientStats', 'months', 'rendezvousData', 'admissionsData', 'patientsData', 'paymentsData',
+            'pendingRdvCount', 'patientsATraiterCount', 'pendingRdvList', 'rdvStatusStats',
+            'recentOrders', 'totalPaymentsThisMonth', 'totalPaymentsToday', 'pendingPayments', 'failedPayments'
         ));
     }
 
@@ -213,26 +275,46 @@ class SecretaireController extends Controller
     public function confirmRdv($id)
     {
         $rdv = Rendez_vous::findOrFail($id);
+        $oldStatus = $rdv->statut;
         $rdv->statut = 'confirmé';
         $rdv->save();
+        
         // Notify patient by email
         $user = \App\Models\User::find($rdv->user_id);
         if ($user) {
             try { $user->notify(new \App\Notifications\RendezvousStatusChanged($rdv)); } catch (\Throwable $e) { /* noop */ }
         }
+        
+        // Déclencher l'event pour les notifications temps réel
+        try {
+            event(new RendezVousStatusUpdated($rdv, $oldStatus));
+        } catch (\Throwable $e) {
+            \Log::error('Erreur lors de l\'événement de changement de statut: ' . $e->getMessage());
+        }
+        
         return redirect()->route('secretaire.rendezvous')->with('success','Rendez-vous confirmé.');
     }
 
     public function cancelRdv($id)
     {
         $rdv = Rendez_vous::findOrFail($id);
+        $oldStatus = $rdv->statut;
         $rdv->statut = 'annulé';
         $rdv->save();
+        
         // Notify patient by email
         $user = \App\Models\User::find($rdv->user_id);
         if ($user) {
             try { $user->notify(new \App\Notifications\RendezvousStatusChanged($rdv)); } catch (\Throwable $e) { /* noop */ }
         }
+        
+        // Déclencher l'event pour les notifications temps réel
+        try {
+            event(new RendezVousStatusUpdated($rdv, $oldStatus));
+        } catch (\Throwable $e) {
+            \Log::error('Erreur lors de l\'événement de changement de statut: ' . $e->getMessage());
+        }
+        
         return redirect()->route('secretaire.rendezvous')->with('success','Rendez-vous annulé.');
     }
 

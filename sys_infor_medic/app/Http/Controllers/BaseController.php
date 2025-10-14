@@ -106,9 +106,11 @@ class BaseController extends Controller
                 \App\Models\AuditLog::create([
                     'user_id' => auth()->id(),
                     'action' => $action,
-                    'model_type' => $model ? get_class($model) : null,
-                    'model_id' => $model ? $model->id : null,
-                    'details' => json_encode($details),
+                    'event_type' => 'update', // Valeur par défaut
+                    'severity' => 'low',
+                    'auditable_type' => $model ? get_class($model) : null,
+                    'auditable_id' => $model ? $model->id : null,
+                    'changes' => $details,
                     'ip_address' => request()->ip(),
                     'user_agent' => request()->userAgent(),
                 ]);

@@ -1588,7 +1588,65 @@
       gap: 1rem;
     }
   }
-</style>
+  
+  /* Styles pour les toasts */
+  .toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .toast {
+    min-width: 300px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    border-left: 4px solid #3b82f6;
+    padding: 16px;
+    transform: translateX(100%);
+    opacity: 0;
+    transition: all 0.3s ease;
+  }
+  
+  .toast.show {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  
+  .toast.toast-success {
+    border-left-color: #10b981;
+  }
+  
+  .toast.toast-error {
+    border-left-color: #ef4444;
+  }
+  
+  .toast-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #1f2937;
+  }
+  
+  .toast-success .toast-header i {
+    color: #10b981;
+  }
+  
+  .toast-error .toast-header i {
+    color: #ef4444;
+  }
+  
+  .toast-body {
+    color: #6b7280;
+    font-size: 0.9rem;
+  }
+}</style>
 
 <script>
   // Variables globales
@@ -1622,17 +1680,77 @@
   
   function cancelAppointment(appointmentId) {
     if(confirm('Êtes-vous sûr de vouloir annuler ce rendez-vous ?')) {
-      // Ici on ferait l'appel AJAX
-      alert(`Rendez-vous ${appointmentId} annulé`);
+      // Appel AJAX pour annuler le rendez-vous
+      fetch(`/patient/rendezvous/${appointmentId}/cancel`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          showToast('success', 'Succès', data.message);
+          // Recharger la page après 1.5 secondes
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+        } else {
+          showToast('error', 'Erreur', data.message);
+        }
+      })
+      .catch(error => {
+        console.error('Erreur:', error);
+        showToast('error', 'Erreur', 'Une erreur est survenue lors de l\'annulation.');
+      });
     }
   }
   
   function modifyAppointment(appointmentId) {
-    alert(`Modification du rendez-vous ${appointmentId}`);
+    // Récupérer les données du rendez-vous
+    fetch(`/patient/rendezvous/${appointmentId}/edit`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        showEditModal(data.data);
+      } else {
+        showToast('error', 'Erreur', data.message);
+      }
+    })
+    .catch(error => {
+      console.error('Erreur:', error);
+      showToast('error', 'Erreur', 'Impossible de récupérer les données du rendez-vous.');
+    });
   }
   
   function viewAppointmentDetails(appointmentId) {
-    alert(`Détails du rendez-vous ${appointmentId}`);
+    // Récupérer les détails du rendez-vous
+    fetch(`/patient/rendezvous/${appointmentId}/details`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        showDetailsModal(data.data);
+      } else {
+        showToast('error', 'Erreur', 'Impossible de récupérer les détails du rendez-vous.');
+      }
+    })
+    .catch(error => {
+      console.error('Erreur:', error);
+      showToast('error', 'Erreur', 'Une erreur est survenue.');
+    });
   }
   
   // Dossier médical
@@ -1728,8 +1846,282 @@
     }
   }
   
+  // Fonction pour afficher les toasts
+  function showToast(type, title, message) {
+    const toastContainer = document.getElementById('toast-container') || createToastContainer();
+    
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `
+      <div class="toast-header">
+        <i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-triangle'}"></i>
+        <strong>${title}</strong>
+      </div>
+      <div class="toast-body">${message}</div>
+    `;
+    
+    toastContainer.appendChild(toast);
+    
+    // Afficher le toast
+    setTimeout(() => toast.classList.add('show'), 100);
+    
+    // Supprimer le toast après 4 secondes
+    setTimeout(() => {
+      toast.classList.remove('show');
+      setTimeout(() => toast.remove(), 300);
+    }, 4000);
+  }
+  
+  function createToastContainer() {
+    const container = document.createElement('div');
+    container.id = 'toast-container';
+    container.className = 'toast-container';
+    document.body.appendChild(container);
+    return container;
+  }
+  
+  // Fonction pour afficher la modale des détails
+  function showDetailsModal(data) {
+    const modal = document.createElement('div');
+    modal.className = 'modal fade';
+    modal.innerHTML = `
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title"><i class="bi bi-calendar-event"></i> Détails du rendez-vous</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label"><strong>Date:</strong></label>
+                <p class="form-control-plaintext">${data.date}</p>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label"><strong>Heure:</strong></label>
+                <p class="form-control-plaintext">${data.heure}</p>
+              </div>
+              <div class="col-12">
+                <label class="form-label"><strong>Médecin:</strong></label>
+                <p class="form-control-plaintext">Dr. ${data.medecin}</p>
+              </div>
+              <div class="col-12">
+                <label class="form-label"><strong>Motif:</strong></label>
+                <p class="form-control-plaintext">${data.motif}</p>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label"><strong>Statut:</strong></label>
+                <p class="form-control-plaintext"><span class="badge bg-primary">${data.statut}</span></p>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label"><strong>Créé le:</strong></label>
+                <p class="form-control-plaintext">${data.created_at}</p>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    const bsModal = new bootstrap.Modal(modal);
+    bsModal.show();
+    
+    // Supprimer la modale après fermeture
+    modal.addEventListener('hidden.bs.modal', () => modal.remove());
+  }
+  
+  // Fonction pour afficher la modale de modification
+  function showEditModal(data) {
+    const modal = document.createElement('div');
+    modal.className = 'modal fade';
+    modal.innerHTML = `
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title"><i class="bi bi-pencil-square"></i> Modifier le rendez-vous</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <form id="editAppointmentForm">
+            <div class="modal-body">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Date</label>
+                  <input type="date" name="date" class="form-control" value="${data.date}" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Heure</label>
+                  <input type="time" name="heure" class="form-control" value="${data.heure}" required>
+                </div>
+                <div class="col-12">
+                  <label class="form-label">Médecin</label>
+                  <select name="medecin_id" class="form-select" required>
+                    @foreach($medecins as $medecin)
+                      <option value="{{ $medecin->id }}" ${data.medecin_id == {{ $medecin->id }} ? 'selected' : ''}>{{ $medecin->name }}</option>
+                    @endforeach
+                  </select>
+                </div>
+                <div class="col-12">
+                  <label class="form-label">Motif</label>
+                  <textarea name="motif" class="form-control" rows="3" required>${data.motif}</textarea>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+              <button type="submit" class="btn btn-primary">Sauvegarder</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    const bsModal = new bootstrap.Modal(modal);
+    bsModal.show();
+    
+    // Gérer la soumission du formulaire
+    const form = modal.querySelector('#editAppointmentForm');
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const formData = new FormData(form);
+      
+      fetch(`/patient/rendezvous/${data.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify(Object.fromEntries(formData))
+      })
+      .then(response => response.json())
+      .then(result => {
+        if (result.success) {
+          showToast('success', 'Succès', result.message);
+          bsModal.hide();
+          setTimeout(() => window.location.reload(), 1500);
+        } else {
+          showToast('error', 'Erreur', result.message);
+        }
+      })
+      .catch(error => {
+        console.error('Erreur:', error);
+        showToast('error', 'Erreur', 'Erreur lors de la modification.');
+      });
+    });
+    
+    // Supprimer la modale après fermeture
+    modal.addEventListener('hidden.bs.modal', () => modal.remove());
+  }
+  
+  // Diagnostic CSRF et session
+  function checkCSRFToken() {
+    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    const tokenFromWindow = window.csrfToken;
+    
+    console.log('CSRF Token from meta:', token);
+    console.log('CSRF Token from window:', tokenFromWindow);
+    
+    if (!token) {
+      console.error('CSRF token manquant dans meta tag!');
+    }
+    
+    return token;
+  }
+  
+  // Vérifier et rafraîchir le token CSRF si nécessaire
+  async function refreshCSRFToken() {
+    try {
+      const response = await fetch('{{ route('csrf.token') }}', {
+        method: 'GET',
+        credentials: 'same-origin',
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const newToken = data.token;
+        
+        if (newToken) {
+          // Mettre à jour le token dans toutes les meta tags
+          document.querySelectorAll('meta[name="csrf-token"]').forEach(meta => {
+            meta.setAttribute('content', newToken);
+          });
+          
+          // Mettre à jour le token dans tous les formulaires
+          document.querySelectorAll('input[name="_token"]').forEach(input => {
+            input.value = newToken;
+          });
+          
+          // Mettre à jour la variable globale
+          window.csrfToken = newToken;
+          
+          console.log('CSRF token rafraîchi:', newToken.substring(0, 10) + '...');
+          return newToken;
+        }
+      } else if (response.status === 419) {
+        console.error('Session expirée détectée!');
+        alert('Votre session a expiré. Vous allez être redirigé vers la page de connexion.');
+        window.location.href = '{{ route('login') }}';
+      } else if (response.status === 401) {
+        console.error('Non authentifié!');
+        window.location.href = '{{ route('login') }}';
+      }
+    } catch (error) {
+      console.error('Erreur de rafraîchissement CSRF:', error);
+    }
+    return null;
+  }
+  
+  // Fonction de déconnexion locale (utilise la fonction globale si disponible)
+  async function secureLogout() {
+    if (typeof handleNavbarLogout === 'function') {
+      // Utilise la fonction globale du layout
+      return handleNavbarLogout();
+    }
+    
+    // Fallback si la fonction globale n'est pas disponible
+    try {
+      await refreshCSRFToken();
+      const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+      
+      if (!token) {
+        window.location.href = '{{ route('login') }}';
+        return;
+      }
+      
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = '{{ route('logout') }}';
+      form.style.display = 'none';
+      
+      const tokenInput = document.createElement('input');
+      tokenInput.type = 'hidden';
+      tokenInput.name = '_token';
+      tokenInput.value = token;
+      
+      form.appendChild(tokenInput);
+      document.body.appendChild(form);
+      form.submit();
+      
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
+      window.location.href = '{{ route('login') }}';
+    }
+  }
+  
   // Initialisation
   document.addEventListener('DOMContentLoaded', function() {
+    checkCSRFToken();
+    
+    // Le rafraîchissement est maintenant géré globalement dans le layout pour les patients
+    // Pas besoin de le faire ici aussi
+    
     loadDraft();
     
     // Initialiser l'onglet par défaut selon les préférences

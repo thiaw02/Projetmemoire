@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Déconnexion</title>
+</head>
+<body>
+    <h1>Test du bouton de déconnexion</h1>
+    
+    <button onclick="testLogout()">Tester Déconnexion</button>
+    
+    <script>
+        function testLogout() {
+            console.log("🚪 Début de la déconnexion...");
+            
+            // Simuler la confirmation
+            if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
+                
+                // Nettoyer le stockage local
+                try {
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    console.log("🧹 Stockage local nettoyé");
+                } catch(e) {
+                    console.warn("⚠️ Erreur nettoyage:", e);
+                }
+                
+                console.log("📝 Création du formulaire de déconnexion...");
+                
+                // Créer et soumettre le formulaire de déconnexion
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/logout'; // Remplacer par votre route
+                
+                const csrfToken = document.createElement('input');
+                csrfToken.type = 'hidden';
+                csrfToken.name = '_token';
+                csrfToken.value = 'test-token'; // Remplacer par le vrai token
+                
+                form.appendChild(csrfToken);
+                document.body.appendChild(form);
+                
+                console.log("📤 Soumission du formulaire...");
+                // form.submit(); // Décommentez pour vraie soumission
+                
+                // Redirection de sécurité
+                setTimeout(function() {
+                    console.log("🔄 Redirection de sécurité vers /login");
+                    // window.location.replace('/login'); // Décommentez pour vraie redirection
+                    alert("Redirection vers /login");
+                }, 1500);
+            }
+        }
+    </script>
+</body>
+</html>

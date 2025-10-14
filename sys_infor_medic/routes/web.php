@@ -39,6 +39,11 @@ Route::middleware('auth')->group(function () {
 
     // Alerts/Notifications summary
     Route::get('/alerts/summary', [\App\Http\Controllers\AlertsController::class, 'summary'])->name('alerts.summary');
+    
+    // Route pour récupérer le token CSRF
+    Route::get('/csrf-token', function () {
+        return response()->json(['token' => csrf_token()]);
+    })->name('csrf.token');
 });
 
 // Authentification
@@ -188,6 +193,12 @@ Route::prefix('patient')->middleware('auth')->group(function () {
     Route::get('/dossiermedical', [PatientController::class, 'dossier'])->name('patient.dossier');
     Route::get('/ordonnances/{id}/download', [PatientController::class, 'downloadOrdonnance'])->name('patient.ordonnances.download');
     Route::post('/ordonnances/{id}/resend', [PatientController::class, 'resendOrdonnance'])->name('patient.ordonnances.resend');
+    
+    // Actions sur les rendez-vous
+    Route::post('/rendezvous/{id}/cancel', [PatientController::class, 'cancelRendezVous'])->name('patient.rendezvous.cancel');
+    Route::get('/rendezvous/{id}/details', [PatientController::class, 'getRendezVousDetails'])->name('patient.rendezvous.details');
+    Route::get('/rendezvous/{id}/edit', [PatientController::class, 'editRendezVous'])->name('patient.rendezvous.edit');
+    Route::put('/rendezvous/{id}', [PatientController::class, 'updateRendezVous'])->name('patient.rendezvous.update');
 
     // Paiements
     Route::get('/paiements', [\App\Http\Controllers\PaymentController::class, 'patientIndex'])->name('patient.payments.index');

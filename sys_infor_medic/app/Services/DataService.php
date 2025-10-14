@@ -40,6 +40,11 @@ class DataService
                     ->whereMonth('date', $currentMonth->month)->count(),
                 'consults_this_month' => Consultations::whereYear('date_consultation', $currentMonth->year)
                     ->whereMonth('date_consultation', $currentMonth->month)->count(),
+                'payments_paid_this_month' => \App\Models\Order::where('status', 'paid')
+                    ->whereYear('paid_at', $currentMonth->year)
+                    ->whereMonth('paid_at', $currentMonth->month)
+                    ->sum('total_amount'),
+                'payments_pending' => \App\Models\Order::where('status', 'pending')->count(),
             ];
 
             return [
