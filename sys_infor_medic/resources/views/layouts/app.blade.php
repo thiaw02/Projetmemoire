@@ -16,6 +16,9 @@
     {{-- Profile Sidebar CSS --}}
     <link rel="stylesheet" href="{{ asset('css/profile-sidebar.css') }}">
     
+    {{-- Admin Scroll System CSS --}}
+    <link rel="stylesheet" href="{{ asset('css/admin-scroll-system.css') }}">
+    
     {{-- Sidebar Standardization CSS --}}
     <style>
         /* Standardisation de la sidebar sur toutes les pages */
@@ -307,7 +310,7 @@
             color: white;
             padding: 1rem 1.5rem;
             display: flex;
-            justify-content: between;
+            justify-content: space-between;
             align-items: center;
         }
         
@@ -668,7 +671,7 @@
       // Expose CSRF token for JS fetch usage
       window.csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
       // Current user id for per-user local storage keys
-      window.userId = "{{ auth()->id() }}";
+      window.userId = "{{ auth()->id() ?? '' }}";
       window.userRole = "{{ auth()->user()->role ?? '' }}";
       
       // Fonction de rafraîchissement du token CSRF globale
@@ -773,6 +776,12 @@
 
     {{-- Zone pour scripts spécifiques aux vues --}}
     @yield('scripts')
+    
+    {{-- Script de pagination professionnel --}}
+    <script src="{{ asset('js/pagination.js') }}"></script>
+    
+    {{-- Admin Scroll System JS --}}
+    <script src="{{ asset('js/admin-scroll-system.js') }}"></script>
 
     <script>
       // Alerts: dropdown + poll count
@@ -810,9 +819,9 @@
             const badgeHtml = m.unread>0 ? `<span class="badge bg-success ms-1">${m.unread}</span>` : '';
             const li = document.createElement('li');
             li.className = 'py-1 border-bottom';
-            li.innerHTML = `<div class="d-flex justify-content-between"><strong>${m.partner_name}</strong>${badgeHtml}</div>
+            li.innerHTML = `<div class="d-flex justify-content-between"><strong>${m.partner_name || 'Inconnu'}</strong>${badgeHtml}</div>
                             <div class="small text-muted">${(m.last_at||'').replace('T',' ').slice(0,16)}</div>
-                            <div class="small">${m.preview||''}</div>`;
+                            <div class="small">${m.preview || 'Aucun aperçu'}</div>`;
             listMsgs.appendChild(li);
           });
           if (!listMsgs.children.length){ const li=document.createElement('li'); li.className='small text-muted px-1'; li.textContent='Aucun message.'; listMsgs.appendChild(li); }
@@ -820,12 +829,12 @@
           // Notifications
           listNotifs.innerHTML = '';
           if ((data.rdvRequests||[]).length){
-            const header = document.createElement('li'); header.className='small text-success px-1 d-flex justify-content-between align-items-center'; header.innerHTML='<span>Demandes de rendez‑vous</span>'+(window.userRole==='secretaire'?`<a href=\"{{ route('secretaire.rendezvous') }}\" class=\"small\">Tout voir</a>`:''); listNotifs.appendChild(header);
+            const header = document.createElement('li'); header.className='small text-success px-1 d-flex justify-content-between align-items-center'; header.innerHTML='<span>Demandes de rendez‑vous</span>'+(window.userRole==='secretaire'?'<a href="{{ route("secretaire.rendezvous") }}" class="small">Tout voir</a>':''); listNotifs.appendChild(header);
             data.rdvRequests.forEach(it=>{
               const li = document.createElement('li');
               li.className = 'py-1 border-bottom';
-              li.innerHTML = `<div><strong>${it.patient}</strong> → ${it.medecin||'—'}</div>
-                              <div class=\"small text-muted\">${it.date} ${it.heure}</div>`;
+              li.innerHTML = `<div><strong>${it.patient || 'Inconnu'}</strong> → ${it.medecin||'—'}</div>
+                              <div class="small text-muted">${it.date || ''} ${it.heure || ''}</div>`;
               listNotifs.appendChild(li);
             });
           }
@@ -836,7 +845,7 @@
               li.className = 'py-1 border-bottom';
               const cls = (/confirm/i.test(it.statut)?'bg-success':(/annul/i.test(it.statut)?'bg-secondary':'bg-warning text-dark'));
               li.innerHTML = `<div><span class="badge ${cls}">${(it.statut||'').replace('_',' ')}</span> avec ${it.medecin||'—'}</div>
-                              <div class="small text-muted">${it.date} ${it.heure}</div>`;
+                              <div class="small text-muted">${it.date || ''} ${it.heure || ''}</div>`;
               listNotifs.appendChild(li);
             });
           }
@@ -854,18 +863,31 @@
         }
         let open=false;
         let intervalId = null;
-        function startPolling(){ if(intervalId) return; intervalId = setInterval(refreshBadge, 15000); }
+        function startPolling(){ if(intervalId) return; intervalId = setInterval(() => refreshBadge(), 15000); }
         function stopPolling(){ if(intervalId){ clearInterval(intervalId); intervalId=null; } }
-        toggle?.addEventListener('click', async ()=>{
+        toggle?.addEventListener('click', async (e) => {
+          e.preventDefault();
           open = !open;
           if(open){ await renderPanel(); panel?.classList.remove('d-none'); panel?.classList.add('slide-in'); badge?.classList.add('d-none'); stopPolling(); }
           else { panel?.classList.add('d-none'); startPolling(); }
         });
-        document.addEventListener('click', (e)=>{ if(!panel || !toggle) return; if (!panel.contains(e.target) && !toggle.contains(e.target)){ panel.classList.add('d-none'); open=false; startPolling(); }});
+        document.addEventListener('click', (e) => { if(!panel || !toggle) return; if (!panel.contains(e.target) && !toggle.contains(e.target)){ panel.classList.add('d-none'); open=false; startPolling(); }});
         startPolling();
         refreshBadge();
       })();
     </script>
+
+    {{-- Indicateur de chargement global pour pagination --}}
+    <div id="paginationLoader" class="d-none position-fixed top-50 start-50 translate-middle" style="z-index: 9999;">
+        <div class="card shadow border-0">
+            <div class="card-body text-center py-4 px-5">
+                <div class="spinner-border text-primary mb-3" role="status" style="width: 2.5rem; height: 2.5rem;">
+                    <span class="visually-hidden">Chargement...</span>
+                </div>
+                <p class="mb-0 text-muted">Chargement des données...</p>
+            </div>
+        </div>
+    </div>
 
 </body>
 </html>

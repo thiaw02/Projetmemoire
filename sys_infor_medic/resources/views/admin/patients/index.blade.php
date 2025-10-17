@@ -1,6 +1,16 @@
 @extends('layouts.app')
 
+@section('body_class', 'admin-page')
+
 @section('content')
+<div class="row">
+  <div class="col-lg-3 mb-4">
+    <div class="admin-intelligent-sidebar sidebar-standardized">
+      @include('layouts.partials.profile_sidebar')
+    </div>
+  </div>
+  <div class="col-lg-9">
+    <div class="admin-main-content">
 <style>
   /* Styles admin patients */
   body > .container { max-width: 1500px !important; }
@@ -94,7 +104,7 @@
   }
 </style>
 
-<div class="admin-page-header">
+<div class="admin-page-header scroll-fade-in">
   <div class="header-content">
     <h4 class="page-title">
       <i class="bi bi-person-hearts"></i>
@@ -106,7 +116,7 @@
   </div>
 </div>
 
-<div class="filters-section">
+<div class="filters-section scroll-slide-left">
   <div class="d-flex justify-content-between align-items-center">
     <form method="GET" class="d-flex gap-3 align-items-center" role="search">
       <div>
@@ -140,7 +150,7 @@
     <div class="alert alert-success">{{ session('success') }}</div>
 @endif
 
-<div class="admin-table-container">
+<div class="admin-table-container scroll-scale-in">
   <table class="table admin-table">
       <thead>
           <tr>
@@ -184,4 +194,8 @@
       </tbody>
   </table>
 </div>
+
+    </div> {{-- Fin admin-main-content --}}
+  </div> {{-- Fin col-lg-9 --}}
+</div> {{-- Fin row --}}
 @endsection

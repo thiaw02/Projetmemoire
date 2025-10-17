@@ -1,8 +1,10 @@
 @extends('layouts.app')
 
+@section('body_class', 'admin-page')
+
 @section('content')
 {{-- Header moderne pour gestion des utilisateurs --}}
-<div class="users-admin-header">
+<div class="users-admin-header scroll-fade-in">
   <div class="header-content">
     <div class="header-title">
       <i class="bi bi-people-fill"></i>
@@ -36,8 +38,8 @@
 @endif
 
 {{-- Statistiques rapides --}}
-<div class="stats-grid mb-4">
-  <div class="stat-card stat-total">
+<div class="stats-grid mb-4 scroll-slide-left">
+  <div class="stat-card stat-total scroll-card-hover gpu-accelerated">
     <div class="stat-icon">
       <i class="bi bi-people-fill"></i>
     </div>
@@ -47,7 +49,7 @@
     </div>
   </div>
   
-  <div class="stat-card stat-active">
+  <div class="stat-card stat-active scroll-card-hover gpu-accelerated">
     <div class="stat-icon">
       <i class="bi bi-person-check-fill"></i>
     </div>
@@ -57,7 +59,7 @@
     </div>
   </div>
   
-  <div class="stat-card stat-medecins">
+  <div class="stat-card stat-medecins scroll-card-hover gpu-accelerated">
     <div class="stat-icon">
       <i class="bi bi-person-hearts"></i>
     </div>
@@ -67,7 +69,7 @@
     </div>
   </div>
   
-  <div class="stat-card stat-secretaires">
+  <div class="stat-card stat-secretaires scroll-card-hover gpu-accelerated">
     <div class="stat-icon">
       <i class="bi bi-person-workspace"></i>
     </div>
@@ -79,7 +81,8 @@
 </div>
 
 {{-- Nouveau système de filtres et pagination moderne --}}
-<x-pagination-filters 
+<div class="scroll-fade-in">
+<x-pagination-filters
     search-placeholder="Rechercher par nom, email..."
     :search-value="$filters['q'] ?? ''"
     :current-per-page="request('per_page', 20)"
@@ -136,9 +139,10 @@
         </a>
     </div>
 </x-pagination-filters>
+</div>
 
 {{-- Liste des utilisateurs moderne --}}
-<div class="users-container">
+<div class="users-container scroll-scale-in">
   <div class="users-header-section">
     <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>Liste des utilisateurs ({{ $users->total() }} utilisateurs)</h5>
     <div class="users-count-info">

@@ -170,3 +170,54 @@ Route::middleware(['throttle:api'])->prefix('api/evaluations')->name('api.evalua
         ]);
     })->name('top-medecins');
 });
+
+// ===================== SYSTÈME D'ÉVALUATION SIMPLE =====================
+// Routes pour le nouveau système d'évaluation simplifié
+Route::middleware(['auth', 'verified'])->prefix('simple-evaluations')->name('simple-evaluations.')->group(function () {
+    // Liste des évaluations (avec filtrage optionnel par professionnel)
+    Route::get('/', [\App\Http\Controllers\SimpleEvaluationController::class, 'index'])->name('index');
+    Route::get('/professional/{user}', [\App\Http\Controllers\SimpleEvaluationController::class, 'index'])->name('professional');
+    
+    // Formulaire de création d'évaluation
+    Route::get('/create', [\App\Http\Controllers\SimpleEvaluationController::class, 'create'])->name('create');
+    
+    // Enregistrer une évaluation (patients uniquement)
+    Route::post('/', [\App\Http\Controllers\SimpleEvaluationController::class, 'store'])->name('store');
+    
+    // Afficher une évaluation
+    Route::get('/{evaluation}', [\App\Http\Controllers\SimpleEvaluationController::class, 'show'])->name('show');
+    
+    // Mes évaluations (pour les patients)
+    Route::get('/my/evaluations', [\App\Http\Controllers\SimpleEvaluationController::class, 'myEvaluations'])->name('my-evaluations');
+});
+
+// Dashboard pour les professionnels (médecins/infirmiers)
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/my-evaluations-dashboard', [\App\Http\Controllers\SimpleEvaluationController::class, 'professionalDashboard'])
+         ->name('simple-evaluations.professional-dashboard')
+         ->middleware('role:medecin,infirmier');
+         
+    // Route de test temporaire pour déboguer
+    Route::get('/test-evaluations', function() {
+        $user = auth()->user();
+        return response()->json([
+            'user_role' => $user->role,
+            'user_id' => $user->id,
+            'user_name' => $user->name,
+            'evaluations_count' => \App\Models\Evaluation::countForProfessional($user->id),
+            'average_rating' => \App\Models\Evaluation::averageRatingForProfessional($user->id)
+        ]);
+    })->name('test-evaluations')->middleware('role:medecin,infirmier');
+});
+
+// Dashboard pour les administrateurs
+Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/evaluations-dashboard', [\App\Http\Controllers\SimpleEvaluationController::class, 'adminDashboard'])
+         ->name('simple-evaluations.admin-dashboard');
+});
+
+// API pour les statistiques des professionnels
+Route::middleware(['throttle:api'])->prefix('api/simple-evaluations')->name('api.simple-evaluations.')->group(function () {
+    // Statistiques d'un professionnel
+    Route::get('/professional/{user}/stats', [\App\Http\Controllers\SimpleEvaluationController::class, 'professionalStats'])->name('professional-stats');
+});

@@ -138,6 +138,39 @@
           </span>
         </div>
       </li>
+      @php
+        // Calcul des étoiles d'évaluation pour le médecin
+        $evaluations = \App\Models\Evaluation::where('evaluated_user_id', $user->id);
+        $averageRating = $evaluations->avg('note') ?: 0;
+        $totalEvaluations = $evaluations->count();
+        $fullStars = floor($averageRating);
+        $halfStar = $averageRating - $fullStars >= 0.5;
+        $emptyStars = 5 - $fullStars - ($halfStar ? 1 : 0);
+      @endphp
+      @if($totalEvaluations > 0)
+      <li class="profile-info-item evaluation-item">
+        <div class="info-block">
+          <span class="info-label">
+            <i class="bi bi-star-fill sidebar-icon text-warning"></i>Évaluation
+            <span class="info-value-count rating-count">{{ $totalEvaluations }}</span>
+          </span>
+          <div class="info-value rating-display">
+            <div class="stars-container">
+              @for($i = 0; $i < $fullStars; $i++)
+                <i class="bi bi-star-fill text-warning"></i>
+              @endfor
+              @if($halfStar)
+                <i class="bi bi-star-half text-warning"></i>
+              @endif
+              @for($i = 0; $i < $emptyStars; $i++)
+                <i class="bi bi-star text-muted"></i>
+              @endfor
+            </div>
+            <span class="rating-value">{{ number_format($averageRating, 1) }}/5</span>
+          </div>
+        </div>
+      </li>
+      @endif
       <li class="profile-info-item">
         <div class="info-row">
           <span class="info-label"><i class="bi bi-shield-check sidebar-icon"></i>Statut</span>
@@ -237,6 +270,39 @@
           </div>
         </div>
       </li>
+      @php
+        // Calcul des étoiles d'évaluation pour l'infirmier
+        $evaluations = \App\Models\Evaluation::where('evaluated_user_id', $user->id);
+        $averageRating = $evaluations->avg('note') ?: 0;
+        $totalEvaluations = $evaluations->count();
+        $fullStars = floor($averageRating);
+        $halfStar = $averageRating - $fullStars >= 0.5;
+        $emptyStars = 5 - $fullStars - ($halfStar ? 1 : 0);
+      @endphp
+      @if($totalEvaluations > 0)
+      <li class="profile-info-item evaluation-item">
+        <div class="info-block">
+          <span class="info-label">
+            <i class="bi bi-star-fill sidebar-icon text-warning"></i>Évaluation
+            <span class="info-value-count rating-count">{{ $totalEvaluations }}</span>
+          </span>
+          <div class="info-value rating-display">
+            <div class="stars-container">
+              @for($i = 0; $i < $fullStars; $i++)
+                <i class="bi bi-star-fill text-warning"></i>
+              @endfor
+              @if($halfStar)
+                <i class="bi bi-star-half text-warning"></i>
+              @endif
+              @for($i = 0; $i < $emptyStars; $i++)
+                <i class="bi bi-star text-muted"></i>
+              @endfor
+            </div>
+            <span class="rating-value">{{ number_format($averageRating, 1) }}/5</span>
+          </div>
+        </div>
+      </li>
+      @endif
       <li class="profile-info-item">
         <div class="info-row">
           <span class="info-label"><i class="bi bi-shield-check sidebar-icon"></i>Statut</span>

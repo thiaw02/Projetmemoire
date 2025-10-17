@@ -1,8 +1,18 @@
 @extends('layouts.app')
 
+@section('body_class', 'admin-page')
+
 @section('content')
+<div class="row">
+  <div class="col-lg-3 mb-4">
+    <div class="admin-intelligent-sidebar sidebar-standardized">
+      @include('layouts.partials.profile_sidebar')
+    </div>
+  </div>
+  <div class="col-lg-9">
+    <div class="admin-main-content">
 {{-- Header moderne pour gestion des paiements admin --}}
-<div class="payments-admin-header">
+<div class="payments-admin-header scroll-fade-in">
   <div class="header-content">
     <div class="header-title">
       <i class="bi bi-credit-card-2-front"></i>
@@ -22,8 +32,8 @@
 </div>
 
 {{-- Statistiques de paiement --}}
-<div class="stats-grid mb-4">
-  <div class="stat-card stat-total">
+<div class="stats-grid mb-4 scroll-slide-left">
+  <div class="stat-card stat-total scroll-card-hover gpu-accelerated">
     <div class="stat-icon">
       <i class="bi bi-cash-stack"></i>
     </div>
@@ -33,7 +43,7 @@
     </div>
   </div>
   
-  <div class="stat-card stat-today">
+  <div class="stat-card stat-today scroll-card-hover gpu-accelerated">
     <div class="stat-icon">
       <i class="bi bi-calendar-day"></i>
     </div>
@@ -43,7 +53,7 @@
     </div>
   </div>
   
-  <div class="stat-card stat-secretaires">
+  <div class="stat-card stat-secretaires scroll-card-hover gpu-accelerated">
     <div class="stat-icon">
       <i class="bi bi-people-fill"></i>
     </div>
@@ -53,7 +63,7 @@
     </div>
   </div>
   
-  <div class="stat-card stat-settings">
+  <div class="stat-card stat-settings scroll-card-hover gpu-accelerated">
     <div class="stat-icon">
       <i class="bi bi-gear-fill"></i>
     </div>
@@ -65,7 +75,7 @@
 </div>
 
 {{-- Actions principales --}}
-<div class="admin-actions-grid">
+<div class="admin-actions-grid scroll-scale-in">
   <div class="action-card tarifs-card">
     <div class="card-header">
       <i class="bi bi-currency-exchange"></i>
@@ -451,4 +461,8 @@
     }
   }
 </style>
+
+    </div> {{-- Fin admin-main-content --}}
+  </div> {{-- Fin col-lg-9 --}}
+</div> {{-- Fin row --}}
 @endsection

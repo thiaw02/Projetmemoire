@@ -108,8 +108,8 @@ class BaseController extends Controller
                     'action' => $action,
                     'event_type' => 'update', // Valeur par défaut
                     'severity' => 'low',
-                    'auditable_type' => $model ? get_class($model) : null,
-                    'auditable_id' => $model ? $model->id : null,
+                    'auditable_type' => $model ? get_class($model) : 'System',
+                    'auditable_id' => $model ? $model->id : 0,
                     'changes' => $details,
                     'ip_address' => request()->ip(),
                     'user_agent' => request()->userAgent(),

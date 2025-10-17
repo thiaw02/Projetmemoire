@@ -15,7 +15,7 @@ class AdminController extends BaseController
             // Obtenir toutes les données via le service optimisé
             $dashboardData = DataService::getAdminDashboardStats();
             
-            // Utilisateurs pour affichage - prioriser les rôles administratifs
+            // Utilisateurs pour affichage avec pagination - prioriser les rôles administratifs
             $users = User::with(['nurses:id,name', 'doctors:id,name'])
                 ->select('id', 'name', 'email', 'role', 'active', 'created_at', 'specialite')
                 ->orderByRaw("CASE 
@@ -25,8 +25,7 @@ class AdminController extends BaseController
                     WHEN role = 'infirmier' THEN 4 
                     ELSE 5 END")
                 ->orderBy('created_at', 'desc')
-                ->limit(100)
-                ->get();
+                ->paginate(20); // Pagination de 20 utilisateurs par page
             
             // Debug : vérifier si les utilisateurs sont récupérés
             if ($users->isEmpty()) {
@@ -73,11 +72,21 @@ class AdminController extends BaseController
             // Modules de permissions pour la vue
             $permissionModules = $this->getPermissionModules();
             
+            // Variables pour la section permissions
+            $essentialModule = $permissionModules;
+            $rolePermissions = [
+                'admin' => [],
+                'secretaire' => [],
+                'medecin' => [],
+                'infirmier' => [],
+                'patient' => []
+            ];
+            
             return view('admin.dashboard', compact(
                 'users', 'rolesCount', 'months', 'rendezvousCounts', 
                 'admissionsCounts', 'consultationsCounts', 'patientsCounts',
                 'rdvPendingSeries', 'rdvConfirmedSeries', 'rdvCancelledSeries',
-                'kpis', 'rdvStatusCounts', 'permissionModules'
+                'kpis', 'rdvStatusCounts', 'permissionModules', 'essentialModule', 'rolePermissions'
             ));
             
         } catch (\Exception $e) {

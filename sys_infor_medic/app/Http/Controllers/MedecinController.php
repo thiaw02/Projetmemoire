@@ -31,6 +31,13 @@ class MedecinController extends Controller
             ->take(10)
             ->get();
 
+        // Consultations du médecin (toutes les consultations récentes)
+        $consultations = Consultations::with(['patient'])
+            ->where('medecin_id', $medecinId)
+            ->whereDate('date_consultation', '>=', now()->subDays(30)->toDateString()) // 30 derniers jours
+            ->orderBy('date_consultation')
+            ->get();
+
         // Infirmiers affectés à ce médecin
         $medecin = \App\Models\User::with(['nurses' => function($q){ $q->select('users.id','users.name','users.pro_phone'); }])->find($medecinId);
 
@@ -65,6 +72,7 @@ class MedecinController extends Controller
 
         return view('medecin.dashboard', [
             'upcomingRdv' => $upcomingRdv,
+            'consultations' => $consultations,
             'recentPatients' => $recentPatients,
             'medecin' => $medecin,
             'stats' => $stats,

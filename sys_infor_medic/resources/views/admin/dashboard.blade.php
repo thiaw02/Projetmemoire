@@ -1,37 +1,47 @@
 @extends('layouts.app')
 
+@section('body_class', 'admin-page')
+
 @section('content')
 <div class="row">
   <div class="col-lg-3 mb-4">
-    <div class="sidebar-standardized">
+    <div class="admin-intelligent-sidebar sidebar-standardized">
       @include('layouts.partials.profile_sidebar')
     </div>
   </div>
   <div class="col-lg-9">
+    <div class="admin-main-content">
 
 {{-- Header moderne simple --}}
-<div class="admin-modern-header">
+<div class="admin-modern-header scroll-fade-in">
   <div class="header-content">
     <div class="header-title">
       <i class="bi bi-speedometer2"></i>
-      <span>Administration</span>
+      <span>Dashboard</span>
     </div>
-    <div class="header-badge">
-      <i class="bi bi-shield-check"></i>
-      <span>{{ Auth::user()->name }}</span>
+    <div class="d-flex align-items-center gap-3">
+      <a href="{{ route('admin.simple-evaluations.admin-dashboard') }}" class="btn btn-light btn-sm d-flex align-items-center gap-2" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white;">
+        <i class="bi bi-star-fill"></i>
+        <span>Gestion Évaluations</span>
+      </a>
+      <div class="header-badge">
+        <i class="bi bi-shield-check"></i>
+        <span>{{ Auth::user()->name }}</span>
+      </div>
     </div>
   </div>
 </div>
+
 
 @if(session('success'))
     <div class="alert alert-success">{{ session('success') }}</div>
 @endif
 
 {{-- KPIs modernes sur une seule ligne --}}
-<div class="row g-3 mb-4">
+<div class="row g-3 mb-4 scroll-slide-left">
   {{-- Utilisateurs --}}
   <div class="col">
-    <div class="kpi-card">
+    <div class="kpi-card scroll-card-hover gpu-accelerated">
       <div class="kpi-icon users">
         <i class="bi bi-people-fill"></i>
       </div>
@@ -44,7 +54,7 @@
   
   {{-- Patients --}}
   <div class="col">
-    <div class="kpi-card">
+    <div class="kpi-card scroll-card-hover gpu-accelerated">
       <div class="kpi-icon patients">
         <i class="bi bi-person-hearts"></i>
       </div>
@@ -57,7 +67,7 @@
   
   {{-- Rendez-vous --}}
   <div class="col">
-    <div class="kpi-card">
+    <div class="kpi-card scroll-card-hover gpu-accelerated">
       <div class="kpi-icon rdv">
         <i class="bi bi-calendar-check"></i>
       </div>
@@ -70,7 +80,7 @@
   
   {{-- Consultations --}}
   <div class="col">
-    <div class="kpi-card">
+    <div class="kpi-card scroll-card-hover gpu-accelerated">
       <div class="kpi-icon consultations">
         <i class="bi bi-clipboard2-pulse"></i>
       </div>
@@ -83,7 +93,7 @@
   
   {{-- Paiements --}}
   <div class="col">
-    <div class="kpi-card">
+    <div class="kpi-card scroll-card-hover gpu-accelerated">
       <div class="kpi-icon payments">
         <i class="bi bi-wallet2"></i>
       </div>
@@ -94,17 +104,68 @@
       </div>
     </div>
   </div>
+  
+  {{-- Note Moyenne Globale --}}
+  @php
+    $evalStats = [
+        'moyenne' => \App\Models\Evaluation::avg('note') ?? 0,
+        'total' => \App\Models\Evaluation::count(),
+        'professionnels_evalues' => \App\Models\Evaluation::distinct('evaluated_user_id')->count(),
+    ];
+  @endphp
+  <div class="col">
+    <div class="kpi-card scroll-card-hover gpu-accelerated">
+      <div class="kpi-icon evaluations">
+        <i class="bi bi-star-fill"></i>
+      </div>
+      <div class="kpi-content">
+        <div class="kpi-value">{{ number_format($evalStats['moyenne'], 1) }}</div>
+        <div class="kpi-label">Note Moyenne</div>
+        <div class="kpi-sub">{{ $evalStats['total'] }} évaluations</div>
+      </div>
+    </div>
+  </div>
+  
+  {{-- Professionnels Évalués --}}
+  <div class="col">
+    <div class="kpi-card scroll-card-hover gpu-accelerated">
+      <div class="kpi-icon professionals">
+        <i class="bi bi-people-fill"></i>
+      </div>
+      <div class="kpi-content">
+        <div class="kpi-value">{{ $evalStats['professionnels_evalues'] }}</div>
+        <div class="kpi-label">Professionnels Évalués</div>
+        <div class="kpi-sub">Sur {{ \App\Models\User::whereIn('role', ['medecin', 'infirmier'])->count() }} total</div>
+      </div>
+    </div>
+  </div>
 </div>
 
 {{-- Styles modernes minimalistes pour admin --}}
 <style>
   /* Header admin moderne simple */
+  /* Suppression complète de l'espacement excessif pour dashboard admin */
+  body {
+    padding-top: 90px !important;
+  }
+  
+  .container.mt-4,
+  .container {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+  }
+  
+  .row {
+    margin-top: 0 !important;
+  }
+  
   .admin-modern-header {
     background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%);
     color: white;
-    padding: 1.5rem 2rem;
+    padding: 1rem 1.5rem;
     border-radius: 16px;
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
+    margin-top: 0;
     box-shadow: 0 8px 25px rgba(30, 64, 175, 0.15);
   }
   
@@ -188,6 +249,8 @@
   .kpi-icon.rdv { background: linear-gradient(135deg, #f59e0b, #d97706); }
   .kpi-icon.consultations { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
   .kpi-icon.payments { background: linear-gradient(135deg, #10b981, #059669); }
+  .kpi-icon.evaluations { background: linear-gradient(135deg, #fbbf24, #f59e0b); }
+  .kpi-icon.professionals { background: linear-gradient(135deg, #6366f1, #4f46e5); }
   
   .kpi-content {
     flex: 1;
@@ -234,9 +297,6 @@
   body > .container { max-width: 1500px !important; }
   .page-section { padding-left: .75rem; padding-right: .75rem; }
   .content-card { background: #fff; border-radius: .75rem; box-shadow: 0 8px 24px rgba(0,0,0,.06); padding: 1rem; }
-
-  /* Header collant pour un comportement moderne */
-  .admin-header { position: sticky; top: 0; background: #fff; z-index: 10; padding-top: .25rem; border-bottom: 1px solid rgba(0,0,0,.05); }
   /* Onglets admin ultra-modernisés */
   .admin-tabs { 
     display: flex; 
@@ -410,8 +470,8 @@
   }
   
   /* Sidebar collante et compacte */
-  .sidebar-sticky { position: sticky; top: 1rem; }
-  .sidebar-sticky img[alt="Photo de profil"] { width: 96px !important; height: 96px !important; }
+  .sidebar-standardized { position: sticky; top: 1rem; }
+  .sidebar-standardized img[alt="Photo de profil"] { width: 96px !important; height: 96px !important; }
   
   /* ========== STYLES POUR ONGLET SUPERVISION DES RÔLES ========== */
   .roles-supervision-header {
@@ -1296,6 +1356,13 @@
             </tbody>
           </table>
         </div>
+        
+        {{-- Pagination pour utilisateurs --}}
+        @if($users->hasPages())
+            <div class="d-flex justify-content-center mt-3">
+                {{ $users->appends(request()->query())->links() }}
+            </div>
+        @endif
     </div>
     
     {{-- Gérer patients --}}
@@ -1351,6 +1418,13 @@
             </tbody>
           </table>
         </div>
+        
+        {{-- Pagination pour patients --}}
+        @if($users->hasPages())
+            <div class="d-flex justify-content-center mt-3">
+                {{ $users->appends(request()->query())->links() }}
+            </div>
+        @endif
     </div>
 
     {{-- Statistiques globales --}}
@@ -1744,7 +1818,7 @@
                                 <td class="text-center">
                                     <div class="permission-level-selector">
                                         @foreach([['none','Aucun','secondary'],['read','Lecture','warning'],['full','Complet','success']] as $opt)
-                                          @php $id = 'lvl_ess_'.preg_replace('/\\W+/','_', ($essentialModule['title'] ?? 'module').'_'.$r.'_'.$opt[0]); @endphp
+              @php $id = 'lvl_ess_'.preg_replace('/\W+/','_', ($essentialModule['title'] ?? 'module').'_'.$r.'_'.$opt[0]); @endphp
                                           <input type="radio" class="btn-check" name="levels[{{ $essentialModule['title'] ?? 'module' }}][{{ $r }}]" id="{{ $id }}" autocomplete="off" value="{{ $opt[0] }}" {{ $currentLevel===$opt[0]?'checked':'' }}>
                                           <label class="btn btn-outline-{{ $opt[2] }} btn-sm permission-btn" for="{{ $id }}">
                                               <i class="bi bi-{{ $opt[0] === 'none' ? 'x-circle' : ($opt[0] === 'read' ? 'eye' : 'check-circle') }} me-1"></i>
@@ -1792,8 +1866,8 @@
         <div class="payments-header">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <h4 class="mb-1"><i class="bi bi-wallet2 text-info me-2"></i>Gestion des Paiements</h4>
-                    <p class="text-muted mb-0">Suivi des transactions et revenus de la plateforme</p>
+                    <h4 class="mb-1"><i class="bi bi-wallet2 text-info me-2"></i>Paiements & Évaluations</h4>
+                    <p class="text-muted mb-0">Suivi des transactions, revenus et qualité de service</p>
                 </div>
                 <div class="d-flex gap-2">
                     <button class="btn btn-outline-success btn-sm" title="Exporter les paiements">
@@ -1818,7 +1892,7 @@
             $pendingCount = $recentOrders->where('status', 'pending')->count();
         @endphp
         
-        <div class="payments-kpis-grid">
+        <div class="payments-kpis-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
             <div class="payment-kpi-card revenue">
                 <div class="payment-kpi-icon">
                     <i class="bi bi-cash-stack"></i>
@@ -1865,21 +1939,6 @@
                 </div>
             </div>
             
-            <div class="payment-kpi-card providers">
-                <div class="payment-kpi-icon">
-                    <i class="bi bi-building"></i>
-                </div>
-                <div class="payment-kpi-content">
-                    @php $providers = $recentOrders->pluck('provider')->unique()->filter()->count(); @endphp
-                    <div class="payment-kpi-number">{{ $providers }}</div>
-                    <div class="payment-kpi-label">Prestataires</div>
-                    <div class="payment-kpi-sub">Actifs</div>
-                </div>
-                <div class="payment-kpi-trend neutral">
-                    <i class="bi bi-dash"></i>
-                    <span>-</span>
-                </div>
-            </div>
         </div>
         
         {{-- Tableau des paiements --}}
@@ -2019,7 +2078,9 @@
         </div>
     </div>
 
-</div>
+    </div> {{-- Fin admin-main-content --}}
+  </div> {{-- Fin col-lg-9 --}}
+</div> {{-- Fin row --}}
 @endsection
 
 <!-- Modal de mise à jour de rôle -->
@@ -2057,6 +2118,8 @@
   </div>
 </div>
 
+</div>
+
 <!-- Toast succès -->
 <div class="position-fixed top-0 end-0 p-3" style="z-index: 1080;">
   <div id="roleToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
@@ -2085,7 +2148,7 @@
           const uname = button.getAttribute('data-user-name') || '';
           const current = button.getAttribute('data-current-role') || '';
           if (userNameSpan) userNameSpan.textContent = uname;
-          (form?.querySelectorAll('input[name=\"role\"]')||[]).forEach(r=>{ r.checked = (r.value===current); });
+          (form?.querySelectorAll('input[name="role"]')||[]).forEach(r=>{ r.checked = (r.value===current); });
           if (form) form.action = `/admin/users/${uid}/role`;
         });
       }

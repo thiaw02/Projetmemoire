@@ -21,6 +21,10 @@
             <i class="bi bi-credit-card"></i>
             <span class="d-none d-md-inline">Paiements</span>
           </a>
+          <a href="{{ route('simple-evaluations.my-evaluations') }}" class="btn-quick-action evaluation" title="Mes évaluations">
+            <i class="bi bi-star-fill"></i>
+            <span class="d-none d-md-inline">Évaluations</span>
+          </a>
         </div>
       </div>
     </div>
@@ -574,6 +578,7 @@
   }
   
   .btn-quick-action.payment:hover { color: var(--patient-success); }
+  .btn-quick-action.evaluation:hover { color: #fbbf24; }
   
   /* Alertes modernes */
   .alert-modern {

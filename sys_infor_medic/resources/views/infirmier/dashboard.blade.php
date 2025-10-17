@@ -257,6 +257,10 @@
       <h2 class="mb-0 text-success"><i class="bi bi-clipboard2-pulse me-2"></i>Dashboard Infirmier</h2>
       <div class="d-flex align-items-center gap-2">
         <input type="text" id="searchInfirmier" class="form-control form-control-sm" placeholder="Rechercher..." style="max-width: 240px;">
+        <a href="{{ route('simple-evaluations.professional-dashboard') }}" class="btn btn-success btn-sm d-flex align-items-center gap-1" title="Mes Évaluations">
+          <i class="bi bi-star-fill"></i>
+          <span class="d-none d-md-inline">Mes Évaluations</span>
+        </a>
         <span class="badge bg-success">{{ Auth::user()->name }}</span>
       </div>
     </div>
