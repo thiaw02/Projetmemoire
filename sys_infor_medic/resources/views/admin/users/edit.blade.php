@@ -83,6 +83,10 @@
                 <i class="bi bi-person"></i>
                 <span>Informations générales</span>
               </button>
+              <button type="button" class="tab-btn" onclick="switchFormTab('personal')">
+                <i class="bi bi-person-lines-fill"></i>
+                <span>Informations personnelles</span>
+              </button>
               <button type="button" class="tab-btn" onclick="switchFormTab('professional')">
                 <i class="bi bi-briefcase"></i>
                 <span>Informations professionnelles</span>
@@ -212,13 +216,178 @@
               </div>
             </div>
             
+            {{-- Onglet: Informations personnelles --}}
+            <div class="tab-content" id="personal-tab">
+              <div class="form-section">
+                <div class="section-header">
+                  <i class="bi bi-person-lines-fill"></i>
+                  <h3>Informations Personnelles</h3>
+                  <p>Détails personnels et de contact</p>
+                </div>
+                
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label for="phone" class="form-label">
+                      <i class="bi bi-telephone"></i>
+                      Téléphone personnel
+                    </label>
+                    <div class="input-wrapper">
+                      <input type="tel" 
+                             name="phone" 
+                             id="phone" 
+                             class="form-control" 
+                             value="{{ old('phone', $user->phone) }}"
+                             placeholder="+221 77 000 00 00">
+                    </div>
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="gender" class="form-label">
+                      <i class="bi bi-gender-ambiguous"></i>
+                      Genre
+                    </label>
+                    <div class="select-wrapper">
+                      <select name="gender" id="gender" class="form-select">
+                        <option value="">-- Choisir --</option>
+                        <option value="Masculin" {{ (old('gender', $user->gender) == 'Masculin') ? 'selected' : '' }}>Masculin</option>
+                        <option value="Féminin" {{ (old('gender', $user->gender) == 'Féminin') ? 'selected' : '' }}>Féminin</option>
+                        <option value="Autre" {{ (old('gender', $user->gender) == 'Autre') ? 'selected' : '' }}>Autre</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label for="date_of_birth" class="form-label">
+                      <i class="bi bi-calendar-date"></i>
+                      Date de naissance
+                    </label>
+                    <div class="input-wrapper">
+                      <input type="date" 
+                             name="date_of_birth" 
+                             id="date_of_birth" 
+                             class="form-control" 
+                             value="{{ old('date_of_birth', $user->date_of_birth?->format('Y-m-d')) }}">
+                    </div>
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="hire_date" class="form-label">
+                      <i class="bi bi-calendar-check"></i>
+                      Date d'embauche
+                    </label>
+                    <div class="input-wrapper">
+                      <input type="date" 
+                             name="hire_date" 
+                             id="hire_date" 
+                             class="form-control" 
+                             value="{{ old('hire_date', $user->hire_date?->format('Y-m-d')) }}">
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="form-group">
+                  <label for="address" class="form-label">
+                    <i class="bi bi-geo-alt"></i>
+                    Adresse
+                  </label>
+                  <div class="input-wrapper">
+                    <textarea name="address" 
+                              id="address" 
+                              class="form-control" 
+                              rows="3" 
+                              placeholder="Adresse complète">{{ old('address', $user->address) }}</textarea>
+                  </div>
+                </div>
+                
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label for="emergency_contact" class="form-label">
+                      <i class="bi bi-person-exclamation"></i>
+                      Contact d'urgence
+                    </label>
+                    <div class="input-wrapper">
+                      <input type="text" 
+                             name="emergency_contact" 
+                             id="emergency_contact" 
+                             class="form-control" 
+                             value="{{ old('emergency_contact', $user->emergency_contact) }}"
+                             placeholder="Nom du contact d'urgence">
+                    </div>
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="emergency_phone" class="form-label">
+                      <i class="bi bi-telephone-fill"></i>
+                      Téléphone d'urgence
+                    </label>
+                    <div class="input-wrapper">
+                      <input type="tel" 
+                             name="emergency_phone" 
+                             id="emergency_phone" 
+                             class="form-control" 
+                             value="{{ old('emergency_phone', $user->emergency_phone) }}"
+                             placeholder="+221 77 000 00 00">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
             {{-- Onglet: Informations professionnelles --}}
             <div class="tab-content" id="professional-tab">
               <div class="form-section" id="roleFields">
                 <div class="section-header">
                   <i class="bi bi-briefcase"></i>
                   <h3>Détails Professionnels</h3>
-                  <p>Informations spécifiques au rôle</p>
+                  <p>Informations professionnelles et spécifiques au rôle</p>
+                </div>
+                
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label for="department" class="form-label">
+                      <i class="bi bi-building"></i>
+                      Département/Service
+                    </label>
+                    <div class="input-wrapper">
+                      <input type="text" 
+                             name="department" 
+                             id="department" 
+                             class="form-control" 
+                             value="{{ old('department', $user->department) }}"
+                             placeholder="Ex: Ressources Humaines, IT...">
+                    </div>
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="salary" class="form-label">
+                      <i class="bi bi-currency-dollar"></i>
+                      Salaire (XOF)
+                    </label>
+                    <div class="input-wrapper">
+                      <input type="number" 
+                             name="salary" 
+                             id="salary" 
+                             class="form-control" 
+                             value="{{ old('salary', $user->salary) }}"
+                             placeholder="0" min="0" step="100">
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="form-group">
+                  <label for="notes" class="form-label">
+                    <i class="bi bi-sticky"></i>
+                    Notes/Remarques
+                  </label>
+                  <div class="input-wrapper">
+                    <textarea name="notes" 
+                              id="notes" 
+                              class="form-control" 
+                              rows="3" 
+                              placeholder="Informations supplémentaires...">{{ old('notes', $user->notes) }}</textarea>
+                  </div>
                 </div>
                 
                 {{-- Champs spécifiques au médecin --}}

@@ -56,7 +56,7 @@ class PaymentController extends Controller
         
         try {
             $data = $request->validate([
-                'provider' => 'required|in:wave,orangemoney',
+                'provider' => 'required|in:wave,orangemoney,dexchange',
                 'kind' => 'required|in:consultation,analyse,acte,rendezvous',
                 'amount' => 'required|integer|min:100',
                 'label' => 'nullable|string|max:255',
@@ -119,14 +119,7 @@ class PaymentController extends Controller
         }
     }
 
-    public function sandbox(int $order)
-    {
-        $order = Order::with('items')->findOrFail($order);
-        if ($order->status !== 'pending') {
-            return redirect()->route('patient.payments.index')->with('success', 'Commande déjà traitée.');
-        }
-        return view('payments.sandbox_standalone', compact('order'));
-    }
+    // Sandbox removed for production
 
     private function sendReceiptIfNotSent(Order $order): void
     {
@@ -232,6 +225,37 @@ class PaymentController extends Controller
         $order = Order::where('provider_ref', $ref)->first();
         if (!$order) { return response()->json(['ok' => true]); }
         $status = strtolower((string)$request->input('status'));
+        if (in_array($status, ['paid','success','completed'])) {
+            $order->status = 'paid';
+            $order->paid_at = now();
+        } elseif (in_array($status, ['failed','error'])) {
+            $order->status = 'failed';
+        } elseif (in_array($status, ['canceled','cancelled'])) {
+            $order->status = 'canceled';
+        }
+        $order->save();
+        if ($order->status === 'paid') { $this->sendReceiptIfNotSent($order); }
+        return response()->json(['ok' => true]);
+    }
+
+    public function webhookDexchange(Request $request)
+    {
+        // Verify signature if configured
+        $secret = config('services.dexchange.webhook_secret');
+        if (!empty($secret)) {
+            $signature = $request->header('X-Dexchange-Signature') ?: $request->header('X-Signature');
+            $payload = $request->getContent();
+            $expected = hash_hmac('sha256', $payload, $secret);
+            if (!$signature || !hash_equals($expected, $signature)) {
+                \Log::warning('Dexchange webhook signature invalid');
+                return response()->json(['error' => 'invalid signature'], 401);
+            }
+        }
+        $ref = $request->input('reference') ?: $request->input('id') ?: $request->input('order_id');
+        if (!$ref) { return response()->json(['error' => 'no ref'], 400); }
+        $order = Order::where('provider_ref', $ref)->first();
+        if (!$order) { return response()->json(['ok' => true]); }
+        $status = strtolower((string)($request->input('status') ?? ''));
         if (in_array($status, ['paid','success','completed'])) {
             $order->status = 'paid';
             $order->paid_at = now();

@@ -27,6 +27,13 @@ return [
         'webhook_secret' => env('OM_WEBHOOK_SECRET'),
     ],
 
+    'dexchange' => [
+        'api_key' => env('DEX_API_KEY'),
+        'merchant_id' => env('DEX_MERCHANT_ID'),
+        'base_url' => env('DEX_BASE_URL', 'https://api-m.dexchange.sn/v1'),
+        'webhook_secret' => env('DEX_WEBHOOK_SECRET'),
+    ],
+
     'postmark' => [
         'token' => env('POSTMARK_TOKEN'),
     ],

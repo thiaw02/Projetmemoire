@@ -215,15 +215,15 @@ Route::prefix('patient')->middleware('auth')->group(function () {
     Route::get('/consultations/{id}', [PatientController::class, 'consultationDetail'])->name('patient.consultations.show');
 });
 
-// Paiements: callbacks & sandbox
+// Paiements: callbacks
 Route::get('/payments/success', [\App\Http\Controllers\PaymentController::class, 'success'])->name('payments.success');
 Route::get('/payments/cancel', [\App\Http\Controllers\PaymentController::class, 'cancel'])->name('payments.cancel');
-Route::get('/payments/sandbox/{order}', [\App\Http\Controllers\PaymentController::class, 'sandbox'])->middleware('auth')->name('payments.sandbox');
 Route::get('/payments/{order}/receipt', [\App\Http\Controllers\PaymentController::class, 'receipt'])->middleware('auth')->name('payments.receipt');
 
 // Webhooks
 Route::post('/webhooks/wave', [\App\Http\Controllers\PaymentController::class, 'webhookWave'])->name('webhooks.wave');
 Route::post('/webhooks/orangemoney', [\App\Http\Controllers\PaymentController::class, 'webhookOrangeMoney'])->name('webhooks.orangemoney');
+Route::post('/webhooks/dexchange', [\App\Http\Controllers\PaymentController::class, 'webhookDexchange'])->name('webhooks.dexchange');
 
 // Page succès inscription
 Route::get('/register/success', function () {

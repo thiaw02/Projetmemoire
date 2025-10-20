@@ -25,8 +25,18 @@ class User extends Authenticatable
         'matricule',
         'cabinet',
         'horaires',
-'avatar_url',
+        'avatar_url',
         'active',
+        'phone',
+        'address',
+        'date_of_birth',
+        'gender',
+        'emergency_contact',
+        'emergency_phone',
+        'department',
+        'hire_date',
+        'salary',
+        'notes',
     ];
 
     // Attributs masqués lors de la sérialisation
@@ -37,8 +47,11 @@ class User extends Authenticatable
 
     // Types de données castés
     protected $casts = [
-'email_verified_at' => 'datetime',
+        'email_verified_at' => 'datetime',
         'active' => 'boolean',
+        'date_of_birth' => 'date',
+        'hire_date' => 'date',
+        'salary' => 'decimal:2',
     ];
 
     /**

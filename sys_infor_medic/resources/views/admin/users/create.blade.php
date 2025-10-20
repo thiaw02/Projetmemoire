@@ -61,6 +61,8 @@
       <div class="progress-step" data-step="2">2</div>
       <div class="progress-line"></div>
       <div class="progress-step" data-step="3">3</div>
+      <div class="progress-line"></div>
+      <div class="progress-step" data-step="4">4</div>
     </div>
   </div>
   
@@ -136,11 +138,134 @@
         </div>
       </div>
       
-      {{-- Étape 2: Informations spécialisées --}}
+      {{-- Étape 2: Informations personnelles --}}
       <div class="form-step" data-step="2">
         <div class="step-header">
+          <h6><i class="bi bi-person-lines-fill me-2"></i>Informations personnelles</h6>
+          <p class="text-muted">Détails personnels et de contact</p>
+        </div>
+        
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="phone" class="form-label">
+              <i class="bi bi-telephone me-2"></i>
+              Téléphone personnel
+            </label>
+            <input type="tel" name="phone" id="phone" class="form-control" 
+                   value="{{ old('phone') }}" 
+                   placeholder="+221 77 000 00 00">
+            <div class="form-feedback"></div>
+          </div>
+          
+          <div class="form-group">
+            <label for="gender" class="form-label">
+              <i class="bi bi-gender-ambiguous me-2"></i>
+              Genre
+            </label>
+            <select name="gender" id="gender" class="form-control">
+              <option value="">-- Choisir --</option>
+              <option value="Masculin" {{ old('gender')=='Masculin' ? 'selected' : '' }}>Masculin</option>
+              <option value="Féminin" {{ old('gender')=='Féminin' ? 'selected' : '' }}>Féminin</option>
+              <option value="Autre" {{ old('gender')=='Autre' ? 'selected' : '' }}>Autre</option>
+            </select>
+            <div class="form-feedback"></div>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="date_of_birth" class="form-label">
+            <i class="bi bi-calendar-date me-2"></i>
+            Date de naissance
+          </label>
+          <input type="date" name="date_of_birth" id="date_of_birth" class="form-control" 
+                 value="{{ old('date_of_birth') }}">
+          <div class="form-feedback"></div>
+        </div>
+        
+        <div class="form-group">
+          <label for="address" class="form-label">
+            <i class="bi bi-geo-alt me-2"></i>
+            Adresse
+          </label>
+          <textarea name="address" id="address" class="form-control" rows="3" 
+                    placeholder="Adresse complète">{{ old('address') }}</textarea>
+          <div class="form-feedback"></div>
+        </div>
+        
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="emergency_contact" class="form-label">
+              <i class="bi bi-person-exclamation me-2"></i>
+              Contact d'urgence
+            </label>
+            <input type="text" name="emergency_contact" id="emergency_contact" class="form-control" 
+                   value="{{ old('emergency_contact') }}" 
+                   placeholder="Nom du contact d'urgence">
+            <div class="form-feedback"></div>
+          </div>
+          
+          <div class="form-group">
+            <label for="emergency_phone" class="form-label">
+              <i class="bi bi-telephone-fill me-2"></i>
+              Téléphone d'urgence
+            </label>
+            <input type="tel" name="emergency_phone" id="emergency_phone" class="form-control" 
+                   value="{{ old('emergency_phone') }}" 
+                   placeholder="+221 77 000 00 00">
+            <div class="form-feedback"></div>
+          </div>
+        </div>
+      </div>
+      
+      {{-- Étape 3: Informations professionnelles --}}
+      <div class="form-step" data-step="3">
+        <div class="step-header">
           <h6><i class="bi bi-briefcase me-2"></i>Informations professionnelles</h6>
-          <p class="text-muted">Détails spécifiques au rôle sélectionné</p>
+          <p class="text-muted">Détails professionnels et spécifiques au rôle</p>
+        </div>
+        
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="department" class="form-label">
+              <i class="bi bi-building me-2"></i>
+              Département/Service
+            </label>
+            <input type="text" name="department" id="department" class="form-control" 
+                   value="{{ old('department') }}" 
+                   placeholder="Ex: Ressources Humaines, IT...">
+            <div class="form-feedback"></div>
+          </div>
+          
+          <div class="form-group">
+            <label for="hire_date" class="form-label">
+              <i class="bi bi-calendar-check me-2"></i>
+              Date d'embauche
+            </label>
+            <input type="date" name="hire_date" id="hire_date" class="form-control" 
+                   value="{{ old('hire_date') }}">
+            <div class="form-feedback"></div>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="salary" class="form-label">
+            <i class="bi bi-currency-dollar me-2"></i>
+            Salaire (XOF)
+          </label>
+          <input type="number" name="salary" id="salary" class="form-control" 
+                 value="{{ old('salary') }}" 
+                 placeholder="0" min="0" step="100">
+          <div class="form-feedback"></div>
+        </div>
+        
+        <div class="form-group">
+          <label for="notes" class="form-label">
+            <i class="bi bi-sticky me-2"></i>
+            Notes/Remarques
+          </label>
+          <textarea name="notes" id="notes" class="form-control" rows="3" 
+                    placeholder="Informations supplémentaires...">{{ old('notes') }}</textarea>
+          <div class="form-feedback"></div>
         </div>
         
         {{-- Champs pour médecin --}}
@@ -226,8 +351,8 @@
         </div>
       </div>
       
-      {{-- Étape 3: Sécurité --}}
-      <div class="form-step" data-step="3">
+      {{-- Étape 4: Sécurité --}}
+      <div class="form-step" data-step="4">
         <div class="step-header">
           <h6><i class="bi bi-shield-lock me-2"></i>Sécurité et accès</h6>
           <p class="text-muted">Définissez les paramètres de sécurité du compte</p>
@@ -466,9 +591,11 @@
     padding: 2rem;
   }
   
-  /* Étapes du formulaire */
+  /* Étapes du formulaire
+     Rendre toutes les étapes visibles pour éviter les soucis d'affichage
+     si le JavaScript ne s'exécute pas */
   .form-step {
-    display: none;
+    display: block;
   }
   
   .form-step.active {
@@ -801,23 +928,13 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     let currentStep = 1;
-    const totalSteps = 3;
+    const totalSteps = 4;
     
     // Fonction pour afficher/masquer les étapes
     function showStep(step) {
-        // Masquer toutes les étapes
-        document.querySelectorAll('.form-step').forEach(s => s.classList.remove('active'));
-        
-        // Afficher l'étape courante
-        const currentStepEl = document.querySelector(`[data-step="${step}"]`);
-        if (currentStepEl) {
-            currentStepEl.classList.add('active');
-        }
-        
-        // Mettre à jour la barre de progression
+        // Ne pas masquer les étapes: elles restent toutes visibles pour fiabilité
+        document.querySelectorAll('.form-step').forEach(s => s.classList.add('active'));
         updateProgress(step);
-        
-        // Gérer les boutons de navigation
         updateNavigation(step);
     }
     
@@ -849,14 +966,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // Bouton précédent
         prevBtn.disabled = step === 1;
         
-        // Boutons suivant/soumettre
-        if (step === totalSteps) {
-            nextBtn.classList.add('d-none');
-            submitBtn.classList.remove('d-none');
-        } else {
-            nextBtn.classList.remove('d-none');
-            submitBtn.classList.add('d-none');
-        }
+        // Toujours afficher le bouton Soumettre et masquer navigation si souhaité
+        nextBtn.classList.add('d-none');
+        submitBtn.classList.remove('d-none');
     }
     
     // Navigation vers l'étape suivante

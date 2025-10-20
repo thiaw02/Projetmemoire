@@ -99,7 +99,19 @@ class UserController extends Controller
             'role'       => 'required|in:admin,medecin,infirmier,secretaire',
             'password'   => 'required|string|min:6|confirmed',
             'active'     => 'nullable|boolean',
-            // Champs optionnels
+            // Informations personnelles
+            'phone'      => 'nullable|string|max:20',
+            'address'    => 'nullable|string|max:500',
+            'date_of_birth' => 'nullable|date|before:today',
+            'gender'     => 'nullable|in:Masculin,Féminin,Autre',
+            'emergency_contact' => 'nullable|string|max:255',
+            'emergency_phone' => 'nullable|string|max:20',
+            // Informations professionnelles
+            'department' => 'nullable|string|max:255',
+            'hire_date'  => 'nullable|date|before_or_equal:today',
+            'salary'     => 'nullable|numeric|min:0',
+            'notes'      => 'nullable|string|max:1000',
+            // Champs spécifiques par rôle
             'specialite' => 'nullable|string|max:255',
             'pro_phone'  => 'nullable|string|max:255',
             'matricule'  => 'nullable|string|max:255',
@@ -132,10 +144,22 @@ class UserController extends Controller
         $data = $request->validate([
             'name'       => 'required|string|max:255',
             'email'      => "required|email|unique:users,email,{$id}",
-'role'       => 'required|in:admin,medecin,infirmier,secretaire',
+            'role'       => 'required|in:admin,medecin,infirmier,secretaire',
             'password'   => 'nullable|string|min:6|confirmed',
             'active'     => 'nullable|boolean',
-            // Champs optionnels
+            // Informations personnelles
+            'phone'      => 'nullable|string|max:20',
+            'address'    => 'nullable|string|max:500',
+            'date_of_birth' => 'nullable|date|before:today',
+            'gender'     => 'nullable|in:Masculin,Féminin,Autre',
+            'emergency_contact' => 'nullable|string|max:255',
+            'emergency_phone' => 'nullable|string|max:20',
+            // Informations professionnelles
+            'department' => 'nullable|string|max:255',
+            'hire_date'  => 'nullable|date|before_or_equal:today',
+            'salary'     => 'nullable|numeric|min:0',
+            'notes'      => 'nullable|string|max:1000',
+            // Champs spécifiques par rôle
             'specialite' => 'nullable|string|max:255',
             'pro_phone'  => 'nullable|string|max:255',
             'matricule'  => 'nullable|string|max:255',
