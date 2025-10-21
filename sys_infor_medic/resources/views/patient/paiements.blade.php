@@ -289,28 +289,16 @@
               </div>
               
               <div class="payment-methods">
-                <input type="radio" name="provider" value="wave" id="wave" checked required>
-                <label for="wave" class="payment-method">
-                  <div class="method-icon wave">
-                    <i class="bi bi-wallet2"></i>
+                <input type="radio" name="provider" value="paydunya" id="paydunya" checked required>
+                <label for="paydunya" class="payment-method">
+                  <div class="method-icon paydunya">
+                    <i class="bi bi-credit-card"></i>
                   </div>
                   <div class="method-info">
-                    <h6>Wave Money</h6>
-                    <p>Paiement mobile rapide</p>
+                    <h6>PayDunya</h6>
+                    <p>Paiement sécurisé en ligne</p>
                   </div>
-                  <span class="method-badge">Recommandé</span>
-                </label>
-                
-                <input type="radio" name="provider" value="orangemoney" id="orange" required>
-                <label for="orange" class="payment-method">
-                  <div class="method-icon orange">
-                    <i class="bi bi-phone"></i>
-                  </div>
-                  <div class="method-info">
-                    <h6>Orange Money</h6>
-                    <p>Portefeuille électronique</p>
-                  </div>
-                  <span class="method-badge">Rapide</span>
+                  <span class="method-badge">Sécurisé</span>
                 </label>
               </div>
             </div>
@@ -878,8 +866,7 @@ input[type="radio"]:checked + .payment-method {
   font-size: 1rem;
 }
 
-.method-icon.wave { background: var(--primary); }
-.method-icon.orange { background: #f97316; }
+.method-icon.paydunya { background: var(--primary); }
 
 .method-info h6 {
   font-weight: 600;
@@ -1338,7 +1325,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Fonction de mise à jour du paiement
   function updatePayment() {
     const selectedService = document.querySelector('input[name="kind"]:checked')?.value || 'consultation';
-    const selectedProvider = document.querySelector('input[name="provider"]:checked')?.value || 'wave';
+    const selectedProvider = document.querySelector('input[name="provider"]:checked')?.value || 'paydunya';
     
     const price = prices[selectedService];
     const formattedPrice = new Intl.NumberFormat('fr-FR').format(price);
@@ -1347,7 +1334,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('amount').value = price;
     document.getElementById('label').value = labels[selectedService];
     document.getElementById('summary-type').textContent = selectedService.charAt(0).toUpperCase() + selectedService.slice(1);
-    document.getElementById('summary-provider').textContent = selectedProvider === 'wave' ? 'Wave Money' : 'Orange Money';
+    document.getElementById('summary-provider').textContent = 'PayDunya';
     document.getElementById('summary-amount').textContent = formattedPrice;
     document.getElementById('button-amount').textContent = formattedPrice + ' XOF';
     

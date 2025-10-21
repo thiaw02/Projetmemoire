@@ -28,7 +28,7 @@ class SecretaireController extends Controller
     {
         $data = $request->validate([
             'patient_user_id' => ['required','integer','exists:users,id'],
-            'provider' => ['required','in:wave,orangemoney,dexchange'],
+            'provider' => ['required','in:paydunya'],
             'kind' => ['required','in:consultation,analyse,acte'],
             'amount' => ['required','integer','min:100'],
             'label' => ['nullable','string','max:255'],

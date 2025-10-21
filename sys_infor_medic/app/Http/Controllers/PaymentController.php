@@ -9,6 +9,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Setting;
 use App\Services\PaymentService;
+use App\Services\PayDunyaService;
 
 class PaymentController extends Controller
 {
@@ -56,7 +57,7 @@ class PaymentController extends Controller
         
         try {
             $data = $request->validate([
-                'provider' => 'required|in:wave,orangemoney,dexchange',
+                'provider' => 'required|in:paydunya',
                 'kind' => 'required|in:consultation,analyse,acte,rendezvous',
                 'amount' => 'required|integer|min:100',
                 'label' => 'nullable|string|max:255',
@@ -159,24 +160,91 @@ class PaymentController extends Controller
         return redirect()->route('patient.payments.index')->with('success', 'Paiement annulé.');
     }
 
-    public function webhookWave(Request $request)
+    public function webhookPayDunya(Request $request)
     {
-        $ref = $request->input('reference') ?: $request->input('id');
-        if (!$ref) { return response()->json(['error' => 'no ref'], 400); }
-        $order = Order::where('provider_ref', $ref)->first();
-        if (!$order) { return response()->json(['ok' => true]); }
-        $status = $request->input('status');
-        if ($status === 'success' || $status === 'paid') {
+        $paydunyaService = new PayDunyaService();
+        
+        if (!$paydunyaService->verifyWebhook($request->all())) {
+            \Log::warning('PayDunya webhook received with invalid signature.', ['request_body' => $request->all()]);
+            return response()->json(['error' => 'Invalid signature'], 401);
+        }
+
+        $data = $request->input('data', []);
+        $status = strtolower($data['status'] ?? '');
+        $orderId = $data['invoice']['custom_data']['order_id'] ?? null;
+
+        if (!$orderId) {
+            \Log::info('PayDunya webhook: Order ID not found in custom data', ['data' => $data]);
+            return response()->json(['ok' => true]);
+        }
+
+        $order = Order::find($orderId);
+        if (!$order) {
+            \Log::info('PayDunya webhook: Order not found', ['order_id' => $orderId]);
+            return response()->json(['ok' => true]);
+        }
+
+        if ($status === 'completed') {
             $order->status = 'paid';
             $order->paid_at = now();
-        } elseif ($status === 'failed') {
-            $order->status = 'failed';
-        } elseif ($status === 'canceled') {
-            $order->status = 'canceled';
+        } elseif (in_array($status, ['failed', 'cancelled'])) {
+            $order->status = $status === 'cancelled' ? 'canceled' : 'failed';
         }
         $order->save();
-        if ($order->status === 'paid') { $this->sendReceiptIfNotSent($order); }
+
+        if ($order->status === 'paid') {
+            $this->sendReceiptIfNotSent($order);
+        }
+
         return response()->json(['ok' => true]);
+    }
+
+    public function verifyPayDunya(Request $request)
+    {
+        $token = $request->get('token');
+        if (!$token) {
+            return redirect()->route('patient.payments.index')->with('error', 'Token de paiement manquant.');
+        }
+
+        $paydunyaService = new PayDunyaService();
+        $result = $paydunyaService->verifyPayment($token);
+
+        if (!$result['success']) {
+            return redirect()->route('patient.payments.index')->with('error', $result['error']);
+        }
+
+        $orderId = $result['order_id'];
+        $order = Order::find($orderId);
+
+        if (!$order) {
+            return redirect()->route('patient.payments.index')->with('error', 'Commande introuvable.');
+        }
+
+        if ($result['status'] === 'completed') {
+            $order->status = 'paid';
+            $order->paid_at = now();
+            $order->save();
+            
+            $this->sendReceiptIfNotSent($order);
+            
+            return redirect()->route('payments.success', ['order' => $order->id])
+                ->with('success', 'Paiement effectué avec succès!');
+        } elseif ($result['status'] === 'cancelled') {
+            $order->status = 'canceled';
+            $order->save();
+            
+            return redirect()->route('payments.cancel', ['order' => $order->id])
+                ->with('error', 'Paiement annulé.');
+        } else {
+            return redirect()->route('patient.payments.index')
+                ->with('warning', 'Paiement en attente de confirmation.');
+        }
+    }
+
+    public function sandbox(Request $request, int $orderId)
+    {
+        $order = Order::findOrFail($orderId);
+        return view('payments.sandbox_standalone', compact('order'));
     }
 
     public function receipt(int $orderId)
@@ -218,54 +286,4 @@ class PaymentController extends Controller
         return response($html)->header('Content-Type','text/html');
     }
 
-    public function webhookOrangeMoney(Request $request)
-    {
-        $ref = $request->input('order_id') ?: $request->input('merchant_reference');
-        if (!$ref) { return response()->json(['error' => 'no ref'], 400); }
-        $order = Order::where('provider_ref', $ref)->first();
-        if (!$order) { return response()->json(['ok' => true]); }
-        $status = strtolower((string)$request->input('status'));
-        if (in_array($status, ['paid','success','completed'])) {
-            $order->status = 'paid';
-            $order->paid_at = now();
-        } elseif (in_array($status, ['failed','error'])) {
-            $order->status = 'failed';
-        } elseif (in_array($status, ['canceled','cancelled'])) {
-            $order->status = 'canceled';
-        }
-        $order->save();
-        if ($order->status === 'paid') { $this->sendReceiptIfNotSent($order); }
-        return response()->json(['ok' => true]);
-    }
-
-    public function webhookDexchange(Request $request)
-    {
-        // Verify signature if configured
-        $secret = config('services.dexchange.webhook_secret');
-        if (!empty($secret)) {
-            $signature = $request->header('X-Dexchange-Signature') ?: $request->header('X-Signature');
-            $payload = $request->getContent();
-            $expected = hash_hmac('sha256', $payload, $secret);
-            if (!$signature || !hash_equals($expected, $signature)) {
-                \Log::warning('Dexchange webhook signature invalid');
-                return response()->json(['error' => 'invalid signature'], 401);
-            }
-        }
-        $ref = $request->input('reference') ?: $request->input('id') ?: $request->input('order_id');
-        if (!$ref) { return response()->json(['error' => 'no ref'], 400); }
-        $order = Order::where('provider_ref', $ref)->first();
-        if (!$order) { return response()->json(['ok' => true]); }
-        $status = strtolower((string)($request->input('status') ?? ''));
-        if (in_array($status, ['paid','success','completed'])) {
-            $order->status = 'paid';
-            $order->paid_at = now();
-        } elseif (in_array($status, ['failed','error'])) {
-            $order->status = 'failed';
-        } elseif (in_array($status, ['canceled','cancelled'])) {
-            $order->status = 'canceled';
-        }
-        $order->save();
-        if ($order->status === 'paid') { $this->sendReceiptIfNotSent($order); }
-        return response()->json(['ok' => true]);
-    }
 }

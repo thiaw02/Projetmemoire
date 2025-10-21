@@ -14,24 +14,18 @@ return [
     |
     */
 
-    'wave' => [
-        'api_key' => env('WAVE_API_KEY'),
-        'merchant_id' => env('WAVE_MERCHANT_ID'),
-        'webhook_secret' => env('WAVE_WEBHOOK_SECRET'),
-    ],
-
-    'orangemoney' => [
-        'api_key' => env('OM_API_KEY'),
-        'merchant_id' => env('OM_MERCHANT_ID'),
-        'secret' => env('OM_SECRET'),
-        'webhook_secret' => env('OM_WEBHOOK_SECRET'),
-    ],
-
-    'dexchange' => [
-        'api_key' => env('DEX_API_KEY'),
-        'merchant_id' => env('DEX_MERCHANT_ID'),
-        'base_url' => env('DEX_BASE_URL', 'https://api-m.dexchange.sn/v1'),
-        'webhook_secret' => env('DEX_WEBHOOK_SECRET'),
+    'paydunya' => [
+        'master_key' => env('PAYDUNYA_MASTER_KEY'),
+        'public_key' => env('PAYDUNYA_PUBLIC_KEY'),
+        'private_key' => env('PAYDUNYA_PRIVATE_KEY'),
+        'token' => env('PAYDUNYA_TOKEN'),
+        'mode' => env('PAYDUNYA_MODE', 'test'), // test ou live
+        'store_name' => env('PAYDUNYA_STORE_NAME', 'SMART-HEALTH'),
+        'store_tagline' => env('PAYDUNYA_STORE_TAGLINE', 'Système de gestion médicale'),
+        'store_phone' => env('PAYDUNYA_STORE_PHONE', ''),
+        'store_address' => env('PAYDUNYA_STORE_ADDRESS', ''),
+        'store_website' => env('PAYDUNYA_STORE_WEBSITE', ''),
+        'store_logo' => env('PAYDUNYA_STORE_LOGO', ''),
     ],
 
     'postmark' => [

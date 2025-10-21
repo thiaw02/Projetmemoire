@@ -9,7 +9,7 @@ Cette version majeure apporte des correctifs importants, de nouvelles fonctionna
 - **🔐 Sécurité Renforcée** : Audit complet OWASP, protection contre les vulnérabilités critiques
 - **⚡ Performances Optimisées** : Temps de réponse améliorés de 70%, système de cache intelligent
 - **📊 Monitoring Temps Réel** : Dashboard de performance avec métriques avancées
-- **💳 Paiements Intégrés** : Support Wave, Orange Money, Free Money
+- **💳 Paiements Intégrés** : PayDunya (test et production) avec mode sandbox
 - **🔧 Architecture Scalable** : Redis, indexation DB, optimisations avancées
 
 ### 📊 **Métriques de Performance (Pour Mémoire Académique)**
@@ -49,14 +49,19 @@ Cette version majeure apporte des correctifs importants, de nouvelles fonctionna
 
 ## Nouvelles fonctionnalités et changements principaux
 
-### 💳 **Système de paiement intégré - NOUVEAU !**
-- Dashboard secrétaire avec onglets (Vue d'ensemble, Paiements, Actions rapides)
-- Gestion complète des paiements (Wave, Orange Money, Free Money)
-- KPIs financiers en temps réel (montants mensuels, paiements en attente)
-- Export CSV/PDF des transactions
-- Génération automatique de liens de paiement
-- Quittances numériques avec QR codes
-- Paramètres de tarification configurable
+### 💳 **Système de paiement intégré PayDunya - NOUVEAU !**
+- **Intégration PayDunya complète** : Fournisseur de paiement unique et sécurisé pour l'Afrique de l'Ouest
+- **Mode Sandbox** : Environnement de test intégré pour simuler les paiements sans transactions réelles
+- **Dashboard secrétaire** avec onglets (Vue d'ensemble, Paiements, Actions rapides)
+- **Service PayDunya dédié** : Architecture service layer pour une maintenance facilitée
+- **Webhooks sécurisés** : Vérification de signature HMAC pour les notifications de paiement
+- **Vérification de paiement** : Confirmation automatique des transactions via l'API PayDunya
+- **KPIs financiers en temps réel** (montants mensuels, paiements en attente)
+- **Export CSV/PDF** des transactions
+- **Génération automatique** de liens de paiement
+- **Quittances numériques** avec QR codes
+- **Paramètres de tarification** configurables
+- **Interface patient moderne** : Vue unique PayDunya avec design responsive
 
 ### 📊 **Système de pagination moderne - NOUVEAU !**
 - Interface utilisateur unifiée et moderne avec design responsive
@@ -150,26 +155,41 @@ php artisan assets:optimize
 
 Consultez le guide d'installation Redis `REDIS_SETUP_GUIDE.md` pour maximiser les performances.
 
-### 4) Configuration des paiements (.env)
+### 4) Configuration des paiements PayDunya (.env)
 
 ```bash
-# Configuration Wave (Senegal)
-WAVE_API_KEY=votre_cle_api_wave
-WAVE_SECRET_KEY=votre_secret_wave
-WAVE_MERCHANT_ID=votre_merchant_id
+# Configuration PayDunya
+PAYDUNYA_MASTER_KEY=votre_master_key
+PAYDUNYA_PUBLIC_KEY=votre_public_key
+PAYDUNYA_PRIVATE_KEY=votre_private_key
+PAYDUNYA_TOKEN=votre_token
+PAYDUNYA_MODE=test  # ou 'live' pour la production
 
-# Configuration Orange Money
-ORANGE_API_KEY=votre_cle_api_orange
-ORANGE_MERCHANT_KEY=votre_merchant_orange
+# Informations du magasin (optionnel)
+PAYDUNYA_STORE_NAME=SMART-HEALTH
+PAYDUNYA_STORE_TAGLINE=Système de gestion médicale
+PAYDUNYA_STORE_PHONE=+221XXXXXXXXX
+PAYDUNYA_STORE_ADDRESS=Votre adresse
+PAYDUNYA_STORE_WEBSITE=http://localhost
+PAYDUNYA_STORE_LOGO=http://localhost/logo.png
 
-# Configuration Free Money  
-FREE_API_KEY=votre_cle_api_free
-FREE_MERCHANT_ID=votre_merchant_free
-
-# URLs de callback
-PAYMENT_SUCCESS_URL=http://localhost:8000/payments/success
-PAYMENT_CANCEL_URL=http://localhost:8000/payments/cancel
+# Mode Sandbox (pour le développement)
+PAYMENTS_SANDBOX=true  # false en production
 ```
+
+#### 📦 Installation du package PayDunya
+
+```bash
+composer require paydunya/paydunya-php
+```
+
+#### 🔑 Obtenir vos clés PayDunya
+
+1. Créez un compte sur [PayDunya](https://paydunya.com)
+2. Accédez à votre tableau de bord
+3. Allez dans "Paramètres" → "Clés API"
+4. Copiez vos clés de test ou de production
+5. Configurez les webhooks sur `https://votre-domaine.com/webhooks/paydunya`
 
 ### 5) DomPDF (optionnel, recommandé pour les PDF)
 
@@ -229,6 +249,16 @@ php artisan cache:smart-clear
 # Accéder à : http://localhost:8000/admin/performance
 ```
 
+### Mode Sandbox (Paiements)
+Le mode sandbox permet de tester le système de paiement sans effectuer de vraies transactions :
+
+- **Activation** : `PAYMENTS_SANDBOX=true` dans `.env` (activé par défaut en développement)
+- **Accès** : Lors du paiement, une page de simulation s'affiche
+- **Actions** : Simuler succès, annulation, ou retour
+- **Désactivation** : `PAYMENTS_SANDBOX=false` en production
+
+**Note** : Le mode sandbox fonctionne indépendamment du mode PayDunya (test/live)
+
 ### Laravel Standard
 ```bash
 # Nettoyer le cache Laravel
@@ -244,9 +274,15 @@ php artisan migrate
 ## Parcours utilisateur – résumé
 
 ### 👤 **Patient**
-- Espace Patient: voir dossier médical, consulter/renvoyer les ordonnances, voir/planifier les RDV
-- Accès aux quittances de paiement et historique financier
-- Réception automatique des liens de paiement par e-mail
+- **Espace Patient** : Voir dossier médical, consulter/renvoyer les ordonnances, voir/planifier les RDV
+- **Centre de Paiement moderne** :
+  - Interface unique PayDunya avec design responsive
+  - Sélection du service (Consultation, Analyse, Acte médical)
+  - Mode sandbox pour tests sans paiement réel
+  - Historique des transactions avec filtres et recherche
+  - Téléchargement des quittances de paiement
+- **Réception automatique** des liens de paiement par e-mail
+- **Suivi en temps réel** du statut des paiements
 
 ### 📋 **Secrétaire**
 - **Dashboard moderne à onglets** :
@@ -279,7 +315,7 @@ php artisan migrate
 - **Cache** : Redis pour performances maximales (sessions, cache applicatif)
 - **Monitoring** : Dashboard temps réel, métriques de performance, alertes
 - **Pagination** : Système moderne avec trait réutilisable et composants Blade
-- **Paiements** : Intégration Wave, Orange Money, Free Money
+- **Paiements** : Intégration PayDunya (API REST, Webhooks, Mode Sandbox)
 - **PDF** : DomPDF pour la génération de documents
 - **QR Codes** : Génération automatique pour les quittances
 
@@ -307,6 +343,12 @@ php artisan migrate
 ## 🔄 **Dernières mises à jour (Octobre 2024)**
 
 ### Fonctionnalités Métier
+- ✅ **Intégration PayDunya** : Migration complète vers PayDunya comme fournisseur de paiement unique
+  - Service PayDunya dédié avec architecture service layer
+  - Webhooks sécurisés avec vérification HMAC
+  - Mode sandbox pour tests sans transactions réelles
+  - Vérification automatique des paiements via API
+- ✅ **Interface de paiement patient modernisée** : Design responsive avec PayDunya uniquement
 - ✅ **Système de pagination moderne** : Interface unifiée avec trait réutilisable et composant Blade
 - ✅ **Correction des routes secrétaire** : Résolution de l'erreur RouteNotFoundException
 - ✅ **Dashboard administrateur** : Correction des graphiques Chart.js (volumes mensuels, rendez-vous par statut)
@@ -346,7 +388,7 @@ Pour toute question, demande d'évolution ou support technique :
 - ✨ **Features** : Proposez vos idées d'amélioration
 - 👥 **Contributions** : Les pull requests sont les bienvenues
 
-**🚀 Version actuelle : 3.1 - Edition Sécurité, Performance & Pagination Moderne**
+**🚀 Version actuelle : 3.2 - Edition Sécurité, Performance & PayDunya**
 
 ---
 
@@ -386,11 +428,13 @@ Pour toute question, demande d'évolution ou support technique :
 ### 🔧 **Technologies et Patterns Utilisés**
 
 - **Design Patterns** : Service Layer, Repository Pattern, Observer Pattern, Trait Pattern
+- **Payment Architecture** : Service Layer dédié (PayDunyaService), Webhook validation, API integration
 - **Caching Strategy** : Multi-level caching avec TTL adaptatifs
 - **Database Optimization** : Index composites, Query optimization, Eager loading
-- **Security Patterns** : CSRF protection, Input validation, Role-based access
+- **Security Patterns** : CSRF protection, Input validation, Role-based access, HMAC signature verification
 - **UI/UX Patterns** : Composants Blade réutilisables, Pagination uniforme, Filtres avancés
 - **Monitoring Pattern** : Real-time metrics collection avec alerting
+- **Testing Pattern** : Mode Sandbox pour environnement de test isolé
 
 ### Documentation Technique Supplémentaire
 
