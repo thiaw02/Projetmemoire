@@ -128,11 +128,11 @@
                                                 <td>
                                                     <span class="badge bg-primary">{{ $prof['total_count'] }}</span>
                                                 </td>
-                                                <td>
-                                                    <small class="text-muted">
-                                                        {{ $prof['last_evaluation'] ? $prof['last_evaluation']->diffForHumans() : 'Aucune' }}
-                                                    </small>
-                                                </td>
+                                <td>
+                                    <small class="text-muted">
+                                        {{ $prof['last_evaluation'] ? $prof['last_evaluation']->created_at->diffForHumans() : 'Aucune' }}
+                                    </small>
+                                </td>
                                                 <td>
                                                     <div class="btn-group btn-group-sm">
                                                         <button class="btn btn-outline-info" 

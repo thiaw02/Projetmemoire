@@ -240,9 +240,18 @@
                   <span class="badge bg-primary">{{ $prof['total'] }} éval{{ $prof['total'] > 1 ? 's' : '' }}</span>
                 </td>
                 <td>
-                  @php $lastEval = \App\Models\Evaluation::where('evaluated_user_id', $prof['id'])->latest()->first(); @endphp
+                  @php 
+                    $lastEval = \App\Models\Evaluation::where('evaluated_user_id', $prof['id'])->latest('id')->first(); 
+                  @endphp
                   @if($lastEval)
-                    <small class="text-muted">{{ $lastEval->created_at->diffForHumans() }}</small>
+                    @php
+                      try {
+                        $dateText = $lastEval->created_at ? $lastEval->created_at->diffForHumans() : \Carbon\Carbon::parse($lastEval->updated_at ?? 'now')->diffForHumans();
+                      } catch (\Exception $e) {
+                        $dateText = 'Récemment';
+                      }
+                    @endphp
+                    <small class="text-muted">{{ $dateText }}</small>
                   @else
                     <small class="text-muted">-</small>
                   @endif

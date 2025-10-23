@@ -9,6 +9,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Evaluation extends Model
 {
     use HasFactory;
+
+    /**
+     * Indicates if the model should be timestamped.
+     *
+     * @var bool
+     */
+    public $timestamps = true;
+
     protected $fillable = [
         'patient_id',
         'evaluated_user_id',
@@ -28,6 +36,14 @@ class Evaluation extends Model
      * Relation vers le patient qui évalue
      */
     public function patient(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'patient_id');
+    }
+
+    /**
+     * Alias pour patient (utilisé dans certaines vues)
+     */
+    public function evaluator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'patient_id');
     }
