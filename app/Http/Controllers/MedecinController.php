@@ -83,6 +83,7 @@ class MedecinController extends Controller
     public function consultations()
     {
         $medecin = Auth::user();
+        $serviceId = $medecin->service_id;
 
         // Consultations à venir (inclut toute la journée en cours)
         $consultations = Consultations::where('medecin_id', $medecin->id)
@@ -90,8 +91,14 @@ class MedecinController extends Controller
                             ->orderBy('date_consultation', 'asc')
                             ->get();
 
-        // Tous les patients pour le formulaire
-        $patients = Patient::all();
+        // Patients du même service que le médecin pour le formulaire
+        $patients = Patient::when($serviceId, function($q) use ($serviceId){
+                $q->whereHas('services', function($qq) use ($serviceId){
+                    $qq->where('services.id', $serviceId);
+                });
+            })
+            ->orderBy('nom')
+            ->get();
 
         return view('medecin.consultations', compact('consultations', 'patients'));
     }

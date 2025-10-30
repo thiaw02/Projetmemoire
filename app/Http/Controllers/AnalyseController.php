@@ -40,12 +40,15 @@ class AnalyseController extends Controller
         
         $analyses = $query->paginate(20)->withQueryString();
         
-        // Patients pour le filtre
-        $patients = Patient::whereHas('consultations', function($q) use ($medecinId) {
-            $q->where('medecin_id', $medecinId);
-        })->orWhereHas('analyses', function($q) use ($medecinId) {
-            $q->where('medecin_id', $medecinId);
-        })->orderBy('nom')->get();
+        // Patients pour le filtre (tous les patients du même service que le médecin)
+        $serviceId = Auth::user()->service_id;
+        $patients = Patient::when($serviceId, function($q) use ($serviceId){
+                $q->whereHas('services', function($qq) use ($serviceId){
+                    $qq->where('services.id', $serviceId);
+                });
+            })
+            ->orderBy('nom')
+            ->get();
         
         // Statistiques rapides
         $stats = [
@@ -71,11 +74,16 @@ class AnalyseController extends Controller
     public function create()
     {
         $medecinId = Auth::id();
+        $serviceId = Auth::user()->service_id;
         
-        // Patients ayant consulté ce médecin
-        $patients = Patient::whereHas('consultations', function($q) use ($medecinId) {
-            $q->where('medecin_id', $medecinId);
-        })->orderBy('nom')->get();
+        // Patients du même service que le médecin
+        $patients = Patient::when($serviceId, function($q) use ($serviceId){
+                $q->whereHas('services', function($qq) use ($serviceId){
+                    $qq->where('services.id', $serviceId);
+                });
+            })
+            ->orderBy('nom')
+            ->get();
         
         // Types d'analyses courantes
         $typesAnalyses = [
@@ -133,6 +141,14 @@ class AnalyseController extends Controller
             'etat' => 'required|in:programmee,en_cours,terminee,annulee',
             'remarques' => 'nullable|string|max:1000'
         ]);
+        // Enforcer: le patient doit appartenir au même service que le médecin
+        $serviceId = Auth::user()->service_id;
+        if ($serviceId) {
+            $ok = Patient::where('id', $request->patient_id)
+                ->whereHas('services', function($q) use ($serviceId){ $q->where('services.id', $serviceId); })
+                ->exists();
+            if (!$ok) { abort(403); }
+        }
         
         $analyse = Analyses::create([
             'patient_id' => $request->patient_id,
@@ -172,9 +188,14 @@ class AnalyseController extends Controller
             ->firstOrFail();
             
         $medecinId = Auth::id();
-        $patients = Patient::whereHas('consultations', function($q) use ($medecinId) {
-            $q->where('medecin_id', $medecinId);
-        })->orderBy('nom')->get();
+        $serviceId = Auth::user()->service_id;
+        $patients = Patient::when($serviceId, function($q) use ($serviceId){
+                $q->whereHas('services', function($qq) use ($serviceId){
+                    $qq->where('services.id', $serviceId);
+                });
+            })
+            ->orderBy('nom')
+            ->get();
         
         return view('medecin.analyses.edit', compact('analyse', 'patients'));
     }
@@ -195,6 +216,14 @@ class AnalyseController extends Controller
             'resultats' => 'nullable|string',
             'etat' => 'required|in:programmee,en_cours,terminee,annulee'
         ]);
+        // Enforcer: le patient doit appartenir au même service que le médecin
+        $serviceId = Auth::user()->service_id;
+        if ($serviceId) {
+            $ok = Patient::where('id', $request->patient_id)
+                ->whereHas('services', function($q) use ($serviceId){ $q->where('services.id', $serviceId); })
+                ->exists();
+            if (!$ok) { abort(403); }
+        }
         
         $analyse->update([
             'patient_id' => $request->patient_id,
