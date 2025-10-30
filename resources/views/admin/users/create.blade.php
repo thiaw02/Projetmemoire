@@ -125,6 +125,20 @@
         </div>
         
         <div class="form-group">
+          <label for="service_id" class="form-label">
+            <i class="bi bi-building me-2"></i>
+            Service
+          </label>
+          <select name="service_id" id="service_id" class="form-control">
+            <option value="">-- Choisir un service --</option>
+            @foreach(($services ?? []) as $s)
+              <option value="{{ $s->id }}" {{ old('service_id') == $s->id ? 'selected' : '' }}>{{ $s->name }}</option>
+            @endforeach
+          </select>
+          <div class="form-feedback"></div>
+        </div>
+        
+        <div class="form-group">
           <div class="form-switch-modern">
             <input type="checkbox" id="active" name="active" value="1" checked class="switch-input">
             <label for="active" class="switch-label">
@@ -225,16 +239,7 @@
         </div>
         
         <div class="form-grid">
-          <div class="form-group">
-            <label for="department" class="form-label">
-              <i class="bi bi-building me-2"></i>
-              Département/Service
-            </label>
-            <input type="text" name="department" id="department" class="form-control" 
-                   value="{{ old('department') }}" 
-                   placeholder="Ex: Ressources Humaines, IT...">
-            <div class="form-feedback"></div>
-          </div>
+          
           
           <div class="form-group">
             <label for="hire_date" class="form-label">
@@ -286,26 +291,6 @@
                          value="{{ old('specialite') }}" 
                          placeholder="Ex: Cardiologie, Neurologie...">
                 </div>
-                
-                <div class="form-group">
-                  <label class="form-label">
-                    <i class="bi bi-card-text me-2"></i>
-                    Matricule
-                  </label>
-                  <input type="text" name="matricule" class="form-control" 
-                         value="{{ old('matricule') }}" 
-                         placeholder="Numéro d'identification">
-                </div>
-              </div>
-              
-              <div class="form-group">
-                <label class="form-label">
-                  <i class="bi bi-building me-2"></i>
-                  Cabinet/Service
-                </label>
-                <input type="text" name="cabinet" class="form-control" 
-                       value="{{ old('cabinet') }}" 
-                       placeholder="Nom du cabinet ou service">
               </div>
               
               <div class="form-group">

@@ -37,47 +37,17 @@
   </div>
 @endif
 
-{{-- Statistiques rapides --}}
-<div class="stats-grid mb-4 scroll-slide-left">
-  <div class="stat-card stat-total scroll-card-hover gpu-accelerated">
-    <div class="stat-icon">
-      <i class="bi bi-people-fill"></i>
-    </div>
-    <div class="stat-content">
-      <div class="stat-number">{{ $users->total() }}</div>
-      <div class="stat-label">Total utilisateurs</div>
-    </div>
-  </div>
-  
-  <div class="stat-card stat-active scroll-card-hover gpu-accelerated">
-    <div class="stat-icon">
-      <i class="bi bi-person-check-fill"></i>
-    </div>
-    <div class="stat-content">
-      <div class="stat-number">{{ $users->where('active', 1)->count() }}</div>
-      <div class="stat-label">Utilisateurs actifs</div>
-    </div>
-  </div>
-  
-  <div class="stat-card stat-medecins scroll-card-hover gpu-accelerated">
-    <div class="stat-icon">
-      <i class="bi bi-person-hearts"></i>
-    </div>
-    <div class="stat-content">
-      <div class="stat-number">{{ $users->where('role', 'medecin')->count() }}</div>
-      <div class="stat-label">Médecins</div>
-    </div>
-  </div>
-  
-  <div class="stat-card stat-secretaires scroll-card-hover gpu-accelerated">
-    <div class="stat-icon">
-      <i class="bi bi-person-workspace"></i>
-    </div>
-    <div class="stat-content">
-      <div class="stat-number">{{ $users->where('role', 'secretaire')->count() }}</div>
-      <div class="stat-label">Secrétaires</div>
-    </div>
-  </div>
+{{-- Barre d’actions (à la place des statistiques) --}}
+<div class="d-flex flex-wrap gap-2 mb-4 scroll-slide-left">
+  <a href="{{ route('admin.users.create') }}" class="btn btn-success">
+    <i class="bi bi-person-plus me-1"></i> Ajouter un utilisateur
+  </a>
+  <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#createServiceModal">
+    <i class="bi bi-building me-1"></i> Nouveau service
+  </button>
+  <a href="{{ route('admin.audit.index') }}" class="btn btn-outline-secondary">
+    <i class="bi bi-clipboard-data me-1"></i> Logs d'audit
+  </a>
 </div>
 
 {{-- Nouveau système de filtres et pagination moderne --}}
@@ -124,19 +94,6 @@
             <input type="text" name="specialite" id="specialite" class="filter-input" 
                    placeholder="Cardiologie, Pédiatrie..." value="{{ request('specialite') }}">
         </div>
-    </div>
-    
-    {{-- Actions rapides --}}
-    <div class="quick-actions-row">
-        <a href="{{ route('admin.users.create') }}" class="btn-quick-action btn-primary">
-            <i class="bi bi-person-plus"></i>
-            Ajouter un utilisateur
-        </a>
-        
-        <a href="{{ route('admin.audit.index') }}" class="btn-quick-action btn-secondary">
-            <i class="bi bi-clipboard-data"></i>
-            Logs d'audit
-        </a>
     </div>
 </x-pagination-filters>
 </div>
@@ -289,29 +246,7 @@
                       <i class="bi bi-trash"></i>
                     </button>
                     
-                    @if($user->role !== 'admin')
-                      <div class="dropdown">
-                        <button class="btn-user-action btn-more" type="button" data-bs-toggle="dropdown" title="Plus d'actions">
-                          <i class="bi bi-three-dots"></i>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                          @if($user->role === 'medecin' || $user->role === 'infirmier')
-                            <li>
-                              <a class="dropdown-item" href="{{ route('admin.affectations.index', ['user' => $user->id]) }}">
-                                <i class="bi bi-diagram-3 me-2"></i>
-                                Gérer les affectations
-                              </a>
-                            </li>
-                          @endif
-                          <li>
-                            <a class="dropdown-item" href="#" onclick="resetPassword({{ $user->id }})">
-                              <i class="bi bi-key me-2"></i>
-                              Réinitialiser le mot de passe
-                            </a>
-                          </li>
-                        </ul>
-                      </div>
-                    @endif
+                    {{-- Menu 3 points retiré pour simplifier les actions visibles --}}
                   </div>
                 </td>
               </tr>
@@ -320,9 +255,9 @@
         </table>
       </div>
       
-      {{-- Nouvelle pagination moderne --}}
+      {{-- Pagination dédiée aux utilisateurs (indépendante de patients) --}}
       <div class="pagination-container">
-        {{ $users->links('pagination.custom') }}
+        {{ $users->appends(request()->except('patients_page'))->links() }}
       </div>
     </div>
   @endif
@@ -357,6 +292,44 @@
     </div>
   </div>
 </div>
+
+{{-- Modal création de service --}}
+<div class="modal fade" id="createServiceModal" tabindex="-1" aria-labelledby="createServiceModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content modern-modal">
+      <div class="modal-header border-0">
+        <h5 class="modal-title" id="createServiceModalLabel">
+          <i class="bi bi-building me-2"></i>Créer un nouveau service
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <form method="POST" action="{{ route('admin.services.store') }}">
+        @csrf
+        <input type="hidden" name="redirect_back" value="1">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label required">Nom du service</label>
+            <input type="text" name="name" class="form-control" required placeholder="Ex: Odontologie" value="{{ old('name') }}">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Description</label>
+            <textarea name="description" class="form-control" rows="3" placeholder="Description du service (optionnel)">{{ old('description') }}</textarea>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="service_active" name="active" value="1" checked>
+            <label class="form-check-label" for="service_active">Activer ce service</label>
+          </div>
+        </div>
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-success">
+            <i class="bi bi-check2-circle me-1"></i>Créer le service
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+  </div>
 
 {{-- Styles modernes complets pour la gestion des utilisateurs --}}
 <style>

@@ -33,6 +33,7 @@
     
     <hr class="profile-divider">
     
+    @if(false)
     <ul class="profile-info text-start">
       <li class="profile-info-item">
         <div class="info-row">
@@ -40,6 +41,62 @@
           <span class="info-value">{{ Str::limit($user->email, 20) }}</span>
         </div>
       </li>
+      @if(($user->role ?? '') !== 'patient')
+      <li class="profile-info-item">
+        <div class="info-row">
+          <span class="info-label"><i class="bi bi-telephone sidebar-icon"></i>Téléphone</span>
+          <span class="info-value">{{ $user->phone ?? '—' }}</span>
+        </div>
+      </li>
+      <li class="profile-info-item">
+        <div class="info-row">
+          <span class="info-label"><i class="bi bi-geo-alt sidebar-icon"></i>Adresse</span>
+          <span class="info-value">{{ Str::limit($user->address ?? '—', 22) }}</span>
+        </div>
+      </li>
+      <li class="profile-info-item">
+        <div class="info-row">
+          <span class="info-label"><i class="bi bi-gender-ambiguous sidebar-icon"></i>Genre</span>
+          <span class="info-value">{{ $user->gender ?? '—' }}</span>
+        </div>
+      </li>
+      <li class="profile-info-item">
+        <div class="info-row">
+          <span class="info-label"><i class="bi bi-calendar-date sidebar-icon"></i>Naissance</span>
+          <span class="info-value">{{ optional($user->date_of_birth)->format('d/m/Y') ?? '—' }}</span>
+        </div>
+      </li>
+      <li class="profile-info-item">
+        <div class="info-row">
+          <span class="info-label"><i class="bi bi-person-exclamation sidebar-icon"></i>Contact d'urgence</span>
+          <span class="info-value">{{ Str::limit($user->emergency_contact ?? '—', 22) }}</span>
+        </div>
+      </li>
+      <li class="profile-info-item">
+        <div class="info-row">
+          <span class="info-label"><i class="bi bi-telephone-fill sidebar-icon"></i>Tél. d'urgence</span>
+          <span class="info-value">{{ $user->emergency_phone ?? '—' }}</span>
+        </div>
+      </li>
+      <li class="profile-info-item">
+        <div class="info-row">
+          <span class="info-label"><i class="bi bi-calendar-check sidebar-icon"></i>Embauche</span>
+          <span class="info-value">{{ optional($user->hire_date)->format('d/m/Y') ?? '—' }}</span>
+        </div>
+      </li>
+      <li class="profile-info-item">
+        <div class="info-row">
+          <span class="info-label"><i class="bi bi-currency-dollar sidebar-icon"></i>Salaire</span>
+          <span class="info-value">{{ $user->salary ? number_format($user->salary, 0, ' ', ' ') . ' XOF' : '—' }}</span>
+        </div>
+      </li>
+      <li class="profile-info-item">
+        <div class="info-block">
+          <span class="info-label"><i class="bi bi-sticky sidebar-icon"></i>Notes</span>
+          <div class="info-value">{{ Str::limit($user->notes ?? '—', 80) }}</div>
+        </div>
+      </li>
+      @endif
       
       @if(($user->role ?? '') === 'patient')
       @php $pp = $user->patient; @endphp
@@ -53,6 +110,12 @@
         <div class="info-row">
           <span class="info-label"><i class="bi bi-telephone sidebar-icon"></i>Téléphone</span>
           <span class="info-value">{{ $pp->telephone ?? '—' }}</span>
+        </div>
+      </li>
+      <li class="profile-info-item">
+        <div class="info-row">
+          <span class="info-label"><i class="bi bi-geo-alt sidebar-icon"></i>Adresse</span>
+          <span class="info-value">{{ Str::limit($pp->adresse ?? '—', 22) }}</span>
         </div>
       </li>
       <li class="profile-info-item">
@@ -79,6 +142,12 @@
           <div class="info-value">{{ Str::limit($pp->antecedents ?? '—', 60) }}</div>
         </div>
       </li>
+      <li class="profile-info-item">
+        <div class="info-row">
+          <span class="info-label"><i class="bi bi-building sidebar-icon"></i>Services</span>
+          <span class="info-value">{{ ($pp?->services?->pluck('name')->join(', ') ?: '—') }}</span>
+        </div>
+      </li>
       
       @elseif(($user->role ?? '') === 'medecin')
       <li class="profile-info-item">
@@ -91,6 +160,12 @@
         <div class="info-row">
           <span class="info-label"><i class="bi bi-telephone sidebar-icon"></i>Tél. Pro</span>
           <span class="info-value">{{ $user->pro_phone ?? '—' }}</span>
+        </div>
+      </li>
+      <li class="profile-info-item">
+        <div class="info-row">
+          <span class="info-label"><i class="bi bi-building sidebar-icon"></i>Service</span>
+          <span class="info-value">{{ $user->service->name ?? '—' }}</span>
         </div>
       </li>
       <li class="profile-info-item">
@@ -198,7 +273,7 @@
       <li class="profile-info-item">
         <div class="info-row">
           <span class="info-label"><i class="bi bi-briefcase sidebar-icon"></i>Service</span>
-          <span class="info-value">{{ $user->specialite ?? 'Administration' }}</span>
+          <span class="info-value">{{ $user->service->name ?? '—' }}</span>
         </div>
       </li>
       <li class="profile-info-item">
@@ -246,7 +321,7 @@
       <li class="profile-info-item">
         <div class="info-row">
           <span class="info-label"><i class="bi bi-hospital sidebar-icon"></i>Service</span>
-          <span class="info-value">{{ Str::limit($user->cabinet ?? 'Urgences', 15) }}</span>
+          <span class="info-value">{{ $user->service->name ?? '—' }}</span>
         </div>
       </li>
       <li class="profile-info-item">
@@ -379,6 +454,135 @@
         </div>
       </li>
       @endif
+    </ul>
+    @endif
+
+    {{-- Sidebar compacte: informations essentielles uniquement --}}
+    <ul class="profile-info text-start">
+      <li class="profile-info-item">
+        <div class="info-row">
+          <span class="info-label"><i class="bi bi-envelope sidebar-icon"></i>Email</span>
+          <span class="info-value">{{ Str::limit($user->email, 24) }}</span>
+        </div>
+      </li>
+
+      @if(($user->role ?? '') === 'patient')
+        @php $pp = $user->patient; @endphp
+        <li class="profile-info-item">
+          <div class="info-row">
+            <span class="info-label"><i class="bi bi-hash sidebar-icon"></i>N° dossier</span>
+            <span class="info-value">{{ $pp->numero_dossier ?? '—' }}</span>
+          </div>
+        </li>
+        <li class="profile-info-item">
+          <div class="info-row">
+            <span class="info-label"><i class="bi bi-telephone sidebar-icon"></i>Téléphone</span>
+            <span class="info-value">{{ $pp->telephone ?? '—' }}</span>
+          </div>
+        </li>
+        <li class="profile-info-item">
+          <div class="info-row">
+            <span class="info-label"><i class="bi bi-droplet sidebar-icon"></i>Groupe sang.</span>
+            <span class="info-value">{{ $pp->groupe_sanguin ?? '—' }}</span>
+          </div>
+        </li>
+        <li class="profile-info-item">
+          <div class="info-row">
+            <span class="info-label"><i class="bi bi-geo-alt sidebar-icon"></i>Adresse</span>
+            <span class="info-value">{{ Str::limit($pp->adresse ?? '—', 22) }}</span>
+          </div>
+        </li>
+        <li class="profile-info-item">
+          <div class="info-row">
+            <span class="info-label"><i class="bi bi-gender-ambiguous sidebar-icon"></i>Sexe</span>
+            <span class="info-value">{{ $pp->sexe ?? '—' }}</span>
+          </div>
+        </li>
+        <li class="profile-info-item">
+          <div class="info-row">
+            <span class="info-label"><i class="bi bi-calendar3 sidebar-icon"></i>Naissance</span>
+            <span class="info-value">{{ optional($pp->date_naissance)->format('d/m/Y') ?? '—' }}</span>
+          </div>
+        </li>
+      @elseif(in_array(($user->role ?? ''), ['medecin','infirmier','secretaire']))
+        @if(!empty($user->pro_phone))
+        <li class="profile-info-item">
+          <div class="info-row">
+            <span class="info-label"><i class="bi bi-telephone sidebar-icon"></i>Tél. Pro</span>
+            <span class="info-value">{{ $user->pro_phone }}</span>
+          </div>
+        </li>
+        @endif
+        <li class="profile-info-item">
+          <div class="info-row">
+            <span class="info-label"><i class="bi bi-building sidebar-icon"></i>Service</span>
+            <span class="info-value">{{ $user->service->name ?? '—' }}</span>
+          </div>
+        </li>
+        @if(($user->role ?? '') === 'secretaire')
+        <li class="profile-info-item">
+          <div class="info-row">
+            <span class="info-label"><i class="bi bi-geo-alt sidebar-icon"></i>Bureau</span>
+            <span class="info-value">{{ Str::limit($user->cabinet ?? '—', 15) }}</span>
+          </div>
+        </li>
+        <li class="profile-info-item">
+          <div class="info-row">
+            <span class="info-label"><i class="bi bi-upc sidebar-icon"></i>Matricule</span>
+            <span class="info-value">{{ Str::limit($user->matricule ?? '—', 18) }}</span>
+          </div>
+        </li>
+        @else
+        <li class="profile-info-item">
+          <div class="info-row">
+            <span class="info-label"><i class="bi bi-heart-pulse sidebar-icon"></i>Spécialité</span>
+            <span class="info-value">{{ Str::limit($user->specialite ?? '—', 20) }}</span>
+          </div>
+        </li>
+        <li class="profile-info-item">
+          <div class="info-row">
+            <span class="info-label"><i class="bi bi-upc sidebar-icon"></i>Matricule</span>
+            <span class="info-value">{{ Str::limit($user->matricule ?? '—', 18) }}</span>
+          </div>
+        </li>
+        <li class="profile-info-item">
+          <div class="info-row">
+            <span class="info-label"><i class="bi bi-clock sidebar-icon"></i>Horaires</span>
+            <span class="info-value">{{ Str::limit($user->horaires ?? '—', 24) }}</span>
+          </div>
+        </li>
+        @endif
+      @elseif(($user->role ?? '') === 'admin')
+        <li class="profile-info-item">
+          <div class="info-row">
+            <span class="info-label"><i class="bi bi-telephone sidebar-icon"></i>Tél. Pro</span>
+            <span class="info-value">{{ $user->pro_phone ?? '—' }}</span>
+          </div>
+        </li>
+        <li class="profile-info-item">
+          <div class="info-row">
+            <span class="info-label"><i class="bi bi-building sidebar-icon"></i>Département</span>
+            <span class="info-value">{{ Str::limit($user->specialite ?? '—', 20) }}</span>
+          </div>
+        </li>
+        <li class="profile-info-item">
+          <div class="info-row">
+            <span class="info-label"><i class="bi bi-geo-alt sidebar-icon"></i>Bureau</span>
+            <span class="info-value">{{ Str::limit($user->cabinet ?? '—', 15) }}</span>
+          </div>
+        </li>
+      @endif
+
+      <li class="profile-info-item">
+        <div class="info-row">
+          <span class="info-label"><i class="bi bi-shield-check sidebar-icon"></i>Statut</span>
+          <span class="info-value">
+            <span class="status-badge {{ $user->active ? 'status-active' : 'status-inactive' }}">
+              {{ $user->active ? 'Actif' : 'Inactif' }}
+            </span>
+          </span>
+        </div>
+      </li>
     </ul>
   </div>
 </div>

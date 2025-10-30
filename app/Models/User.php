@@ -20,6 +20,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'service_id',
         'specialite',
         'pro_phone',
         'matricule',
@@ -82,6 +83,11 @@ class User extends Authenticatable
     public function consultations()
     {
         return $this->hasMany(Consultations::class, 'medecin_id');
+    }
+
+    public function service()
+    {
+        return $this->belongsTo(Service::class);
     }
 
     public function evaluationsRecues()

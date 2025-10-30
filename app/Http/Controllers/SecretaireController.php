@@ -2,6 +2,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\InscriptionConfirmee;
 use App\Models\Patient;
 use App\Models\Rendez_vous;
 use App\Models\Admissions;
@@ -13,8 +15,18 @@ class SecretaireController extends Controller
 {
     public function payments()
     {
-        $patients = \App\Models\User::where('role','patient')->orderBy('name')->get(['id','name','email']);
-        $orders = \App\Models\Order::with('items','user')->orderByDesc('created_at')->take(20)->get();
+        $serviceId = auth()->user()->service_id;
+        // Patients du même service uniquement
+        $patients = \App\Models\User::where('role','patient')
+            ->whereHas('patient.services', function($q) use ($serviceId){ $q->where('services.id', $serviceId); })
+            ->orderBy('name')
+            ->get(['id','name','email']);
+        // Commandes liées aux patients du service uniquement
+        $orders = \App\Models\Order::with('items','user.patient')
+            ->whereHas('user.patient.services', function($q) use ($serviceId){ $q->where('services.id', $serviceId); })
+            ->orderByDesc('created_at')
+            ->take(20)
+            ->get();
         $defaults = [
             'consultation' => (int)(\App\Models\Setting::getValue('price.consultation', 5000)),
             'analyse' => (int)(\App\Models\Setting::getValue('price.analyse', 10000)),
@@ -183,12 +195,24 @@ class SecretaireController extends Controller
             $paymentsData[] = round($monthlyPayments / 1000, 1); // En milliers
         }
 
-        // Liste des demandes de rendez-vous urgentes (en attente)
+        // Rendez-vous à venir dans le même service que la secrétaire
+        $serviceId = auth()->user()->service_id;
+        $upcomingServiceRdv = Rendez_vous::with(['patient.user','medecin'])
+            ->whereDate('date','>=', now()->toDateString())
+            ->whereIn('statut', ['confirmé','confirme','confirmée','confirmee','en_attente','en attente','pending'])
+            ->whereHas('medecin', function($q) use ($serviceId){ $q->where('service_id', $serviceId); })
+            ->orderBy('date')
+            ->orderBy('heure')
+            ->take(25)
+            ->get();
+
+        // Liste des demandes de rendez-vous urgentes (en attente) dans le même service
         $pendingRdvList = Rendez_vous::with(['patient.user', 'medecin'])
             ->whereIn('statut', ['en_attente', 'en attente', 'pending'])
+            ->whereHas('medecin', function($q) use ($serviceId){ $q->where('service_id', $serviceId); })
             ->orderBy('date')
             ->orderBy('heure') 
-            ->take(50) // Limiter pour la performance
+            ->take(50)
             ->get();
 
         // Données de paiement détaillées
@@ -229,22 +253,31 @@ class SecretaireController extends Controller
         return view('secretaire.dashboard', compact(
             'totalPatients', 'patientStats', 'months', 'rendezvousData', 'admissionsData', 'patientsData', 'paymentsData',
             'pendingRdvCount', 'patientsATraiterCount', 'pendingRdvList', 'rdvStatusStats',
-            'recentOrders', 'totalPaymentsThisMonth', 'totalPaymentsToday', 'pendingPayments', 'failedPayments'
+            'recentOrders', 'totalPaymentsThisMonth', 'totalPaymentsToday', 'pendingPayments', 'failedPayments',
+            'upcomingServiceRdv'
         ));
     }
 
     public function dossiersAdmin()
     {
-        $patients = Patient::with('dossier_administratifs')->get();
-        $secretaires = User::where('role','secretaire')->orderBy('name')->get();
+        $serviceId = auth()->user()->service_id;
+        $patients = Patient::with('dossier_administratifs')
+            ->whereHas('services', function($q) use ($serviceId){ $q->where('services.id', $serviceId); })
+            ->get();
+        $secretaires = User::where('role','secretaire')->where('service_id',$serviceId)->orderBy('name')->get();
         return view('secretaire.dossieradmin', compact('patients','secretaires'));
     }
 
     public function rendezvous()
     {
-        $rendezvous = Rendez_vous::with('patient', 'medecin')->get();
-        $patients = Patient::all();
-        $medecins = User::where('role','medecin')->get();
+        $serviceId = auth()->user()->service_id;
+        $rendezvous = Rendez_vous::with('patient', 'medecin')
+            ->whereHas('medecin', function($q) use ($serviceId){ $q->where('service_id', $serviceId); })
+            ->orderBy('date')
+            ->orderBy('heure')
+            ->get();
+        $patients = Patient::whereHas('services', function($q) use ($serviceId){ $q->where('services.id', $serviceId); })->get();
+        $medecins = User::where('role','medecin')->where('service_id', $serviceId)->get();
         return view('secretaire.rendezvous', compact('rendezvous','patients','medecins'));
     }
 
@@ -258,8 +291,19 @@ class SecretaireController extends Controller
             'motif' => 'nullable|string|max:255',
         ]);
 
-        // Trouver l'utilisateur du patient (user_id) pour respecter la contrainte FK
+        $serviceId = auth()->user()->service_id;
+        // Vérifier que le patient appartient au service de la secrétaire
         $patient = Patient::findOrFail($request->patient_id);
+        if (!$patient->services()->where('services.id', $serviceId)->exists()) {
+            return back()->with('error', 'Patient hors de votre service.');
+        }
+        // Vérifier que le médecin est dans le même service
+        $medecin = User::where('id',$request->medecin_id)->where('role','medecin')->where('service_id',$serviceId)->first();
+        if (!$medecin) {
+            return back()->with('error', 'Médecin hors de votre service.');
+        }
+
+        // Trouver l'utilisateur du patient (user_id) pour respecter la contrainte FK
         Rendez_vous::create([
             'user_id' => $patient->user_id, // user_id (table users)
             'medecin_id' => $request->medecin_id,
@@ -275,6 +319,12 @@ class SecretaireController extends Controller
     public function confirmRdv($id)
     {
         $rdv = Rendez_vous::findOrFail($id);
+        // Limiter par service: la secrétaire doit appartenir au même service que le médecin du RDV
+        $serviceId = auth()->user()->service_id;
+        $rdvServiceId = optional($rdv->medecin)->service_id;
+        if ($rdvServiceId && $serviceId && $rdvServiceId !== $serviceId) {
+            abort(403);
+        }
         $oldStatus = $rdv->statut;
         $rdv->statut = 'confirmé';
         $rdv->save();
@@ -298,6 +348,12 @@ class SecretaireController extends Controller
     public function cancelRdv($id)
     {
         $rdv = Rendez_vous::findOrFail($id);
+        // Limiter par service: la secrétaire doit appartenir au même service que le médecin du RDV
+        $serviceId = auth()->user()->service_id;
+        $rdvServiceId = optional($rdv->medecin)->service_id;
+        if ($rdvServiceId && $serviceId && $rdvServiceId !== $serviceId) {
+            abort(403);
+        }
         $oldStatus = $rdv->statut;
         $rdv->statut = 'annulé';
         $rdv->save();
@@ -320,8 +376,11 @@ class SecretaireController extends Controller
 
     public function admissions()
     {
-        $admissions = Admissions::with('patient')->get();
-        $patients = Patient::all(); 
+        $serviceId = auth()->user()->service_id;
+        $admissions = Admissions::with('patient')
+            ->whereHas('patient.services', function($q) use ($serviceId){ $q->where('services.id', $serviceId); })
+            ->get();
+        $patients = Patient::whereHas('services', function($q) use ($serviceId){ $q->where('services.id', $serviceId); })->get(); 
         return view('secretaire.admissions', compact('admissions', 'patients'));
     }
     // Ajouter ces méthodes
@@ -345,7 +404,22 @@ public function storePatient(Request $request)
     if (empty($data['secretary_user_id'])) {
         $data['secretary_user_id'] = auth()->id();
     }
-    Patient::create($data);
+    $serviceId = auth()->user()->service_id;
+    $patient = Patient::create($data);
+    // Attacher le patient au service de la secrétaire
+    if ($serviceId) {
+        try { $patient->services()->syncWithoutDetaching([$serviceId]); } catch (\Throwable $e) {}
+    }
+
+    // Envoyer infos de compte si email présent (génère un identifiant minimal si besoin)
+    try {
+        $email = $patient->email ?? null;
+        if ($email) {
+            $numero = $patient->numero_dossier ?? ('PAT'.now()->format('Ymd').str_pad((string)$patient->id,3,'0',STR_PAD_LEFT));
+            $password = 'motdepasse';
+            Mail::to($email)->send(new InscriptionConfirmee($numero, $email, $password));
+        }
+    } catch (\Throwable $e) { /* noop */ }
 
     return redirect()->route('secretaire.dossiersAdmin')->with('success', 'Patient ajouté avec succès.');
 }
@@ -353,6 +427,11 @@ public function storePatient(Request $request)
 public function updatePatient(Request $request, $id)
 {
     $patient = Patient::findOrFail($id);
+    // Empêcher la modification si le patient n'est pas dans le service de la secrétaire
+    $serviceId = auth()->user()->service_id;
+    if (!$patient->services()->where('services.id',$serviceId)->exists()) {
+        abort(403);
+    }
 
     $request->validate([
         'nom' => 'required|string|max:255',
@@ -367,10 +446,9 @@ public function updatePatient(Request $request, $id)
         'secretary_user_id' => 'nullable|exists:users,id',
     ]);
 
-    $patient->update($request->all());
-
-    return redirect()->route('secretaire.dossiersAdmin')->with('success', 'Patient modifié avec succès.');
+    return redirect()->route('secretaire.rendezvous')->with('success','Rendez-vous planifié avec succès.');
 }
+
 // Ajouter une nouvelle admission
 public function storeAdmission(Request $request)
 {
@@ -379,6 +457,13 @@ public function storeAdmission(Request $request)
         'date_admission' => 'required|date',
         'motif' => 'required|string|max:255',
     ]);
+
+    $serviceId = auth()->user()->service_id;
+    // Patient doit être du service
+    $patient = Patient::findOrFail($request->patient_id);
+    if (!$patient->services()->where('services.id', $serviceId)->exists()) {
+        return back()->with('error', 'Patient hors de votre service.');
+    }
 
     Admissions::create([
         'patient_id' => $request->patient_id,
@@ -400,6 +485,12 @@ public function updateAdmission(Request $request, $id)
         'motif' => 'required|string|max:255',
     ]);
 
+    $serviceId = auth()->user()->service_id;
+    $patient = Patient::findOrFail($request->patient_id);
+    if (!$patient->services()->where('services.id', $serviceId)->exists()) {
+        return back()->with('error', 'Patient hors de votre service.');
+    }
+
     $admission->update([
         'patient_id' => $request->patient_id,
         'date_admission' => $request->date_admission,
@@ -408,6 +499,5 @@ public function updateAdmission(Request $request, $id)
 
     return redirect()->route('secretaire.admissions')->with('success', 'Admission mise à jour avec succès.');
 }
-
 }
-
+// ...

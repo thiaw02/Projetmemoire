@@ -6,6 +6,7 @@ use App\Models\Rendez_vous;
 use App\Models\Consultations;
 use App\Models\User;
 use App\Models\Ordonnances;
+use App\Models\Service;
 use App\Notifications\NewRendezvousRequest;
 use App\Events\RendezVousCreated;
 
@@ -61,7 +62,7 @@ class PatientController extends Controller
             ->limit(20)
             ->get();
 
-        // Prochain rendez-vous
+        // Prochain rendez-vous (propre au patient)
         $nextRdv = \App\Models\Rendez_vous::with('medecin:id,name')
             ->where('user_id', $user->id)
             ->whereDate('date', '>=', now()->toDateString())
@@ -69,42 +70,64 @@ class PatientController extends Controller
             ->orderBy('heure', 'asc')
             ->first();
 
+        // RDV à venir dans les services du patient (vision service)
+        $serviceIds = $patient->services()->pluck('services.id');
+        $serviceUpcomingRdv = collect();
+        if ($serviceIds && $serviceIds->count()) {
+            $serviceUpcomingRdv = \App\Models\Rendez_vous::with(['medecin:id,name,service_id','patient'])
+                ->whereDate('date','>=', now()->toDateString())
+                ->whereIn('statut', ['confirmé','confirme','confirmée','confirmee','en_attente','en attente','pending'])
+                ->whereHas('medecin', function($q) use ($serviceIds){ $q->whereIn('service_id', $serviceIds); })
+                ->orderBy('date')
+                ->orderBy('heure')
+                ->limit(20)
+                ->get();
+        }
+
         // Statistiques en une requête
         $stats = [
             'totalConsultations' => $consultations->count(),
             'rdvEnAttente' => $rendezVous->whereIn('statut', ["en_attente", "pending"])->count(),
         ];
         
-        return compact('ordonnances', 'analyses', 'consultations', 'rendezVous', 'nextRdv', 'stats');
+        return compact('ordonnances', 'analyses', 'consultations', 'rendezVous', 'nextRdv', 'serviceUpcomingRdv', 'stats');
     });
     
     extract($data);
 
-    // Médecins avec cache séparé (changé rarement)
-    $medecins = \Cache::remember('medecins_list', 3600, function() {
-        return User::where('role', 'medecin')
-            ->select('id', 'name')
-            ->orderBy('name')
-            ->get();
-    });
+    // Restreindre les médecins proposés aux services du patient
+    $serviceIds = $patient->services()->pluck('services.id');
+    $medecins = User::where('role', 'medecin')
+        ->when($serviceIds && $serviceIds->count(), function($q) use ($serviceIds){
+            $q->whereIn('service_id', $serviceIds);
+        })
+        ->select('id','name')
+        ->orderBy('name')
+        ->get();
 
     // Charger les préférences utilisateur
     $preferences = $this->loadUserPreferences();
     
     // Passe toutes les variables à la vue
-    return view('patient.dashboard', compact('user','patient','consultations','rendezVous','medecins','ordonnances','analyses','nextRdv','stats','preferences'));
+    return view('patient.dashboard', compact('user','patient','consultations','rendezVous','medecins','ordonnances','analyses','nextRdv','serviceUpcomingRdv','stats','preferences'));
 }
 
 
     public function rendezvous()
     {
-       // return view('patient.rendezvous');
-         // Récupérer les rendez-vous du patient connecté
-        $rendezVous = Rendez_vous::where('user_id', Auth::id())->get();
+        // Récupérer les rendez-vous du patient connecté (pagination)
+        $rendezVous = Rendez_vous::where('user_id', Auth::id())
+            ->orderByDesc('date')
+            ->orderByDesc('heure')
+            ->paginate(10, ['*'], 'patient_rdv_page')
+            ->withQueryString();
 
-        // Envoyer à la vue
-       return view('patient.rendezvous', compact('rendezVous'));
+        // Offrir tous les services actifs pour permettre une demande dans un autre service
+        $user = Auth::user();
+        $patient = $user?->patient;
+        $services = Service::where('active', true)->orderBy('name')->get(['id','name']);
 
+        return view('patient.rendezvous', compact('rendezVous','services'));
     }
 
     public function dossier()
@@ -129,9 +152,13 @@ class PatientController extends Controller
             'statut' => 'en_attente',  // statut par défaut (ENUM)
         ]);
 
-        // Notifier toutes les secrétaires par email
+        // Notifier les secrétaires du même service que le médecin par email
         try {
-            $secretaires = User::where('role', 'secretaire')->where('active', true)->get();
+            $medecinServiceId = optional($rendezVous->medecin)->service_id;
+            $secretaires = User::where('role', 'secretaire')
+                ->where('active', true)
+                ->when($medecinServiceId, function($q) use ($medecinServiceId){ $q->where('service_id', $medecinServiceId); })
+                ->get();
             Notification::send($secretaires, new NewRendezvousRequest($rendezVous));
         } catch (\Throwable $e) {
             \Log::error('Erreur lors de l\'envoi des notifications secrétaires: ' . $e->getMessage());
@@ -151,6 +178,23 @@ class PatientController extends Controller
     {
         // Rediriger vers le dashboard patient (onglet RDV gère déjà la création)
         return redirect()->route('patient.dashboard');
+    }
+
+    /**
+     * Retourne les médecins d'un service en JSON (pour chargement dynamique côté patient)
+     */
+    public function getMedecinsByService(int $serviceId)
+    {
+        $medecins = User::where('role', 'medecin')
+            ->where('service_id', $serviceId)
+            ->where(function($q){ $q->whereNull('active')->orWhere('active', true); })
+            ->orderBy('name')
+            ->get(['id','name']);
+
+        return response()->json([
+            'success' => true,
+            'data' => $medecins,
+        ]);
     }
 
     public function show($id)
@@ -175,9 +219,13 @@ class PatientController extends Controller
         $rdv->statut = 'annulé';
         $rdv->save();
         
-        // Notifier les secrétaires de l'annulation
+        // Notifier les secrétaires du même service de l'annulation
         try {
-            $secretaires = User::where('role', 'secretaire')->where('active', true)->get();
+            $medecinServiceId = optional($rdv->medecin)->service_id;
+            $secretaires = User::where('role', 'secretaire')
+                ->where('active', true)
+                ->when($medecinServiceId, function($q) use ($medecinServiceId){ $q->where('service_id', $medecinServiceId); })
+                ->get();
             foreach ($secretaires as $secretaire) {
                 $secretaire->notify(new \App\Notifications\RendezvousStatusChanged($rdv));
             }
@@ -264,9 +312,13 @@ class PatientController extends Controller
         $rdv->medecin_id = $request->medecin_id;
         $rdv->save();
         
-        // Notifier les secrétaires de la modification
+        // Notifier les secrétaires du même service de la modification
         try {
-            $secretaires = User::where('role', 'secretaire')->where('active', true)->get();
+            $medecinServiceId = optional($rdv->medecin)->service_id;
+            $secretaires = User::where('role', 'secretaire')
+                ->where('active', true)
+                ->when($medecinServiceId, function($q) use ($medecinServiceId){ $q->where('service_id', $medecinServiceId); })
+                ->get();
             foreach ($secretaires as $secretaire) {
                 $secretaire->notify(new \App\Notifications\RendezvousStatusChanged($rdv));
             }

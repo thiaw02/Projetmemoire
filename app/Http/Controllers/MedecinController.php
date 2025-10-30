@@ -84,9 +84,9 @@ class MedecinController extends Controller
     {
         $medecin = Auth::user();
 
-        // Consultations à venir pour ce médecin
+        // Consultations à venir (inclut toute la journée en cours)
         $consultations = Consultations::where('medecin_id', $medecin->id)
-                            ->where('date_consultation', '>=', now())
+                            ->whereDate('date_consultation', '>=', now()->toDateString())
                             ->orderBy('date_consultation', 'asc')
                             ->get();
 
@@ -159,6 +159,7 @@ $consult = \App\Models\Consultations::where('id',$id)->where('medecin_id',$medId
     public function dossierpatient(Request $request)
     {
         $medecin_id = Auth::id();
+        $serviceId = Auth::user()->service_id;
 
         // Patients ayant au moins une consultation avec ce médecin OU un RDV (assigné à ce médecin)
         $patients = Patient::where(function($query) use ($medecin_id){
@@ -168,13 +169,20 @@ $consult = \App\Models\Consultations::where('id',$id)->where('medecin_id',$medId
             ->orWhereHas('rendez_vous', function($q) use ($medecin_id){
                 $q->where('medecin_id', $medecin_id);
             });
+        })
+        ->when($serviceId, function($q) use ($serviceId){
+            $q->whereHas('services', function($qq) use ($serviceId){
+                $qq->where('services.id', $serviceId);
+            });
         });
 
         if ($request->filled('patient_id')) {
             $patients->where('id', (int)$request->patient_id);
         }
 
-        $patients = $patients->orderBy('nom')->get();
+        $patients = $patients->orderBy('nom')
+            ->paginate(10, ['*'], 'medecin_patients_page')
+            ->withQueryString();
 
         return view('medecin.dossierpatient', compact('patients'));
     }
@@ -183,6 +191,7 @@ $consult = \App\Models\Consultations::where('id',$id)->where('medecin_id',$medId
     public function showPatient(int $patientId)
     {
         $medecinId = Auth::id();
+        $medecinServiceId = Auth::user()->service_id;
 
         $patient = Patient::with([
             'suivis' => fn ($q) => $q->orderByDesc('created_at'),
@@ -190,6 +199,11 @@ $consult = \App\Models\Consultations::where('id',$id)->where('medecin_id',$medId
             'ordonnances' => fn ($q) => $q->orderByDesc('created_at'),
             'analyses' => fn ($q) => $q->orderByDesc('date_analyse'),
         ])->findOrFail($patientId);
+
+        // Restreindre l'accès: le patient doit appartenir au service du médecin
+        if ($medecinServiceId && !$patient->services()->where('services.id', $medecinServiceId)->exists()) {
+            abort(403);
+        }
 
         // Mettre à jour la liste des dossiers récents en session
         $sessionKey = 'recent_patients_' . $medecinId;
@@ -213,10 +227,17 @@ $consult = \App\Models\Consultations::where('id',$id)->where('medecin_id',$medId
     {
         $medecin_id = Auth::id();
 
-        // Patients pour le formulaire
+        // Patients pour le formulaire (restreints au service du médecin)
+        $serviceId = Auth::user()->service_id;
         $patients = Patient::whereHas('consultations', function($q) use ($medecin_id) {
-            $q->where('medecin_id', $medecin_id);
-        })->get();
+                $q->where('medecin_id', $medecin_id);
+            })
+            ->when($serviceId, function($q) use ($serviceId){
+                $q->whereHas('services', function($qq) use ($serviceId){
+                    $qq->where('services.id', $serviceId);
+                });
+            })
+            ->get();
 
         // Ordonnances du médecin
         $ordonnances = Ordonnances::where('medecin_id', $medecin_id)
@@ -343,13 +364,20 @@ $consult = \App\Models\Consultations::where('id',$id)->where('medecin_id',$medId
     public function refreshPatientData(int $patientId)
     {
         $medecinId = Auth::id();
+        $serviceId = Auth::user()->service_id;
 
         $patient = Patient::with([
             'suivis' => fn ($q) => $q->orderByDesc('created_at'),
             'consultations' => fn ($q) => $q->where('medecin_id', $medecinId)->orderByDesc('date_consultation'),
             'ordonnances' => fn ($q) => $q->orderByDesc('created_at'),
             'analyses' => fn ($q) => $q->orderByDesc('date_analyse'),
-        ])->findOrFail($patientId);
+        ])
+        ->when($serviceId, function($q) use ($serviceId){
+            $q->whereHas('services', function($qq) use ($serviceId){
+                $qq->where('services.id', $serviceId);
+            });
+        })
+        ->findOrFail($patientId);
 
         return response()->json([
             'success' => true,

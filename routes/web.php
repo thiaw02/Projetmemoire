@@ -70,9 +70,7 @@ Route::post('/email/verification-notification', [\App\Http\Controllers\Auth\Emai
     ->middleware(['auth', 'throttle:6,1'])
     ->name('verification.send');
 
-// Inscription Patient uniquement
-Route::get('/inscription', [AuthController::class, 'showRegistrationForm'])->name('register');
-Route::post('/inscription', [AuthController::class, 'register'])->name('register.submit');
+// Inscription publique désactivée
 
 // ===================== ADMIN =====================
 Route::prefix('admin')->middleware('auth')->group(function () {
@@ -91,10 +89,9 @@ Route::prefix('admin')->middleware('auth')->group(function () {
         Route::delete('/{id}', [UserController::class, 'destroy'])->name('admin.users.destroy');
     });
 
-    // Affectations Médecin ↔ Infirmiers (admin uniquement)
+    // Services (admin uniquement)
     Route::middleware('role:admin')->group(function () {
-        Route::get('/affectations', [\App\Http\Controllers\AffectationsController::class, 'index'])->name('admin.affectations.index');
-        Route::put('/affectations/{doctor}', [\App\Http\Controllers\AffectationsController::class, 'update'])->name('admin.affectations.update');
+        Route::resource('services', \App\Http\Controllers\ServiceController::class)->names('admin.services');
     });
 
     // Patients
@@ -183,6 +180,13 @@ Route::prefix('medecin')->middleware(['auth','role:medecin'])->group(function ()
 Route::prefix('infirmier')->middleware('auth')->group(function () {
     Route::get('/dashboard', [InfirmierController::class, 'dashboard'])->name('infirmier.dashboard');
     Route::get('/dossiers', [InfirmierController::class, 'dossiers'])->name('infirmier.dossiers');
+    // Validation RDV
+    Route::post('/rendezvous/{id}/valider', [InfirmierController::class, 'validerRdv'])->name('infirmier.rdv.valider');
+    // Suivi: formulaire et enregistrement
+    Route::get('/suivis/create', [InfirmierController::class, 'createSuivi'])->name('infirmier.suivis.create');
+    Route::post('/suivis', [InfirmierController::class, 'storeSuivi'])->name('infirmier.suivis.store');
+    // Rendez-vous: index complet
+    Route::get('/rendezvous', [InfirmierController::class, 'rendezvousIndex'])->name('infirmier.rendezvous.index');
 });
 
 // ===================== PATIENT =====================
@@ -213,6 +217,8 @@ Route::prefix('patient')->middleware('auth')->group(function () {
     // Consultations et historique
     Route::get('/consultations', [PatientController::class, 'consultations'])->name('patient.consultations');
     Route::get('/consultations/{id}', [PatientController::class, 'consultationDetail'])->name('patient.consultations.show');
+    // API: Médecins par service (pour chargement dynamique côté patient)
+    Route::get('/services/{serviceId}/medecins', [PatientController::class, 'getMedecinsByService'])->name('patient.services.medecins');
 });
 
 // Paiements: callbacks

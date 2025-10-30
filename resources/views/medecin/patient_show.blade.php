@@ -478,8 +478,9 @@
               <div class="constant-label">Tension</div>
             </div>
           </div>
-          <div class="text-center text-muted small">
-            <i class="bi bi-clock me-1"></i>Enregistré le {{ optional($lastSuivi->created_at)->format('d/m/Y à H:i') }}
+          <div class="text-center text-muted small d-flex justify-content-center align-items-center gap-2">
+            <span class="badge bg-success"><i class="bi bi-person-lines-fill me-1"></i>Ajout infirmier</span>
+            <span><i class="bi bi-clock me-1"></i>Enregistré le {{ optional($lastSuivi->created_at)->format('d/m/Y à H:i') }}</span>
           </div>
         @else
           <div class="empty-state">
@@ -510,6 +511,7 @@
                 <th><i class="bi bi-calendar3 me-1"></i>Date</th>
                 <th><i class="bi bi-thermometer me-1"></i>Temp.</th>
                 <th><i class="bi bi-heart-pulse me-1"></i>Tension</th>
+                <th><i class="bi bi-person-badge me-1"></i>Source</th>
               </tr>
             </thead>
             <tbody>
@@ -518,6 +520,9 @@
                   <td>{{ optional($sv->created_at)->format('d/m/Y H:i') }}</td>
                   <td><span class="fw-semibold text-info">{{ $sv->temperature ?? '—' }}</span></td>
                   <td><span class="fw-semibold text-danger">{{ $sv->tension ?? '—' }}</span></td>
+                  <td>
+                    <span class="badge bg-success">Infirmier</span>
+                  </td>
                 </tr>
               @endforeach
             </tbody>

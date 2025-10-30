@@ -35,7 +35,7 @@
       <i class="bi bi-people-fill"></i>
     </div>
     <div class="stat-content">
-      <div class="stat-number">{{ $patients->count() }}</div>
+      <div class="stat-number">{{ method_exists($patients, 'total') ? $patients->total() : $patients->count() }}</div>
       <div class="stat-label">Patients Total</div>
     </div>
   </div>
@@ -74,7 +74,7 @@
 {{-- Liste des patients --}}
 <div class="patients-container">
   <div class="patients-header-section">
-    <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>Liste des patients ({{ $patients->count() }} patients)</h5>
+    <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>Liste des patients ({{ method_exists($patients, 'total') ? $patients->total() : $patients->count() }} patients)</h5>
     <div class="view-options">
       <button class="view-btn active" data-view="grid"><i class="bi bi-grid-3x3"></i></button>
       <button class="view-btn" data-view="list"><i class="bi bi-list"></i></button>
@@ -203,6 +203,12 @@
       </div>
     </div>
   @endif
+</div>
+
+{{-- Pagination --}}
+<div class="d-flex justify-content-center my-3">
+  {{ method_exists($patients, 'links') ? $patients->links() : '' }}
+  {{-- Si vous avez un template personnalisé, utilisez: $patients->links('pagination.custom') --}}
 </div>
 
 {{-- Styles modernes pour la page dossiers patients --}}

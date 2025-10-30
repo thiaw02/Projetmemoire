@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Service;
 use App\Models\AuditLog;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\InscriptionConfirmee;
 use App\Http\Controllers\Traits\HasPagination;
 
 class UserController extends Controller
@@ -27,7 +30,11 @@ class UserController extends Controller
                    ->orWhere('email','like',"%$q%");
             });
         }
-        $users = $query->with(['nurses:id,name','doctors:id,name'])->orderBy('name')->paginate(20)->withQueryString();
+        // Pagination dédiée pour utilisateurs
+        $users = $query->with(['nurses:id,name','doctors:id,name'])
+            ->orderBy('name')
+            ->paginate(10, ['*'], 'users_page')
+            ->withQueryString();
         return view('admin.users.index', [
             'users' => $users,
             'filters' => [
@@ -88,17 +95,19 @@ class UserController extends Controller
 
     public function create()
     {
-        return view('admin.users.create');
+        $services = Service::where('active', true)->orderBy('name')->get(['id','name']);
+        return view('admin.users.create', compact('services'));
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
             'name'       => 'required|string|max:255',
-            'email'      => 'required|email|unique:users,email',
+            'email'      => 'required|email|unique:users,email,NULL,id,deleted_at,NULL',
             'role'       => 'required|in:admin,medecin,infirmier,secretaire',
             'password'   => 'required|string|min:6|confirmed',
             'active'     => 'nullable|boolean',
+            'service_id' => 'nullable|exists:services,id',
             // Informations personnelles
             'phone'      => 'nullable|string|max:20',
             'address'    => 'nullable|string|max:500',
@@ -118,16 +127,40 @@ class UserController extends Controller
             'cabinet'    => 'nullable|string|max:255',
             'horaires'   => 'nullable|string|max:2000',
         ]);
+        $plainPassword = $data['password'];
         $data['password'] = bcrypt($data['password']);
-        // Nettoyage selon rôle
+        // Nettoyage selon rôle et génération matricule
         if ($data['role'] !== 'medecin') {
-            unset($data['specialite'], $data['matricule'], $data['cabinet'], $data['horaires']);
+            unset($data['specialite'], $data['cabinet'], $data['horaires']);
         }
         if (!in_array($data['role'], ['secretaire','infirmier','admin'])) {
             unset($data['pro_phone']);
         }
+        if (in_array($data['role'], ['medecin','secretaire','infirmier'], true)) {
+            $prefixMap = ['medecin' => 'MED', 'secretaire' => 'SEC', 'infirmier' => 'INF'];
+            $prefix = $prefixMap[$data['role']] ?? 'USR';
+            do {
+                $candidate = $prefix.'-'.now()->format('Ymd').'-'.strtoupper(substr(bin2hex(random_bytes(3)), 0, 6));
+            } while (\App\Models\User::withTrashed()->where('matricule', $candidate)->exists());
+            $data['matricule'] = $candidate;
+        } else {
+            unset($data['matricule']);
+        }
         $data['active'] = (bool)($request->input('active', true));
-        User::create($data);
+        // Purge un ancien compte soft-supprimé avec le même email
+        if (!empty($data['email'])) {
+            $trashed = User::withTrashed()->where('email', $data['email'])->first();
+            if ($trashed && $trashed->trashed()) { try { $trashed->forceDelete(); } catch (\Throwable $e) { /* ignore */ } }
+        }
+        $user = User::create($data);
+
+        // Send account info email (matricule for staff roles)
+        try {
+            if (!empty($user->email)) {
+                $numero = $user->matricule ?? '—';
+                Mail::to($user->email)->send(new InscriptionConfirmee($numero, $user->email, (string)$plainPassword));
+            }
+        } catch (\Throwable $e) { /* noop */ }
 
         return redirect()->route('admin.dashboard')->with('success', 'Utilisateur ajouté');
     }
@@ -135,7 +168,8 @@ class UserController extends Controller
     public function edit($id)
     {
         $user = User::findOrFail($id);
-        return view('admin.users.edit', compact('user'));
+        $services = Service::where('active', true)->orderBy('name')->get(['id','name']);
+        return view('admin.users.edit', compact('user','services'));
     }
 
     public function update(Request $request, $id)
@@ -143,10 +177,11 @@ class UserController extends Controller
         $user = User::findOrFail($id);
         $data = $request->validate([
             'name'       => 'required|string|max:255',
-            'email'      => "required|email|unique:users,email,{$id}",
+            'email'      => "required|email|unique:users,email,{$id},id,deleted_at,NULL",
             'role'       => 'required|in:admin,medecin,infirmier,secretaire',
             'password'   => 'nullable|string|min:6|confirmed',
             'active'     => 'nullable|boolean',
+            'service_id' => 'nullable|exists:services,id',
             // Informations personnelles
             'phone'      => 'nullable|string|max:20',
             'address'    => 'nullable|string|max:500',
@@ -194,17 +229,33 @@ class UserController extends Controller
                 ->with('error', 'Vous ne pouvez pas supprimer votre propre compte.');
         }
         
-        // Soft delete (sécurisé)
-        $user->delete();
+        // Suppression définitive pour libérer l'email
+        try {
+            // Supprimer la fiche patient liée si présente (au cas où la contrainte n'est pas en cascade)
+            if ($user->patient) {
+                try { $user->patient->forceDelete(); } catch (\Throwable $e) { /* ignore */ }
+            }
+            $user->forceDelete();
+        } catch (\Throwable $e) {
+            return redirect()->route('admin.dashboard')
+                ->with('error', "Suppression définitive impossible: {$e->getMessage()}");
+        }
         
         return redirect()->route('admin.dashboard')
-            ->with('success', 'Utilisateur supprimé avec succès. Il peut être restauré si nécessaire.');
+            ->with('success', 'Utilisateur supprimé définitivement.');
     }
 
     // Patients
-public function patientsList(\Illuminate\Http\Request $request)
+    public function patientsList(\Illuminate\Http\Request $request)
     {
         $query = User::where('role', 'patient');
+        $me = auth()->user();
+        if (in_array($me->role, ['medecin','infirmier','secretaire'], true) && $me->service_id) {
+            $serviceId = $me->service_id;
+            $query->whereHas('patient.services', function($q) use ($serviceId){
+                $q->where('services.id', $serviceId);
+            });
+        }
         if ($request->filled('q')) {
             $q = $request->q;
             $query->where(function($qq) use ($q){
@@ -215,7 +266,9 @@ public function patientsList(\Illuminate\Http\Request $request)
         if ($request->filled('active') && in_array($request->active, ['0','1'], true)) {
             $query->where('active', (bool)$request->active);
         }
-        $patients = $query->orderBy('name')->paginate(15)->withQueryString();
+        // Pagination dédiée pour patients
+        $patients = $query->orderBy('name')
+            ->paginate(10, ['*'], 'patients_page');
         return view('admin.patients.index', [
             'patients' => $patients,
             'filters' => [
@@ -228,7 +281,8 @@ public function patientsList(\Illuminate\Http\Request $request)
     public function createPatient()
     {
         $secretaires = User::where('role','secretaire')->orderBy('name')->get();
-        return view('admin.patients.create', compact('secretaires'));
+        $services = Service::where('active', true)->orderBy('name')->get(['id','name']);
+        return view('admin.patients.create', compact('secretaires','services'));
     }
 
     public function storePatient(Request $request)
@@ -236,7 +290,7 @@ public function patientsList(\Illuminate\Http\Request $request)
         $validated = $request->validate([
             'nom'             => ['required','string','max:255'],
             'prenom'          => ['required','string','max:255'],
-            'email'           => ['required','email','unique:users,email'],
+            'email'           => ['required','email','unique:users,email,NULL,id,deleted_at,NULL'],
             'telephone'       => ['nullable','string','max:255'],
             'sexe'            => ['required','string','in:Masculin,Féminin'],
             'date_naissance'  => ['required','date'],
@@ -244,10 +298,17 @@ public function patientsList(\Illuminate\Http\Request $request)
             'groupe_sanguin'  => ['nullable','string','max:255'],
             'antecedents'     => ['nullable','string'],
             'password'        => ['nullable','string','min:6','confirmed'],
+            'services'        => ['nullable','array'],
+            'services.*'      => ['integer','exists:services,id'],
         ]);
 
         $password = $validated['password'] ?? \Illuminate\Support\Str::random(8);
 
+        // Purge un ancien compte soft-supprimé avec le même email
+        if (!empty($validated['email'])) {
+            $trashed = User::withTrashed()->where('email', $validated['email'])->first();
+            if ($trashed && $trashed->trashed()) { try { $trashed->forceDelete(); } catch (\Throwable $e) { /* ignore */ } }
+        }
         $user = User::create([
             'name'     => $validated['prenom'].' '.$validated['nom'],
             'email'    => $validated['email'],
@@ -257,7 +318,7 @@ public function patientsList(\Illuminate\Http\Request $request)
 
         // Créer / lier la fiche Patient
         $numero_dossier = 'PAT' . now()->format('Ymd') . str_pad($user->id, 3, '0', STR_PAD_LEFT);
-        $user->patient()->create([
+        $patient = $user->patient()->create([
             'numero_dossier'  => $numero_dossier,
             'nom'            => $validated['nom'],
             'prenom'         => $validated['prenom'],
@@ -271,6 +332,16 @@ public function patientsList(\Illuminate\Http\Request $request)
             'groupe_sanguin' => $validated['groupe_sanguin'] ?? null,
             'antecedents'    => $validated['antecedents'] ?? null,
         ]);
+        if (!empty($validated['services'])) {
+            $patient->services()->sync($validated['services']);
+        }
+
+        // Envoyer email d'inscription au patient
+        try {
+            if (!empty($user->email)) {
+                Mail::to($user->email)->send(new InscriptionConfirmee($numero_dossier, $user->email, (string)$password, 'patient', now()->format('d/m/Y H:i')));
+            }
+        } catch (\Throwable $e) { /* noop */ }
 
         return redirect()->route('admin.dashboard')->with('success', 'Patient ajouté avec succès');
     }
@@ -279,7 +350,8 @@ public function patientsList(\Illuminate\Http\Request $request)
     {
         $patient = User::findOrFail($id);
         $secretaires = User::where('role','secretaire')->orderBy('name')->get();
-        return view('admin.patients.edit', compact('patient','secretaires'));
+        $services = Service::where('active', true)->orderBy('name')->get(['id','name']);
+        return view('admin.patients.edit', compact('patient','secretaires','services'));
     }
 
     public function updatePatient(Request $request, $id)
@@ -288,7 +360,7 @@ public function patientsList(\Illuminate\Http\Request $request)
         $validated = $request->validate([
             'nom'             => ['required','string','max:255'],
             'prenom'          => ['required','string','max:255'],
-            'email'           => ["required","email","unique:users,email,{$id}"],
+            'email'           => ["required","email","unique:users,email,{$id},id,deleted_at,NULL"],
             'telephone'       => ['nullable','string','max:255'],
             'sexe'            => ['required','string','in:Masculin,Féminin'],
             'date_naissance'  => ['required','date'],
@@ -296,6 +368,8 @@ public function patientsList(\Illuminate\Http\Request $request)
             'groupe_sanguin'  => ['nullable','string','max:255'],
             'antecedents'     => ['nullable','string'],
             'password'        => ['nullable','string','min:6','confirmed'],
+            'services'        => ['nullable','array'],
+            'services.*'      => ['integer','exists:services,id'],
         ]);
 
         $user->name  = $validated['prenom'].' '.$validated['nom'];
@@ -326,6 +400,9 @@ public function patientsList(\Illuminate\Http\Request $request)
             'antecedents'    => $validated['antecedents'] ?? null,
             'secretary_user_id' => $request->input('secretary_user_id') ?: $patient->secretary_user_id,
         ]);
+        if (isset($validated['services'])) {
+            $patient->services()->sync($validated['services'] ?? []);
+        }
 
         return redirect()->route('admin.dashboard')->with('success', 'Patient modifié avec succès');
     }
@@ -340,11 +417,19 @@ public function patientsList(\Illuminate\Http\Request $request)
                 ->with('error', 'Seuls les comptes patients peuvent être supprimés via cette méthode.');
         }
         
-        // Soft delete (sécurisé pour les dossiers médicaux)
-        $user->delete();
+        // Suppression définitive pour libérer l'email
+        try {
+            if ($user->patient) {
+                try { $user->patient->forceDelete(); } catch (\Throwable $e) { /* ignore */ }
+            }
+            $user->forceDelete();
+        } catch (\Throwable $e) {
+            return redirect()->route('admin.dashboard')
+                ->with('error', "Suppression définitive impossible: {$e->getMessage()}");
+        }
         
         return redirect()->route('admin.dashboard')
-            ->with('success', 'Patient supprimé avec succès. Le dossier peut être restauré si nécessaire.');
+            ->with('success', 'Patient supprimé définitivement.');
     }
 
     public function updateRole(Request $request, $id)

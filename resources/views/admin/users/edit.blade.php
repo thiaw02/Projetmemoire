@@ -346,17 +346,17 @@
                 
                 <div class="form-grid">
                   <div class="form-group">
-                    <label for="department" class="form-label">
+                    <label for="service_id" class="form-label">
                       <i class="bi bi-building"></i>
-                      Département/Service
+                      Service
                     </label>
                     <div class="input-wrapper">
-                      <input type="text" 
-                             name="department" 
-                             id="department" 
-                             class="form-control" 
-                             value="{{ old('department', $user->department) }}"
-                             placeholder="Ex: Ressources Humaines, IT...">
+                      <select name="service_id" id="service_id" class="form-select">
+                        <option value="">-- Choisir un service --</option>
+                        @foreach(($services ?? []) as $s)
+                          <option value="{{ $s->id }}" {{ (string)old('service_id', $user->service_id) === (string)$s->id ? 'selected' : '' }}>{{ $s->name }}</option>
+                        @endforeach
+                      </select>
                     </div>
                   </div>
                   

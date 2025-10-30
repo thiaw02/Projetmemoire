@@ -10,16 +10,87 @@
         <span>Gestion des Rôles et Permissions</span>
         <small>Configuration avancée des droits et accès utilisateurs</small>
       </div>
+
+  {{-- Onglet Supervision des rôles (compact) --}}
+  <div id="supervision-tab" class="tab-panel">
+    @php
+      $overview = [
+        ['key'=>'admin','label'=>'Administrateurs','icon'=>'bi-shield-fill','color'=>'#dc2626'],
+        ['key'=>'doctor','label'=>'Médecins','icon'=>'bi-person-badge','color'=>'#059669'],
+        ['key'=>'secretary','label'=>'Secrétaires','icon'=>'bi-person-workspace','color'=>'#8b5cf6'],
+        ['key'=>'patient','label'=>'Patients','icon'=>'bi-person','color'=>'#1d4ed8'],
+      ];
+    @endphp
+    <div class="roles-grid" style="grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));">
+      @foreach($overview as $o)
+        @php
+          $count = $role_stats[$o['key']]['users'] ?? ($rolesCount[$o['key']] ?? 0);
+          $online = $role_stats[$o['key']]['online'] ?? null;
+        @endphp
+        <div class="role-management-card">
+          <div class="role-header">
+            <div class="role-icon" style="background: {{ $o['color'] }};">
+              <i class="bi {{ $o['icon'] }}"></i>
+            </div>
+            <div class="role-info">
+              <h3>{{ $o['label'] }}</h3>
+              <span class="role-description">Supervision rapide</span>
+              <div class="role-stats">
+                <span class="user-count">{{ $count }} utilisateurs</span>
+                @if(!is_null($online))
+                  <span class="permissions-count">{{ $online }} en ligne</span>
+                @endif
+              </div>
+            </div>
+          </div>
+        </div>
+      @endforeach
+    </div>
+  </div>
+  
+  {{-- Onglet Supervision des rôles (compact) --}}
+  <div id="supervision-tab" class="tab-panel">
+    @php
+      $overview = [
+        ['key'=>'admin','label'=>'Administrateurs','icon'=>'bi-shield-fill','color'=>'#dc2626'],
+        ['key'=>'doctor','label'=>'Médecins','icon'=>'bi-person-badge','color'=>'#059669'],
+        ['key'=>'secretary','label'=>'Secrétaires','icon'=>'bi-person-workspace','color'=>'#8b5cf6'],
+        ['key'=>'patient','label'=>'Patients','icon'=>'bi-person','color'=>'#1d4ed8'],
+      ];
+    @endphp
+    <div class="roles-grid" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));">
+      @foreach($overview as $o)
+        @php
+          $count = $role_stats[$o['key']]['users'] ?? ($rolesCount[$o['key']] ?? 0);
+          $online = $role_stats[$o['key']]['online'] ?? null;
+        @endphp
+        <div class="role-management-card">
+          <div class="role-header">
+            <div class="role-icon" style="background: {{$o['color']}};">
+              <i class="bi {{$o['icon']}}"></i>
+            </div>
+            <div class="role-info">
+              <h3>{{ $o['label'] }}</h3>
+              <span class="role-description">Supervision rapide</span>
+              <div class="role-stats">
+                <span class="user-count">{{ $count }} utilisateurs</span>
+                @if(!is_null($online))
+                  <span class="permissions-count">{{ $online }} en ligne</span>
+                @endif
+              </div>
+            </div>
+          </div>
+        </div>
+      @endforeach
+    </div>
+  </div>
     </div>
     <div class="header-actions">
       <button class="btn-add-role" onclick="openCreateRoleModal()">
         <i class="bi bi-plus-circle"></i>
         Nouveau rôle
       </button>
-      <a href="{{ route('admin.roles.supervision') }}" class="action-btn">
-        <i class="bi bi-eye"></i>
-        Supervision
-      </a>
+      
       <a href="{{ route('admin.dashboard') }}" class="action-btn">
         <i class="bi bi-arrow-left"></i>
         Retour
@@ -45,6 +116,10 @@
   <button class="tab-btn" onclick="switchTab('permissions')">
     <i class="bi bi-key"></i>
     Matrice des permissions
+  </button>
+  <button class="tab-btn" onclick="switchTab('supervision')">
+    <i class="bi bi-activity"></i>
+    Supervision des rôles
   </button>
   <button class="tab-btn" onclick="switchTab('audit')">
     <i class="bi bi-clock-history"></i>
@@ -157,6 +232,60 @@
   
   {{-- Onglet Matrice des permissions --}}
   <div id="permissions-tab" class="tab-panel">
+    {{-- Matrice compacte et fonctionnelle (synchronisée avec le backend) --}}
+    <div class="permissions-matrix-section mb-4">
+      <h5 class="mb-3"><i class="bi bi-key me-2"></i>Matrice des permissions (fonctionnelle)</h5>
+      <form method="POST" action="{{ route('admin.permissions.save') }}">
+        @csrf
+        <div class="table-responsive">
+          <table class="table table-sm align-middle">
+            <thead>
+              <tr>
+                <th>Permission</th>
+                <th class="text-center">Admin</th>
+                <th class="text-center">Médecin</th>
+                <th class="text-center">Infirmier</th>
+                <th class="text-center">Secrétaire</th>
+                <th class="text-center">Patient</th>
+              </tr>
+            </thead>
+            <tbody>
+              @foreach(($permissionModules ?? []) as $group)
+                <tr class="table-light">
+                  <td colspan="6" class="fw-semibold">
+                    <i class="bi {{ $group['icon'] ?? 'bi-shield' }} me-2"></i>{{ $group['title'] ?? 'Module' }}
+                  </td>
+                </tr>
+                @foreach(($group['permissions'] ?? []) as $perm)
+                  @php $key = $perm['key']; @endphp
+                  <tr>
+                    <td>
+                      <div class="d-flex flex-column">
+                        <span class="fw-medium">{{ $perm['label'] ?? $key }}</span>
+                        <small class="text-muted">{{ $key }}</small>
+                      </div>
+                    </td>
+                    @foreach(['admin','medecin','infirmier','secretaire','patient'] as $role)
+                      @php $checked = (bool) (($rolePermissions[$role][$key] ?? false)); @endphp
+                      <td class="text-center">
+                        <input type="checkbox" name="permits[{{ $role }}][{{ $key }}]" value="1" {{ $checked ? 'checked' : '' }}>
+                      </td>
+                    @endforeach
+                  </tr>
+                @endforeach
+              @endforeach
+            </tbody>
+          </table>
+        </div>
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-success">
+            <i class="bi bi-check2-circle me-1"></i>Sauvegarder
+          </button>
+          <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary">Annuler</a>
+        </div>
+      </form>
+    </div>
+
     <div class="permissions-matrix-section">
       <div class="matrix-controls">
         <div class="search-permissions">

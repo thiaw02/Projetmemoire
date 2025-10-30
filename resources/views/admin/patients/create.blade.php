@@ -5,10 +5,13 @@
   body > .container { max-width: 1500px !important; }
   .sidebar-sticky { position: sticky; top: 1rem; }
 </style>
-<div class="card shadow-sm">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <h5 class="mb-0">Ajouter un patient</h5>
-    <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary btn-sm">Retour au dashboard</a>
+<div class="card shadow-sm border-0" style="border-radius:16px; overflow:hidden;">
+  <div class="d-flex justify-content-between align-items-center p-3" style="background: linear-gradient(135deg, #10b981, #059669); color: #fff;">
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-person-heart" style="font-size: 1.25rem;"></i>
+      <h5 class="mb-0">Ajouter un patient</h5>
+    </div>
+    <a href="{{ route('admin.dashboard') }}" class="btn btn-light btn-sm">Retour Dashboard</a>
   </div>
   <div class="card-body">
 
@@ -66,11 +69,11 @@
             <textarea name="antecedents" class="form-control" rows="2">{{ old('antecedents') }}</textarea>
         </div>
         <div class="col-md-6">
-            <label class="form-label">Secrétaire assigné(e)</label>
-            <select name="secretary_user_id" class="form-select">
-                <option value="">-- Aucune --</option>
-                @foreach(($secretaires ?? []) as $sec)
-                    <option value="{{ $sec->id }}" {{ old('secretary_user_id')==$sec->id?'selected':'' }}>{{ $sec->name }} ({{ $sec->email }})</option>
+            <label class="form-label">Service assigné</label>
+            <select name="services[]" class="form-select">
+                <option value="">-- Sélectionner un service --</option>
+                @foreach(($services ?? []) as $srv)
+                    <option value="{{ $srv->id }}" {{ collect(old('services', []))->contains($srv->id) ? 'selected' : '' }}>{{ $srv->name }}</option>
                 @endforeach
             </select>
         </div>

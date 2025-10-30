@@ -46,7 +46,7 @@
         <i class="bi bi-people-fill"></i>
       </div>
       <div class="kpi-content">
-        <div class="kpi-value">{{ $kpis['totalUsers'] ?? ($users->count() ?? 0) }}</div>
+        <div class="kpi-value">{{ $kpis['totalUsers'] ?? (\App\Models\User::count()) }}</div>
         <div class="kpi-label">Utilisateurs</div>
       </div>
     </div>
@@ -105,37 +105,41 @@
     </div>
   </div>
   
-  {{-- Note Moyenne Globale --}}
-  @php
-    $evalStats = [
-        'moyenne' => \App\Models\Evaluation::avg('note') ?? 0,
-        'total' => \App\Models\Evaluation::count(),
-        'professionnels_evalues' => \App\Models\Evaluation::distinct('evaluated_user_id')->count(),
-    ];
-  @endphp
-  <div class="col">
-    <div class="kpi-card scroll-card-hover gpu-accelerated">
-      <div class="kpi-icon evaluations">
-        <i class="bi bi-star-fill"></i>
-      </div>
-      <div class="kpi-content">
-        <div class="kpi-value">{{ number_format($evalStats['moyenne'], 1) }}</div>
-        <div class="kpi-label">Note Moyenne</div>
-        <div class="kpi-sub">{{ $evalStats['total'] }} évaluations</div>
-      </div>
-    </div>
-  </div>
-  
-  {{-- Professionnels Évalués --}}
+  {{-- Médecins --}}
   <div class="col">
     <div class="kpi-card scroll-card-hover gpu-accelerated">
       <div class="kpi-icon professionals">
-        <i class="bi bi-people-fill"></i>
+        <i class="bi bi-heart-pulse"></i>
       </div>
       <div class="kpi-content">
-        <div class="kpi-value">{{ $evalStats['professionnels_evalues'] }}</div>
-        <div class="kpi-label">Professionnels Évalués</div>
-        <div class="kpi-sub">Sur {{ \App\Models\User::whereIn('role', ['medecin', 'infirmier'])->count() }} total</div>
+        <div class="kpi-value">{{ $rolesCount['medecin'] ?? (\App\Models\User::where('role','medecin')->count()) }}</div>
+        <div class="kpi-label">Médecins</div>
+      </div>
+    </div>
+  </div>
+
+  {{-- Infirmiers --}}
+  <div class="col">
+    <div class="kpi-card scroll-card-hover gpu-accelerated">
+      <div class="kpi-icon users">
+        <i class="bi bi-bandaid"></i>
+      </div>
+      <div class="kpi-content">
+        <div class="kpi-value">{{ $rolesCount['infirmier'] ?? (\App\Models\User::where('role','infirmier')->count()) }}</div>
+        <div class="kpi-label">Infirmiers</div>
+      </div>
+    </div>
+  </div>
+
+  {{-- Secrétaires --}}
+  <div class="col">
+    <div class="kpi-card scroll-card-hover gpu-accelerated">
+      <div class="kpi-icon patients">
+        <i class="bi bi-person-workspace"></i>
+      </div>
+      <div class="kpi-content">
+        <div class="kpi-value">{{ $rolesCount['secretaire'] ?? (\App\Models\User::where('role','secretaire')->count()) }}</div>
+        <div class="kpi-label">Secrétaires</div>
       </div>
     </div>
   </div>
@@ -1273,7 +1277,7 @@
         <button class="nav-link" id="roles-tab" data-bs-toggle="tab" data-bs-target="#roles" type="button" role="tab" aria-controls="roles" aria-selected="false"><i class="bi bi-person-gear me-1"></i> Superviser rôles</button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="permissions-tab" data-bs-toggle="tab" data-bs-target="#permissions" type="button" role="tab" aria-controls="permissions" aria-selected="false"><i class="bi bi-shield-lock me-1"></i> Gestion rôles & permissions</button>
+        <button class="nav-link" id="permissions-tab" data-bs-toggle="tab" data-bs-target="#permissions" type="button" role="tab" aria-controls="permissions" aria-selected="false"><i class="bi bi-shield-lock me-1"></i> Gestion permissions</button>
     </li>
     <li class="nav-item" role="presentation">
         <button class="nav-link" id="payments-tab" data-bs-toggle="tab" data-bs-target="#payments" type="button" role="tab" aria-controls="payments" aria-selected="false"><i class="bi bi-wallet2 me-1"></i> Paiements</button>
@@ -1290,7 +1294,7 @@
           <div class="d-flex align-items-center gap-2">
             <input type="text" id="searchUsers" class="form-control form-control-sm" placeholder="Rechercher..." style="max-width: 240px;">
 <a href="{{ route('admin.users.index') }}" class="btn btn-outline-primary btn-sm">Liste avancée</a>
-            <a href="{{ route('admin.affectations.index') }}" class="btn btn-outline-success btn-sm" title="Affecter infirmiers aux médecins">Affectations Médecin–Infirmier</a>
+            {{-- Lien d'affectations retiré (fonctionnalité obsolète) --}}
             <a href="{{ route('admin.users.create') }}" class="btn btn-success btn-sm" title="Ajouter un utilisateur" aria-label="Ajouter un utilisateur">➕ Ajouter</a>
           </div>
         </div>
@@ -1357,10 +1361,10 @@
           </table>
         </div>
         
-        {{-- Pagination pour utilisateurs --}}
-        @if($users->hasPages())
+        {{-- Pagination dédiée aux utilisateurs --}}
+        @if(method_exists($users, 'hasPages') && $users->hasPages())
             <div class="d-flex justify-content-center mt-3">
-                {{ $users->appends(request()->query())->links() }}
+                {{ $users->appends(request()->except('patients_page'))->links() }}
             </div>
         @endif
     </div>
@@ -1388,8 +1392,7 @@
                   </tr>
               </thead>
             <tbody>
-                @foreach($users as $user)
-                    @if($user->role === 'patient')
+                @foreach($patients as $user)
                     <tr>
                         <td>{{ $user->name }}</td>
                         <td>{{ $user->email }}</td>
@@ -1413,16 +1416,15 @@
                           </div>
                         </td>
                     </tr>
-                    @endif
                 @endforeach
             </tbody>
           </table>
         </div>
         
-        {{-- Pagination pour patients --}}
-        @if($users->hasPages())
+        {{-- Pagination dédiée aux patients --}}
+        @if(method_exists($patients, 'hasPages') && $patients->hasPages())
             <div class="d-flex justify-content-center mt-3">
-                {{ $users->appends(request()->query())->links() }}
+                {{ $patients->appends(request()->query())->links() }}
             </div>
         @endif
     </div>
@@ -1564,46 +1566,15 @@
         <div class="roles-supervision-header">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <h4 class="mb-1"><i class="bi bi-person-gear text-purple me-2"></i>Supervision des Rôles</h4>
+                    <h4 class="mb-1"><i class="bi bi-person-gear text-purple me-2"></i>Gestion des rôles</h4>
                     <p class="text-muted mb-0">Gestion avancée des rôles et permissions utilisateurs</p>
                 </div>
-                <div class="d-flex gap-2">
-                    <button class="btn btn-outline-primary btn-sm" title="Exporter les rôles">
-                        <i class="bi bi-download me-1"></i>Exporter
-                    </button>
-                    <button class="btn btn-outline-success btn-sm" title="Audit des permissions">
-                        <i class="bi bi-shield-check me-1"></i>Audit
-                    </button>
+                <div>
+                  <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="tab" data-bs-target="#permissions">
+                    <i class="bi bi-shield-lock me-1"></i> Aller à Gestion rôles & permissions
+                  </button>
                 </div>
             </div>
-        </div>
-        
-        {{-- Cartes statistiques des rôles --}}
-        <div class="roles-stats-grid">
-          @foreach($rolesCount ?? [] as $roleName => $count)
-            @php
-              $roleConfig = [
-                'admin' => ['icon' => 'bi-shield-fill-check', 'color' => '#ef4444', 'label' => 'Administrateurs'],
-                'secretaire' => ['icon' => 'bi-person-workspace', 'color' => '#06b6d4', 'label' => 'Secrétaires'],
-                'medecin' => ['icon' => 'bi-person-hearts', 'color' => '#10b981', 'label' => 'Médecins'],
-                'infirmier' => ['icon' => 'bi-person-plus-fill', 'color' => '#8b5cf6', 'label' => 'Infirmiers'],
-                'patient' => ['icon' => 'bi-person-circle', 'color' => '#f59e0b', 'label' => 'Patients']
-              ];
-              $config = $roleConfig[$roleName] ?? ['icon' => 'bi-person', 'color' => '#6b7280', 'label' => ucfirst($roleName)];
-            @endphp
-            <div class="role-stat-card">
-              <div class="role-stat-icon" style="background: linear-gradient(135deg, {{ $config['color'] }}, {{ $config['color'] }}dd);">
-                <i class="bi {{ $config['icon'] }}"></i>
-              </div>
-              <div class="role-stat-content">
-                <div class="role-stat-number">{{ $count }}</div>
-                <div class="role-stat-label">{{ $config['label'] }}</div>
-              </div>
-              <div class="role-stat-trend">
-                <i class="bi bi-arrow-up-right text-success"></i>
-              </div>
-            </div>
-          @endforeach
         </div>
         
         {{-- Tableau de gestion des rôles --}}
@@ -1710,17 +1681,6 @@
                 <div>
                     <h4 class="mb-1"><i class="bi bi-shield-lock text-danger me-2"></i>Gestion des Permissions</h4>
                     <p class="text-muted mb-0">Configuration avancée des accès et autorisations par rôle</p>
-                </div>
-                <div class="d-flex gap-2">
-                    <button class="btn btn-outline-warning btn-sm" title="Sauvegarder une template">
-                        <i class="bi bi-save me-1"></i>Template
-                    </button>
-                    <button class="btn btn-outline-info btn-sm" title="Importer configuration">
-                        <i class="bi bi-upload me-1"></i>Importer
-                    </button>
-                    <button class="btn btn-outline-primary btn-sm" title="Audit des permissions">
-                        <i class="bi bi-shield-check me-1"></i>Audit
-                    </button>
                 </div>
             </div>
         </div>
@@ -1860,7 +1820,7 @@
           </div>
         </form>
     </div>
-
+    
     {{-- Paiements --}}
     <div class="tab-pane fade" id="payments" role="tabpanel" aria-labelledby="payments-tab">
         <div class="payments-header">
@@ -1870,77 +1830,15 @@
                     <p class="text-muted mb-0">Suivi des transactions, revenus et qualité de service</p>
                 </div>
                 <div class="d-flex gap-2">
-                    <button class="btn btn-outline-success btn-sm" title="Exporter les paiements">
-                        <i class="bi bi-download me-1"></i>Export
-                    </button>
-                    <button class="btn btn-outline-warning btn-sm" title="Rapports financiers">
-                        <i class="bi bi-graph-up me-1"></i>Rapports
-                    </button>
                     <a href="{{ route('secretaire.payments') }}" class="btn btn-primary btn-sm">
                         <i class="bi bi-gear me-1"></i>Gérer paiement
                     </a>
                 </div>
             </div>
         </div>
-        
-        {{-- KPIs Paiements --}}
         @php
             $recentOrders = \App\Models\Order::with('items','user')->orderByDesc('created_at')->take(20)->get();
-            $totalRevenue = $recentOrders->where('status', 'paid')->sum('total_amount');
-            $pendingAmount = $recentOrders->where('status', 'pending')->sum('total_amount');
-            $paidCount = $recentOrders->where('status', 'paid')->count();
-            $pendingCount = $recentOrders->where('status', 'pending')->count();
         @endphp
-        
-        <div class="payments-kpis-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
-            <div class="payment-kpi-card revenue">
-                <div class="payment-kpi-icon">
-                    <i class="bi bi-cash-stack"></i>
-                </div>
-                <div class="payment-kpi-content">
-                    <div class="payment-kpi-number">{{ number_format($totalRevenue / 1000, 0) }}K</div>
-                    <div class="payment-kpi-label">Revenus (XOF)</div>
-                    <div class="payment-kpi-sub">{{ $paidCount }} transactions</div>
-                </div>
-                <div class="payment-kpi-trend up">
-                    <i class="bi bi-arrow-up-right"></i>
-                    <span>+12%</span>
-                </div>
-            </div>
-            
-            <div class="payment-kpi-card pending">
-                <div class="payment-kpi-icon">
-                    <i class="bi bi-clock-history"></i>
-                </div>
-                <div class="payment-kpi-content">
-                    <div class="payment-kpi-number">{{ number_format($pendingAmount / 1000, 0) }}K</div>
-                    <div class="payment-kpi-label">En Attente</div>
-                    <div class="payment-kpi-sub">{{ $pendingCount }} transactions</div>
-                </div>
-                <div class="payment-kpi-trend neutral">
-                    <i class="bi bi-dash"></i>
-                    <span>0%</span>
-                </div>
-            </div>
-            
-            <div class="payment-kpi-card success-rate">
-                <div class="payment-kpi-icon">
-                    <i class="bi bi-check-circle"></i>
-                </div>
-                <div class="payment-kpi-content">
-                    @php $successRate = $recentOrders->count() > 0 ? ($paidCount / $recentOrders->count()) * 100 : 0; @endphp
-                    <div class="payment-kpi-number">{{ number_format($successRate, 0) }}%</div>
-                    <div class="payment-kpi-label">Taux de Réussite</div>
-                    <div class="payment-kpi-sub">{{ $recentOrders->count() }} total</div>
-                </div>
-                <div class="payment-kpi-trend up">
-                    <i class="bi bi-arrow-up-right"></i>
-                    <span>+5%</span>
-                </div>
-            </div>
-            
-        </div>
-        
         {{-- Tableau des paiements --}}
         <div class="payments-table-section">
             <div class="d-flex justify-content-between align-items-center mb-3">

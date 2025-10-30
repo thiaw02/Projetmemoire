@@ -751,9 +751,7 @@
       
       <div class="text-center">
         <span class="text-muted">Nouveau patient ? </span>
-        <a href="{{ route('register') }}">
-          Créer un compte
-        </a>
+        <span class="text-muted">Contactez l'administrateur pour la création de compte</span>
       </div>
     </form>
   </div>

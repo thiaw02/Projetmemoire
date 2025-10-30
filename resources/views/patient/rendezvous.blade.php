@@ -19,9 +19,32 @@
     <div id="calendar" class="border rounded p-3 mb-4 bg-light"></div>
 
     {{-- Formulaire --}}
-    <form action="{{ route('rendez.store') }}" method="POST">
+    <form action="{{ route('patient.storeRendez') }}" method="POST">
         @csrf
         <input type="hidden" name="date" id="dateSelected">
+
+        <div class="mb-3">
+            <label for="service_id" class="form-label">Service</label>
+            <select id="service_id" name="service_id" class="form-select" required>
+                <option value="">Sélectionnez un service</option>
+                @foreach(($services ?? []) as $service)
+                    <option value="{{ $service->id }}">{{ $service->name }}</option>
+                @endforeach
+            </select>
+            <div class="form-text">Choisissez le service pour voir les médecins disponibles.</div>
+        </div>
+
+        <div class="mb-3">
+            <label for="medecin_id" class="form-label">Médecin</label>
+            <select name="medecin_id" id="medecin_id" class="form-select" required disabled>
+                <option value="">Choisissez d'abord un service</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="heure" class="form-label">Heure</label>
+            <input type="time" name="heure" id="heure" class="form-control" required>
+        </div>
 
         <div class="mb-3">
             <label for="motif" class="form-label">Motif</label>
@@ -33,7 +56,7 @@
 
     {{-- Liste des rendez-vous --}}
     <hr>
-    <h4 class="mt-4">📜 Mes rendez-vous</h4>
+    <h4 class="mt-4">📜 Mes rendez-vous <small class="text-muted">{{ method_exists($rendezVous,'total') ? '(' . $rendezVous->total() . ')' : '' }}</small></h4>
     <ul>
         @forelse($rendezVous as $rdv)
             <li>{{ $rdv->date }} → {{ $rdv->motif }} 
@@ -43,6 +66,11 @@
             <li>Aucun rendez-vous enregistré.</li>
         @endforelse
     </ul>
+    @if(method_exists($rendezVous,'links'))
+      <div class="d-flex justify-content-center mt-2">
+        {{ $rendezVous->appends(request()->query())->links('pagination.custom') }}
+      </div>
+    @endif
 </div>
 @endsection
 
@@ -81,6 +109,32 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     calendar.render();
+
+    // Chargement dynamique des médecins par service
+    const serviceSelect = document.getElementById('service_id');
+    const medecinSelect = document.getElementById('medecin_id');
+    serviceSelect.addEventListener('change', async function() {
+        const serviceId = this.value;
+        medecinSelect.innerHTML = '<option value="">Chargement...</option>';
+        medecinSelect.disabled = true;
+        if (!serviceId) {
+            medecinSelect.innerHTML = '<option value="">Choisissez d\'abord un service</option>';
+            return;
+        }
+        try {
+            const res = await fetch(`/patient/services/${serviceId}/medecins`);
+            const data = await res.json();
+            medecinSelect.innerHTML = '<option value="">Sélectionnez un médecin</option>';
+            (data.data || []).forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.id; opt.textContent = m.name;
+                medecinSelect.appendChild(opt);
+            });
+            medecinSelect.disabled = false;
+        } catch (e) {
+            medecinSelect.innerHTML = '<option value="">Erreur de chargement</option>';
+        }
+    });
 });
 </script>
 @endsection

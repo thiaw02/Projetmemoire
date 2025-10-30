@@ -265,6 +265,8 @@
       </div>
     </div>
 
+    
+
     {{-- Statistiques rapides --}}
     <div class="stats-grid mb-4">
       <div class="stat-card">
@@ -272,47 +274,91 @@
         <div class="stat-label">Médecins Affectés</div>
       </div>
       <div class="stat-card">
-        <div class="stat-number">{{ $suivis->count() ?? 0 }}</div>
-        <div class="stat-label">Suivis en Cours</div>
-      </div>
-      <div class="stat-card">
         <div class="stat-number">{{ ($upcomingRdv ?? collect())->count() }}</div>
         <div class="stat-label">RDV à Venir</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-number">{{ $dossiers->count() ?? 0 }}</div>
-        <div class="stat-label">Dossiers en Attente</div>
       </div>
     </div>
 
     {{-- Navigation par onglets --}}
     <ul class="nav nav-tabs infirmier-tabs mb-3" id="infirmierTab" role="tablist">
       <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="medecins-tab" data-bs-toggle="tab" data-bs-target="#medecins" type="button" role="tab" aria-controls="medecins" aria-selected="true">
-          <i class="bi bi-person-badge me-1"></i> Médecins Affectés
-        </button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="suivis-tab" data-bs-toggle="tab" data-bs-target="#suivis" type="button" role="tab" aria-controls="suivis" aria-selected="false">
-          <i class="bi bi-heart-pulse me-1"></i> Suivis en Cours
-        </button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="rdv-tab" data-bs-toggle="tab" data-bs-target="#rdv" type="button" role="tab" aria-controls="rdv" aria-selected="false">
+        <button class="nav-link active" id="rdv-tab" data-bs-toggle="tab" data-bs-target="#rdv" type="button" role="tab" aria-controls="rdv" aria-selected="true">
           <i class="bi bi-calendar-check me-1"></i> Rendez-vous
         </button>
       </li>
       <li class="nav-item" role="presentation">
-        <button class="nav-link" id="dossiers-tab" data-bs-toggle="tab" data-bs-target="#dossiers" type="button" role="tab" aria-controls="dossiers" aria-selected="false">
-          <i class="bi bi-folder-open me-1"></i> Dossiers à MAJ
+        <button class="nav-link" id="medecins-tab" data-bs-toggle="tab" data-bs-target="#medecins" type="button" role="tab" aria-controls="medecins" aria-selected="false">
+          <i class="bi bi-person-badge me-1"></i> Médecins Affectés
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="actions-tab" data-bs-toggle="tab" data-bs-target="#actions" type="button" role="tab" aria-controls="actions" aria-selected="false">
+          <i class="bi bi-lightning-charge me-1"></i> Actions Rapides
         </button>
       </li>
     </ul>
 
     <div class="tab-content" id="infirmierTabContent">
 
+    {{-- Onglet Rendez-vous --}}
+      <div class="tab-pane fade show active" id="rdv" role="tabpanel" aria-labelledby="rdv-tab">
+        <div class="modern-card card-rdv">
+          <div class="modern-card-header">
+            <i class="bi bi-calendar-check"></i>
+            <span>Prochains rendez-vous confirmés</span>
+            <span class="badge bg-white text-info ms-auto">{{ method_exists($upcomingRdv, 'total') ? $upcomingRdv->total() : (($upcomingRdv ?? collect())->count()) }}</span>
+          </div>
+          <div class="modern-card-body">
+            @if(($upcomingRdv ?? collect())->isEmpty())
+              <div class="text-center py-4">
+                <i class="bi bi-calendar-x display-4 text-muted mb-3"></i>
+                <h5 class="text-muted">Aucun RDV confirmé</h5>
+                <p class="text-muted">Aucun rendez-vous confirmé à venir.</p>
+              </div>
+            @else
+              <ul class="item-list" id="rdvUpcomingList">
+                @foreach($upcomingRdv as $rdv)
+                  <li data-date="{{ \Carbon\Carbon::parse($rdv->date)->toDateString() }}" data-dt="{{ \Carbon\Carbon::parse(($rdv->date ?? '') . ' ' . ($rdv->heure ?? '00:00'))->format('Y-m-d\TH:i') }}">
+                    <div class="d-flex justify-content-between align-items-start">
+                      <div>
+                        <div class="item-header">
+                          {{ optional($rdv->patient)->nom ?? optional(optional($rdv->patient)->user)->name ?? '—' }}
+                          {{ optional($rdv->patient)->prenom ?? '' }}
+                        </div>
+                        <div class="item-meta">
+                          <i class="bi bi-person-badge me-1"></i>Avec Dr. {{ optional($rdv->medecin)->name ?? '—' }}
+                        </div>
+                      </div>
+                      <div class="text-end">
+                        <div class="badge bg-light text-dark border mb-1">
+                          {{ \Carbon\Carbon::parse($rdv->date)->format('d/m/Y') }} {{ $rdv->heure }}
+                        </div>
+                        <br>
+                        <span class="badge bg-success">Confirmé</span>
+                      </div>
+                    </div>
+                    <div class="mt-2 d-flex flex-wrap gap-2 align-items-center justify-content-end">
+                      <a href="{{ route('infirmier.suivis.create', ['patient_id'=>optional($rdv->patient)->id, 'rdv_id' => $rdv->id]) }}" class="btn btn-sm btn-outline-success" title="Suivi patient">
+                        <i class="bi bi-heart-pulse"></i>
+                      </a>
+                    </div>
+                  </li>
+                @endforeach
+              </ul>
+            @endif
+          </div>
+          @if(method_exists($upcomingRdv, 'links'))
+            <div class="modern-card-body pt-0">
+              <div class="d-flex justify-content-center">
+                {{ $upcomingRdv->appends(request()->query())->links('pagination.custom') }}
+              </div>
+            </div>
+          @endif
+        </div>
+      </div>
+
       {{-- Onglet Médecins Affectés --}}
-      <div class="tab-pane fade show active" id="medecins" role="tabpanel" aria-labelledby="medecins-tab">
+      <div class="tab-pane fade" id="medecins" role="tabpanel" aria-labelledby="medecins-tab">
         <div class="modern-card card-medecins">
           <div class="modern-card-header">
             <i class="bi bi-person-badge"></i>
@@ -354,172 +400,40 @@
         </div>
       </div>
 
-      {{-- Onglet Suivis en Cours --}}
-      <div class="tab-pane fade" id="suivis" role="tabpanel" aria-labelledby="suivis-tab">
-        <div class="modern-card card-suivis">
+      {{-- Onglet Actions Rapides --}}
+      <div class="tab-pane fade" id="actions" role="tabpanel" aria-labelledby="actions-tab">
+        <div class="modern-card">
           <div class="modern-card-header">
-            <i class="bi bi-heart-pulse"></i>
-            <span>Patients sous surveillance</span>
-            <span class="badge bg-white text-danger ms-auto">{{ $suivis->count() ?? 0 }}</span>
+            <i class="bi bi-lightning-charge"></i>
+            <span>Actions Rapides</span>
           </div>
           <div class="modern-card-body">
-            @if($suivis->isEmpty())
-              <div class="text-center py-4">
-                <i class="bi bi-heart display-4 text-muted mb-3"></i>
-                <h5 class="text-muted">Aucun suivi en cours</h5>
-                <p class="text-muted">Tous les patients vont bien !</p>
-              </div>
-            @else
-              <ul class="item-list">
-                @foreach($suivis as $suivi)
-                  <li>
-                    <div class="item-header">
-                      {{ $suivi->patient->nom ?? 'Inconnu' }} {{ $suivi->patient->prenom ?? '' }}
-                    </div>
-                    <div class="item-meta">
-                      <span class="me-3"><i class="bi bi-thermometer me-1"></i>Temp : {{ $suivi->temperature ?? 'N/A' }}°C</span>
-                      <span><i class="bi bi-heart-pulse me-1"></i>Tension : {{ $suivi->tension ?? 'N/A' }}</span>
-                    </div>
-                  </li>
-                @endforeach
-              </ul>
-            @endif
+            <div class="action-grid">
+              <a href="{{ route('historique.index') }}" class="action-card">
+                <div class="action-icon">
+                  <i class="bi bi-clock-history"></i>
+                </div>
+                <div class="action-content">
+                  <h5>Historique des soins</h5>
+                  <p>Consulter l'historique complet des soins</p>
+                </div>
+              </a>
+              <a href="{{ route('infirmier.rendezvous.index') }}" class="action-card">
+                <div class="action-icon">
+                  <i class="bi bi-calendar-week"></i>
+                </div>
+                <div class="action-content">
+                  <h5>Tous les rendez-vous</h5>
+                  <p>Voir les RDV traités, en cours et en attente</p>
+                </div>
+              </a>
+            </div>
           </div>
         </div>
       </div>
 
-      {{-- Onglet Rendez-vous --}}
-      <div class="tab-pane fade" id="rdv" role="tabpanel" aria-labelledby="rdv-tab">
-        <div class="modern-card card-rdv">
-          <div class="modern-card-header">
-            <i class="bi bi-calendar-check"></i>
-            <span>Prochains rendez-vous à suivre</span>
-            <span class="badge bg-white text-info ms-auto">{{ ($upcomingRdv ?? collect())->count() }}</span>
-          </div>
-          <div class="modern-card-body">
-            @if(($upcomingRdv ?? collect())->isEmpty())
-              <div class="text-center py-4">
-                <i class="bi bi-calendar-x display-4 text-muted mb-3"></i>
-                <h5 class="text-muted">Aucun RDV programmé</h5>
-                <p class="text-muted">Vous n'avez pas de rendez-vous à surveiller.</p>
-              </div>
-            @else
-              <ul class="item-list" id="rdvUpcomingList">
-                @foreach($upcomingRdv as $rdv)
-                  <li data-date="{{ \Carbon\Carbon::parse($rdv->date)->toDateString() }}" data-dt="{{ \Carbon\Carbon::parse(($rdv->date ?? '') . ' ' . ($rdv->heure ?? '00:00'))->format('Y-m-d\TH:i') }}">
-                    <div class="d-flex justify-content-between align-items-start">
-                      <div>
-                        <div class="item-header">
-                          {{ optional($rdv->patient)->nom ?? optional(optional($rdv->patient)->user)->name ?? '—' }}
-                          {{ optional($rdv->patient)->prenom ?? '' }}
-                        </div>
-                        <div class="item-meta">
-                          <i class="bi bi-person-badge me-1"></i>Avec Dr. {{ optional($rdv->medecin)->name ?? '—' }}
-                        </div>
-                      </div>
-                      <div class="text-end">
-                        <div class="badge bg-light text-dark border mb-1">
-                          {{ \Carbon\Carbon::parse($rdv->date)->format('d/m/Y') }} {{ $rdv->heure }}
-                        </div>
-                        <br>
-                        <span class="badge {{ in_array(strtolower($rdv->statut), ['confirmé','confirme','confirmée','confirmee']) ? 'bg-success' : (in_array(strtolower($rdv->statut), ['annulé','annule','annulée','annulee']) ? 'bg-secondary' : 'bg-warning text-dark') }}">
-                          {{ str_replace('_',' ', $rdv->statut ?? '') }}
-                        </span>
-                      </div>
-                    </div>
-                  </li>
-                @endforeach
-              </ul>
-            @endif
-          </div>
-        </div>
-      </div>
-
-      {{-- Onglet Dossiers à MAJ --}}
-      <div class="tab-pane fade" id="dossiers" role="tabpanel" aria-labelledby="dossiers-tab">
-        <div class="modern-card card-dossiers">
-          <div class="modern-card-header">
-            <i class="bi bi-folder-open"></i>
-            <span>Dossiers nécessitant une mise à jour</span>
-            <span class="badge bg-white text-warning ms-auto">{{ $dossiers->count() ?? 0 }}</span>
-          </div>
-          <div class="modern-card-body">
-            @if($dossiers->isEmpty())
-              <div class="text-center py-4">
-                <i class="bi bi-folder-check display-4 text-muted mb-3"></i>
-                <h5 class="text-muted">Tous les dossiers sont à jour</h5>
-                <p class="text-muted">Excellent travail ! Aucune mise à jour en attente.</p>
-              </div>
-            @else
-              <ul class="item-list">
-                @foreach($dossiers as $dossier)
-                  <li>
-                    <div class="item-header">
-                      {{ $dossier->patient->nom ?? 'Inconnu' }} {{ $dossier->patient->prenom ?? '' }}
-                    </div>
-                    <div class="item-meta">
-                      <i class="bi bi-clipboard-data me-1"></i>{{ $dossier->observation ?? 'Observation manquante' }}
-                    </div>
-                  </li>
-                @endforeach
-              </ul>
-            @endif
-          </div>
-        </div>
-      </div>
     </div>
 
-    {{-- Actions rapides modernes --}}
-    <div class="mt-5">
-      <h4 class="mb-3"><i class="bi bi-lightning-charge me-2"></i>Actions Rapides</h4>
-      <div class="action-grid">
-        <a href="{{ route('suivi.create') }}" class="action-card">
-          <div class="action-icon">
-            <i class="bi bi-heart-pulse"></i>
-          </div>
-          <div class="action-content">
-            <h5>Saisir un suivi patient</h5>
-            <p>Enregistrer les constantes vitales d'un patient</p>
-          </div>
-          @if(isset($suivis) && $suivis->count() > 0)
-            <div class="action-badge">{{ $suivis->count() }}</div>
-          @endif
-        </a>
-
-        <a href="{{ route('dossier.index') }}" class="action-card">
-          <div class="action-icon">
-            <i class="bi bi-file-earmark-plus"></i>
-          </div>
-          <div class="action-content">
-            <h5>Nouveau dossier</h5>
-            <p>Accéder à la gestion des dossiers patients</p>
-          </div>
-        </a>
-
-        <a href="{{ route('dossier.index') }}" class="action-card">
-          <div class="action-icon">
-            <i class="bi bi-folder-open"></i>
-          </div>
-          <div class="action-content">
-            <h5>Mettre à jour dossiers</h5>
-            <p>Modifier les informations des dossiers patients</p>
-          </div>
-          @if(isset($dossiers) && $dossiers->count() > 0)
-            <div class="action-badge">{{ $dossiers->count() }}</div>
-          @endif
-        </a>
-
-        <a href="{{ route('historique.index') }}" class="action-card">
-          <div class="action-icon">
-            <i class="bi bi-clock-history"></i>
-          </div>
-          <div class="action-content">
-            <h5>Historique des soins</h5>
-            <p>Consulter l'historique complet des soins</p>
-          </div>
-        </a>
-      </div>
-    </div>
         </div>
     </div>
   </div>

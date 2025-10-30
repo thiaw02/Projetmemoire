@@ -713,14 +713,14 @@
             
             <div class="form-group">
               <label class="form-label">
-                <i class="bi bi-person-workspace"></i>
-                Secrétaire assigné(e)
+                <i class="bi bi-building"></i>
+                Service assigné
               </label>
-              <select name="secretary_user_id" class="form-select-modern">
-                <option value="">-- Aucune assignment --</option>
-                @foreach(($secretaires ?? []) as $sec)
-                  @php $assigned = $p->secretary_user_id ?? null; @endphp
-                  <option value="{{ $sec->id }}" {{ old('secretary_user_id', $assigned)==$sec->id?'selected':'' }}>{{ $sec->name }} ({{ $sec->email }})</option>
+              @php $oldServices = collect(old('services', $p?->services?->pluck('id')->all() ?? [])); @endphp
+              <select name="services[]" class="form-select-modern">
+                <option value="">-- Sélectionner un service --</option>
+                @foreach(($services ?? []) as $srv)
+                  <option value="{{ $srv->id }}" {{ $oldServices->contains($srv->id) ? 'selected' : '' }}>{{ $srv->name }}</option>
                 @endforeach
               </select>
             </div>

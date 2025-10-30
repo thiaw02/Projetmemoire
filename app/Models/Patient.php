@@ -53,6 +53,11 @@ class Patient extends Model
         return $this->hasMany(Ordonnances::class);
     }
 
+    public function services()
+    {
+        return $this->belongsToMany(Service::class, 'patient_service');
+    }
+
     public function dossierpatients()
     {
         return $this->hasMany(Dossier_medicaux::class);

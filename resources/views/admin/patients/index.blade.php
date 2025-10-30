@@ -195,6 +195,8 @@
   </table>
 </div>
 
+{{-- Pagination retirée --}}
+
     </div> {{-- Fin admin-main-content --}}
   </div> {{-- Fin col-lg-9 --}}
 </div> {{-- Fin row --}}
