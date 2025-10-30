@@ -12,16 +12,6 @@ class PaymentService
     {
         $provider = strtolower($provider);
         
-        // Mode sandbox activé pour les tests
-        if (config('app.env') !== 'production' && env('PAYMENTS_SANDBOX', true)) {
-            // Mode sandbox: page locale pour simuler succès/annulation
-            $order->provider = $provider;
-            $order->provider_ref = 'sandbox_'.Str::random(10);
-            $order->payment_url = route('payments.sandbox', ['order' => $order->id]);
-            $order->save();
-            return $order;
-        }
-        
         if (in_array($provider, ['paydunya','payd'])) {
             return $this->createPayDunya($order);
         }
