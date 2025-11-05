@@ -139,6 +139,20 @@ class SecretaireController extends Controller
         return view('secretaire.payments_pdf', $data);
     }
 
+    public function markOrderPaid(int $orderId)
+    {
+        $order = \App\Models\Order::findOrFail($orderId);
+        if ($order->status !== 'paid') {
+            $order->status = 'paid';
+            $order->paid_at = now();
+            $meta = $order->metadata ?? [];
+            $meta['marked_paid_by'] = auth()->id();
+            $order->metadata = $meta;
+            $order->save();
+        }
+        return back()->with('success', 'Paiement encaissé (cash) et marqué comme payé.');
+    }
+
     public function dashboard()
     {
         // Statistiques des patients

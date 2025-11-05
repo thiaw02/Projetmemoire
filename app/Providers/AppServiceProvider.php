@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Pagination\Paginator;
+use App\Models\User;
+use App\Observers\UserObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -23,5 +25,8 @@ class AppServiceProvider extends ServiceProvider
         // Configuration de la pagination personnalisée
         Paginator::defaultView('layouts.partials.pagination');
         Paginator::defaultSimpleView('layouts.partials.pagination');
+
+        // Observer pour l'affectation automatique infirmier ↔ médecin par service
+        User::observe(UserObserver::class);
     }
 }

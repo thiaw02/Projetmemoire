@@ -45,6 +45,9 @@
   <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#createServiceModal">
     <i class="bi bi-building me-1"></i> Nouveau service
   </button>
+  <a href="{{ route('admin.services.index') }}" class="btn btn-outline-primary">
+    <i class="bi bi-list-check me-1"></i> Voir services
+  </a>
   <a href="{{ route('admin.audit.index') }}" class="btn btn-outline-secondary">
     <i class="bi bi-clipboard-data me-1"></i> Logs d'audit
   </a>

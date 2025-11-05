@@ -69,8 +69,7 @@
         <div class="col-md-4">
           <label class="form-label fw-semibold"><i class="bi bi-building me-1"></i>Prestataire</label>
           <select name="provider" class="form-select">
-            <option value="wave">Wave</option>
-            <option value="orangemoney">Orange Money</option>
+            <option value="paydunya" selected>PayDunya (PAR)</option>
           </select>
         </div>
         <div class="col-md-4">
@@ -119,6 +118,14 @@
             <div class="d-flex gap-1 justify-content-end">
               @if($o->payment_url && $o->status==='pending')
                 <a class="btn btn-outline-primary btn-sm" href="{{ $o->payment_url }}" target="_blank"><i class="bi bi-box-arrow-up-right me-1"></i>Ouvrir</a>
+              @endif
+              @if($o->status==='pending')
+                <form action="{{ route('secretaire.payments.markPaid', $o->id) }}" method="POST" class="d-inline">
+                  @csrf
+                  <button class="btn btn-outline-success btn-sm" onclick="return confirm('Confirmer l\'encaissement en espèces ?');">
+                    <i class="bi bi-cash-coin me-1"></i>Marquer payé (cash)
+                  </button>
+                </form>
               @endif
               @if($o->status==='paid')
                 <a class="btn btn-outline-success btn-sm" href="{{ route('payments.receipt', $o->id) }}"><i class="bi bi-receipt me-1"></i>Quittance</a>

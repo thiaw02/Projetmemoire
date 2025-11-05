@@ -32,6 +32,23 @@
     @endif
     
     <hr class="profile-divider">
+
+    @if(($user->role ?? '') === 'admin')
+      <a href="{{ route('admin.payments.index') }}" class="profile-settings-btn">
+        <i class="bi bi-credit-card"></i>
+        Paiements
+      </a>
+    @elseif(($user->role ?? '') === 'secretaire')
+      <a href="{{ route('secretaire.payments') }}" class="profile-settings-btn">
+        <i class="bi bi-credit-card"></i>
+        Paiements
+      </a>
+    @elseif(($user->role ?? '') === 'patient')
+      <a href="{{ route('patient.payments.index') }}" class="profile-settings-btn">
+        <i class="bi bi-credit-card"></i>
+        Paiements
+      </a>
+    @endif
     
     @if(false)
     <ul class="profile-info text-start">

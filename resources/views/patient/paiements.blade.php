@@ -34,6 +34,13 @@
                 <i class="bi bi-arrow-left"></i>
                 <span>Retour</span>
               </a>
+              @php($latestPending = $orders->where('status','pending')->first())
+              @if($latestPending && $latestPending->payment_url)
+                <a href="{{ $latestPending->payment_url }}" class="btn btn-success">
+                  <i class="bi bi-cash-coin"></i>
+                  <span>Payer maintenant</span>
+                </a>
+              @endif
               <div class="stats-cards">
                 <div class="stat-card success">
                   <div class="stat-icon"><i class="bi bi-check-circle"></i></div>
@@ -412,6 +419,9 @@
                     <a href="{{ $order->payment_url }}" class="btn-action continue">
                       <i class="bi bi-play"></i> Continuer
                     </a>
+                    <button type="button" class="btn-action receipt" onclick="copyPaymentLink('{{ $order->payment_url }}')">
+                      <i class="bi bi-link-45deg"></i> Lien
+                    </button>
                   @elseif($order->status === 'paid')
                     <a href="{{ route('payments.receipt', $order->id) }}" class="btn-action receipt">
                       <i class="bi bi-download"></i> Reçu
@@ -432,7 +442,6 @@
       </div>
     </div>
   </div>
-</div>
 
 <!-- CSS optimisé pour structure harmonisée -->
 <style>

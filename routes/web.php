@@ -92,6 +92,14 @@ Route::prefix('admin')->middleware('auth')->group(function () {
     // Services (admin uniquement)
     Route::middleware('role:admin')->group(function () {
         Route::resource('services', \App\Http\Controllers\ServiceController::class)->names('admin.services');
+        Route::post('services/change-user-service', [\App\Http\Controllers\ServiceController::class, 'changeUserService'])->name('admin.services.change-user-service');
+
+        // Paiements (admin)
+        Route::get('payments', [\App\Http\Controllers\AdminPaymentsController::class, 'index'])->name('admin.payments.index');
+        Route::get('payments/settings', [\App\Http\Controllers\AdminPaymentsController::class, 'settings'])->name('admin.payments.settings');
+        Route::get('payments/reports', [\App\Http\Controllers\AdminPaymentsController::class, 'reports'])->name('admin.payments.reports');
+        Route::post('payments/per-credit', [\App\Http\Controllers\AdminPaymentsController::class, 'perCredit'])->name('admin.payments.per.credit');
+        Route::post('payments/{order}/mark-paid', [\App\Http\Controllers\AdminPaymentsController::class, 'markOrderPaid'])->name('admin.payments.markPaid');
     });
 
     // Patients
@@ -143,6 +151,7 @@ Route::prefix('secretaire')->middleware(['auth'])->group(function() {
     Route::post('/payments/settings', [SecretaireController::class, 'savePaymentsSettings'])->name('secretaire.payments.settings.save');
     Route::get('/payments/export/csv', [SecretaireController::class, 'exportPaymentsCsv'])->name('secretaire.payments.export.csv');
     Route::get('/payments/export/pdf', [SecretaireController::class, 'exportPaymentsPdf'])->name('secretaire.payments.export.pdf');
+    Route::post('/payments/{order}/mark-paid', [SecretaireController::class, 'markOrderPaid'])->name('secretaire.payments.markPaid');
 });
 
 // ===================== MEDECIN =====================

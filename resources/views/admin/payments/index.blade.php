@@ -8,6 +8,39 @@
     <div class="admin-intelligent-sidebar sidebar-standardized">
       @include('layouts.partials.profile_sidebar')
     </div>
+
+  <div class="action-card per-card">
+    <div class="card-header">
+      <i class="bi bi-arrow-left-right"></i>
+      <span>Paiement et Redistribution (PER)</span>
+    </div>
+    <div class="card-body">
+      <p>Créditez un compte PayDunya (email ou numéro mobile) d'un montant spécifié.</p>
+      @if(session('error'))
+        <div class="alert alert-danger">{{ session('error') }}</div>
+      @endif
+      @if(session('success'))
+        <div class="alert alert-success">{{ session('success') }}</div>
+      @endif
+      <form action="{{ route('admin.payments.per.credit') }}" method="POST" class="row g-2">
+        @csrf
+        <div class="col-md-7">
+          <label class="form-label">Destinataire (email ou mobile PayDunya)</label>
+          <input type="text" name="recipient" class="form-control" placeholder="ex: email@exemple.com ou 771234567" required>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Montant (XOF)</label>
+          <input type="number" name="amount" class="form-control" min="100" step="100" required>
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+          <button class="btn btn-primary w-100">
+            <i class="bi bi-send"></i> Créditer
+          </button>
+        </div>
+      </form>
+      <small class="text-muted d-block mt-2">Assurez-vous que le PER est activé dans la configuration de votre application PayDunya.</small>
+    </div>
+  </div>
   </div>
   <div class="col-lg-9">
     <div class="admin-main-content">
