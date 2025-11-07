@@ -1279,9 +1279,6 @@
     <li class="nav-item" role="presentation">
         <button class="nav-link" id="permissions-tab" data-bs-toggle="tab" data-bs-target="#permissions" type="button" role="tab" aria-controls="permissions" aria-selected="false"><i class="bi bi-shield-lock me-1"></i> Gestion permissions</button>
     </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" id="payments-tab" data-bs-toggle="tab" data-bs-target="#payments" type="button" role="tab" aria-controls="payments" aria-selected="false"><i class="bi bi-wallet2 me-1"></i> Paiements</button>
-    </li>
 </ul>
 </div>
 
@@ -1830,9 +1827,11 @@
                     <p class="text-muted mb-0">Suivi des transactions, revenus et qualité de service</p>
                 </div>
                 <div class="d-flex gap-2">
+                    @if(env('PAYMENTS_ENABLED', false))
                     <a href="{{ route('secretaire.payments') }}" class="btn btn-primary btn-sm">
                         <i class="bi bi-gear me-1"></i>Gérer paiement
                     </a>
+                    @endif
                 </div>
             </div>
         </div>
@@ -1943,7 +1942,7 @@
                                 </td>
                                 <td class="text-end">
                                     <div class="d-flex gap-1 justify-content-end">
-                                        @if($o->status === 'paid')
+                                        @if($o->status === 'paid' && env('PAYMENTS_ENABLED', false))
                                             <a href="{{ route('payments.receipt', $o->id) }}" class="btn btn-outline-success btn-sm" title="Télécharger la quittance">
                                                 <i class="bi bi-receipt"></i>
                                             </a>

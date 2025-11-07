@@ -36,9 +36,11 @@
     <li class="nav-item" role="presentation">
         <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab"><i class="bi bi-speedometer2 me-1"></i> Vue d'ensemble</button>
     </li>
+    @if(env('PAYMENTS_ENABLED', false))
     <li class="nav-item" role="presentation">
         <button class="nav-link" id="payments-tab" data-bs-toggle="tab" data-bs-target="#payments" type="button" role="tab"><i class="bi bi-wallet2 me-1"></i> Paiements</button>
     </li>
+    @endif
     <li class="nav-item" role="presentation">
         <button class="nav-link" id="quick-actions-tab" data-bs-toggle="tab" data-bs-target="#quick-actions" type="button" role="tab"><i class="bi bi-lightning me-1"></i> Actions rapides</button>
     </li>
@@ -226,6 +228,7 @@
     </div>
         </div> {{-- Fin onglet overview --}}
 
+        @if(env('PAYMENTS_ENABLED', false))
         {{-- Onglet Paiements --}}
         <div class="tab-pane fade" id="payments" role="tabpanel">
             <div class="row g-3 mb-4">
@@ -330,6 +333,8 @@
             </div>
         </div>
 
+        @endif
+
         {{-- Onglet Actions rapides avec design moderne --}}
         <div class="tab-pane fade" id="quick-actions" role="tabpanel">
             <div class="row g-4">
@@ -391,6 +396,7 @@
                         </div>
                         <div class="action-body">
                             <p class="action-description">Gestion complète des paiements : création de liens, exports et paramètres.</p>
+                            @if(env('PAYMENTS_ENABLED', false))
                             <div class="d-flex gap-2 flex-wrap">
                                 <a href="{{ route('secretaire.payments') }}" class="btn btn-info btn-sm">
                                     <i class="bi bi-wallet2 me-1"></i> Paiements
@@ -399,6 +405,7 @@
                                     <i class="bi bi-gear me-1"></i> Tarifs
                                 </a>
                             </div>
+                            @endif
                         </div>
                     </div>
                 </div>

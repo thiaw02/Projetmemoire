@@ -95,11 +95,13 @@ Route::prefix('admin')->middleware('auth')->group(function () {
         Route::post('services/change-user-service', [\App\Http\Controllers\ServiceController::class, 'changeUserService'])->name('admin.services.change-user-service');
 
         // Paiements (admin)
-        Route::get('payments', [\App\Http\Controllers\AdminPaymentsController::class, 'index'])->name('admin.payments.index');
-        Route::get('payments/settings', [\App\Http\Controllers\AdminPaymentsController::class, 'settings'])->name('admin.payments.settings');
-        Route::get('payments/reports', [\App\Http\Controllers\AdminPaymentsController::class, 'reports'])->name('admin.payments.reports');
-        Route::post('payments/per-credit', [\App\Http\Controllers\AdminPaymentsController::class, 'perCredit'])->name('admin.payments.per.credit');
-        Route::post('payments/{order}/mark-paid', [\App\Http\Controllers\AdminPaymentsController::class, 'markOrderPaid'])->name('admin.payments.markPaid');
+        if (env('PAYMENTS_ENABLED', false)) {
+            Route::get('payments', [\App\Http\Controllers\AdminPaymentsController::class, 'index'])->name('admin.payments.index');
+            Route::get('payments/settings', [\App\Http\Controllers\AdminPaymentsController::class, 'settings'])->name('admin.payments.settings');
+            Route::get('payments/reports', [\App\Http\Controllers\AdminPaymentsController::class, 'reports'])->name('admin.payments.reports');
+            Route::post('payments/per-credit', [\App\Http\Controllers\AdminPaymentsController::class, 'perCredit'])->name('admin.payments.per.credit');
+            Route::post('payments/{order}/mark-paid', [\App\Http\Controllers\AdminPaymentsController::class, 'markOrderPaid'])->name('admin.payments.markPaid');
+        }
     });
 
     // Patients
@@ -145,13 +147,15 @@ Route::prefix('secretaire')->middleware(['auth'])->group(function() {
     Route::put('/admissions/{id}', [SecretaireController::class, 'updateAdmission'])->name('secretaire.updateAdmission');
 
     // Paiements
-    Route::get('/payments', [SecretaireController::class, 'payments'])->name('secretaire.payments');
-    Route::post('/payments', [SecretaireController::class, 'createPaymentLink'])->name('secretaire.payments.create');
-    Route::get('/payments/settings', [SecretaireController::class, 'paymentsSettings'])->name('secretaire.payments.settings');
-    Route::post('/payments/settings', [SecretaireController::class, 'savePaymentsSettings'])->name('secretaire.payments.settings.save');
-    Route::get('/payments/export/csv', [SecretaireController::class, 'exportPaymentsCsv'])->name('secretaire.payments.export.csv');
-    Route::get('/payments/export/pdf', [SecretaireController::class, 'exportPaymentsPdf'])->name('secretaire.payments.export.pdf');
-    Route::post('/payments/{order}/mark-paid', [SecretaireController::class, 'markOrderPaid'])->name('secretaire.payments.markPaid');
+    if (env('PAYMENTS_ENABLED', false)) {
+        Route::get('/payments', [SecretaireController::class, 'payments'])->name('secretaire.payments');
+        Route::post('/payments', [SecretaireController::class, 'createPaymentLink'])->name('secretaire.payments.create');
+        Route::get('/payments/settings', [SecretaireController::class, 'paymentsSettings'])->name('secretaire.payments.settings');
+        Route::post('/payments/settings', [SecretaireController::class, 'savePaymentsSettings'])->name('secretaire.payments.settings.save');
+        Route::get('/payments/export/csv', [SecretaireController::class, 'exportPaymentsCsv'])->name('secretaire.payments.export.csv');
+        Route::get('/payments/export/pdf', [SecretaireController::class, 'exportPaymentsPdf'])->name('secretaire.payments.export.pdf');
+        Route::post('/payments/{order}/mark-paid', [SecretaireController::class, 'markOrderPaid'])->name('secretaire.payments.markPaid');
+    }
 });
 
 // ===================== MEDECIN =====================
@@ -214,8 +218,10 @@ Route::prefix('patient')->middleware('auth')->group(function () {
     Route::put('/rendezvous/{id}', [PatientController::class, 'updateRendezVous'])->name('patient.rendezvous.update');
 
     // Paiements
-    Route::get('/paiements', [\App\Http\Controllers\PaymentController::class, 'patientIndex'])->name('patient.payments.index');
-    Route::post('/paiements/checkout', [\App\Http\Controllers\PaymentController::class, 'checkout'])->name('patient.payments.checkout');
+    if (env('PAYMENTS_ENABLED', false)) {
+        Route::get('/paiements', [\App\Http\Controllers\PaymentController::class, 'patientIndex'])->name('patient.payments.index');
+        Route::post('/paiements/checkout', [\App\Http\Controllers\PaymentController::class, 'checkout'])->name('patient.payments.checkout');
+    }
     
     // Paramètres et personnalisation
     Route::get('/settings', [\App\Http\Controllers\PatientSettingsController::class, 'index'])->name('patient.settings');
@@ -230,17 +236,19 @@ Route::prefix('patient')->middleware('auth')->group(function () {
     Route::get('/services/{serviceId}/medecins', [PatientController::class, 'getMedecinsByService'])->name('patient.services.medecins');
 });
 
-// Paiements: callbacks
-Route::get('/payments/success', [\App\Http\Controllers\PaymentController::class, 'success'])->name('payments.success');
-Route::get('/payments/cancel', [\App\Http\Controllers\PaymentController::class, 'cancel'])->name('payments.cancel');
-Route::get('/payments/sandbox/{order}', [\App\Http\Controllers\PaymentController::class, 'sandbox'])->middleware('auth')->name('payments.sandbox');
-Route::get('/payments/{order}/receipt', [\App\Http\Controllers\PaymentController::class, 'receipt'])->middleware('auth')->name('payments.receipt');
+// Paiements: callbacks et webhooks
+if (env('PAYMENTS_ENABLED', false)) {
+    Route::get('/payments/success', [\App\Http\Controllers\PaymentController::class, 'success'])->name('payments.success');
+    Route::get('/payments/cancel', [\App\Http\Controllers\PaymentController::class, 'cancel'])->name('payments.cancel');
+    Route::get('/payments/sandbox/{order}', [\App\Http\Controllers\PaymentController::class, 'sandbox'])->middleware('auth')->name('payments.sandbox');
+    Route::get('/payments/{order}/receipt', [\App\Http\Controllers\PaymentController::class, 'receipt'])->middleware('auth')->name('payments.receipt');
 
-// Webhooks
-Route::post('/webhooks/paydunya', [\App\Http\Controllers\PaymentController::class, 'webhookPayDunya'])->name('webhooks.paydunya');
+    // Webhooks
+    Route::post('/webhooks/paydunya', [\App\Http\Controllers\PaymentController::class, 'webhookPayDunya'])->name('webhooks.paydunya');
 
-// PayDunya verification
-Route::get('/payments/paydunya/verify', [\App\Http\Controllers\PaymentController::class, 'verifyPayDunya'])->name('payments.paydunya.verify');
+    // PayDunya verification
+    Route::get('/payments/paydunya/verify', [\App\Http\Controllers\PaymentController::class, 'verifyPayDunya'])->name('payments.paydunya.verify');
+}
 
 // Page succès inscription
 Route::get('/register/success', function () {
