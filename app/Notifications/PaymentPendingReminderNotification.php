@@ -20,7 +20,7 @@ class PaymentPendingReminderNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        $url = $this->order->payment_url ?: route('patient.payments.index');
+        $url = $this->order->payment_url ?: route('patient.dashboard');
         return (new MailMessage)
             ->subject('Rappel de paiement en attente - ' . config('app.name'))
             ->greeting('Bonjour ' . ($notifiable->name ?? ''))

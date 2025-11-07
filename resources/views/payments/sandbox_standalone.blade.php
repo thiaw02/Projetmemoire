@@ -140,8 +140,8 @@
                     <i class="bi bi-x-circle me-2"></i>Simuler Annulation
                 </a>
 
-                <a href="{{ route('patient.payments.index') }}" class="btn btn-info-test btn-test">
-                    <i class="bi bi-arrow-left me-2"></i>Retour aux Paiements
+                <a href="{{ route('patient.dashboard') }}" class="btn btn-info-test btn-test">
+                    <i class="bi bi-arrow-left me-2"></i>Retour à l'espace patient
                 </a>
 
                 <div class="mt-4 p-3 bg-light rounded">

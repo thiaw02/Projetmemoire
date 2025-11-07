@@ -146,7 +146,7 @@ class PaymentController extends Controller
             $order->save();
         }
         $this->sendReceiptIfNotSent($order);
-        return redirect()->route('patient.payments.index')->with('success', 'Paiement confirmé. Merci.');
+        return redirect()->route('patient.dashboard')->with('success', 'Paiement confirmé. Merci.');
     }
 
     public function cancel(Request $request)
@@ -157,7 +157,7 @@ class PaymentController extends Controller
             $order->status = 'canceled';
             $order->save();
         }
-        return redirect()->route('patient.payments.index')->with('success', 'Paiement annulé.');
+        return redirect()->route('patient.dashboard')->with('success', 'Paiement annulé.');
     }
 
     public function webhookPayDunya(Request $request)
@@ -203,21 +203,21 @@ class PaymentController extends Controller
     {
         $token = $request->get('token');
         if (!$token) {
-            return redirect()->route('patient.payments.index')->with('error', 'Token de paiement manquant.');
+            return redirect()->route('patient.dashboard')->with('error', 'Token de paiement manquant.');
         }
 
         $paydunyaService = new PayDunyaService();
         $result = $paydunyaService->verifyPayment($token);
 
         if (!$result['success']) {
-            return redirect()->route('patient.payments.index')->with('error', $result['error']);
+            return redirect()->route('patient.dashboard')->with('error', $result['error']);
         }
 
         $orderId = $result['order_id'];
         $order = Order::find($orderId);
 
         if (!$order) {
-            return redirect()->route('patient.payments.index')->with('error', 'Commande introuvable.');
+            return redirect()->route('patient.dashboard')->with('error', 'Commande introuvable.');
         }
 
         if ($result['status'] === 'completed') {
@@ -236,7 +236,7 @@ class PaymentController extends Controller
             return redirect()->route('payments.cancel', ['order' => $order->id])
                 ->with('error', 'Paiement annulé.');
         } else {
-            return redirect()->route('patient.payments.index')
+            return redirect()->route('patient.dashboard')
                 ->with('warning', 'Paiement en attente de confirmation.');
         }
     }

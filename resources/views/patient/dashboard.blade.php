@@ -17,10 +17,12 @@
           <p>Gérez vos rendez-vous et consultez votre dossier médical</p>
         </div>
         <div class="header-actions">
+          @if(env('PAYMENTS_ENABLED', false))
           <a href="{{ route('patient.payments.index') }}" class="btn-quick-action payment" title="Gérer les paiements">
             <i class="bi bi-credit-card"></i>
             <span class="d-none d-md-inline">Paiements</span>
           </a>
+          @endif
           <a href="{{ route('simple-evaluations.my-evaluations') }}" class="btn-quick-action evaluation" title="Mes évaluations">
             <i class="bi bi-star-fill"></i>
             <span class="d-none d-md-inline">Évaluations</span>
